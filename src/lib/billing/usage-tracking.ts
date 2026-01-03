@@ -117,7 +117,9 @@ export async function getUsageMetrics(
     // Get features used (from plan features)
     const featuresUsed: string[] = []; // Placeholder
 
-    const availableFeatures = school?.plan?.features ? Object.keys(school.plan.features) : [];
+    const availableFeatures = school?.plan?.features
+      ? Object.keys(school.plan.features)
+      : [];
 
     return {
       students: {
@@ -156,12 +158,14 @@ export async function checkUsageLimits(schoolId: string) {
     const metrics = await getUsageMetrics(schoolId);
 
     const limitsExceeded = {
-      students: metrics.students.total >= (metrics.students.total * 1.1), // 10% buffer
+      students: metrics.students.total >= metrics.students.total * 1.1, // 10% buffer
       storage: metrics.storage.percentage >= 100,
       api: metrics.api.percentage >= 100,
     };
 
-    const anyLimitExceeded = Object.values(limitsExceeded).some(exceeded => exceeded);
+    const anyLimitExceeded = Object.values(limitsExceeded).some(
+      (exceeded) => exceeded
+    );
 
     return {
       limitsExceeded,
@@ -183,7 +187,10 @@ export async function checkUsageLimits(schoolId: string) {
  * @param schoolId - The school ID
  * @param feature - The feature name
  */
-export async function trackFeatureUsage(schoolId: string, feature: string): Promise<void> {
+export async function trackFeatureUsage(
+  schoolId: string,
+  feature: string
+): Promise<void> {
   await trackUsage(schoolId, `feature_${feature}`, 1, { feature });
 }
 
@@ -213,7 +220,9 @@ export async function getUsageHistory(
  * Clean up old usage records
  * @param daysOld - Remove records older than this many days
  */
-export async function cleanupOldUsageRecords(daysOld: number = 365): Promise<void> {
+export async function cleanupOldUsageRecords(
+  daysOld: number = 365
+): Promise<void> {
   try {
     // TODO: Implement cleanup when UsageRecord model is added to schema
     console.log(`Would cleanup usage records older than ${daysOld} days`);
