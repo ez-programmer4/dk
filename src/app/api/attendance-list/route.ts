@@ -1,0 +1,605 @@
+﻿import { PrismaClient } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { startOfDay, endOfDay, isValid } from "date-fns";
+import { getEthiopianTime } from "@/lib/ethiopian-time";
+
+// Force dynamic rendering
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const prisma = new PrismaClient();
+
+// Utility to format attendance status
+const formatAttendanceStatus = (status: string | null | undefined): string => {
+  const validStatuses = ["Present", "Absent", "Permission", "Not Taken"];
+  if (!status) return "Not Taken";
+  const normalizedStatus =
+    status?.charAt(0)?.toUpperCase() + status?.slice(1).toLowerCase() ||
+    "Not Taken";
+  return validStatuses.includes(normalizedStatus)
+    ? normalizedStatus
+    : "Not Taken";
+};
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    if (
+      !session ||
+      !["controller", "registral", "admin"].includes(session.role) ||
+      !session.username
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    // Use Ethiopian local time for default date since we store times in UTC+3
+    const ethiopianNow = getEthiopianTime();
+    const defaultDate = ethiopianNow.toISOString().split("T")[0];
+    const date = searchParams.get("date") || defaultDate;
+    const startDate = searchParams.get("startDate") || "";
+    const endDate = searchParams.get("endDate") || "";
+    const ustaz = searchParams.get("ustaz") || "";
+    const attendanceStatus = searchParams.get("attendanceStatus") || "";
+    const sentStatus = searchParams.get("sentStatus") || "";
+    const clickedStatus = searchParams.get("clickedStatus") || "";
+    // Robust pagination parsing with support for limit=all
+    const pageParam = searchParams.get("page") || "1";
+    const limitParam = searchParams.get("limit") || "10";
+    const isAll =
+      typeof limitParam === "string" && limitParam.toLowerCase() === "all";
+    const page = Number.isNaN(parseInt(pageParam, 10))
+      ? 1
+      : parseInt(pageParam, 10);
+    const limit = isAll
+      ? undefined
+      : Number.isNaN(parseInt(limitParam, 10))
+      ? 10
+      : parseInt(limitParam, 10);
+    const notify = searchParams.get("notify")
+      ? parseInt(searchParams.get("notify") || "0", 10)
+      : 0;
+    const controllerId = searchParams.get("controllerId") || session.code || "";
+
+    if (!controllerId) {
+      return NextResponse.json(
+        { error: "Controller ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate date
+    let dayStart, dayEnd;
+    try {
+      const parsedDate = new Date(date);
+      if (!isValid(parsedDate)) {
+        throw new Error("Invalid date provided");
+      }
+      dayStart = startOfDay(parsedDate);
+      dayEnd = endOfDay(parsedDate);
+    } catch (error) {
+      console.error("Invalid date format:", date, error);
+      return NextResponse.json(
+        { error: "Invalid date format" },
+        { status: 400 }
+      );
+    }
+
+    // Determine day packages for the selected day
+    const selectedDayName = new Date(date).toLocaleDateString("en-US", {
+      weekday: "long",
+    });
+    // Build day package filters based on selected day
+    const dayPackageOr = [];
+
+    // Always include "All days" students
+    dayPackageOr.push({ daypackages: { contains: "All days" } });
+    dayPackageOr.push({ daypackages: { contains: "all days" } });
+
+    // Add specific day name
+    dayPackageOr.push({ daypackages: { contains: selectedDayName } });
+
+    // Add package-specific filters based on the day
+    if (["Monday", "Wednesday", "Friday"].includes(selectedDayName)) {
+      dayPackageOr.push({ daypackages: { contains: "MWF" } });
+      dayPackageOr.push({ daypackages: { contains: "mwf" } });
+    }
+
+    if (["Tuesday", "Thursday", "Saturday"].includes(selectedDayName)) {
+      dayPackageOr.push({ daypackages: { contains: "TTS" } });
+      dayPackageOr.push({ daypackages: { contains: "tts" } });
+    }
+
+    // Include null/empty for backward compatibility
+    dayPackageOr.push({ daypackages: null });
+    dayPackageOr.push({ daypackages: "" });
+
+    // Notify logic
+    if (notify) {
+      const student = await prisma.wpos_wpdatatable_23.findUnique({
+        where: { wdt_ID: notify },
+        include: {
+          teacher: true,
+          occupiedTimes: { select: { time_slot: true } },
+        },
+      });
+      if (!student || !student.teacher) {
+        return NextResponse.json(
+          { error: "Student or teacher not found" },
+          { status: 404 }
+        );
+      }
+      const teacherPhone = student.teacher.phone;
+      if (!teacherPhone) {
+        return NextResponse.json(
+          { error: "Teacher phone number not found" },
+          { status: 400 }
+        );
+      }
+
+      const apiToken = process.env.AFROMSG_API_TOKEN;
+      const senderUid = process.env.AFROMSG_SENDER_UID;
+      const senderName = process.env.AFROMSG_SENDER_NAME;
+
+      if (!apiToken || !senderUid || !senderName) {
+        console.error("SMS service credentials missing in .env");
+        return NextResponse.json(
+          { error: "SMS service not configured" },
+          { status: 500 }
+        );
+      }
+
+      const message = `لٹ لˆ°لˆ‹لˆ™لٹ لˆˆل‹­لٹ©لˆ‌ ل‹ˆلˆ¨لˆ…لˆکل‰±لˆڈلˆ‚ ل‹ˆل‰ لˆ¨لٹ«ل‰µلˆپ 
+      ==================================================
+      لˆˆ ل‰°لˆ›لˆھ ${
+        student.name
+      } ل‹¨ ل‹™لˆ‌ لˆٹلٹ•لٹ­ ل‰  لˆ°لٹ ل‰± لٹ لˆچل‰°لˆ‹لٹ¨لˆ‌ لچ،لچ، ل‰  ل‰°ل‰»لˆˆ لچچلŒ¥لٹگل‰µ ل‹­لˆ‹لٹ© لچ،لچ،
+      ==================================================
+      ل‹¨ ل‰°لˆ›لˆھل‹چ ل‹¨ ل‰‚لˆ­لٹ ل‰µ لˆ°لٹ ل‰µ لچ، ${
+        student.occupiedTimes?.[0]?.time_slot || "Not specified"
+      }
+      ==================================================
+      Darulkubra Management`;
+
+      try {
+        const smsRes = await fetch("https://api.afromessage.com/api/send", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: senderUid,
+            sender: senderName,
+            to: teacherPhone,
+            message,
+          }),
+        });
+
+        const smsText = await smsRes.text();
+        return NextResponse.json({
+          message: "Notification sent to teacher",
+          smsStatus: smsRes.status,
+          smsResponse: smsText,
+        });
+      } catch (err: any) {
+        console.error("SMS sending failed:", err.message);
+        return NextResponse.json(
+          { error: "Failed to send SMS", details: err.message },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Build where clause - ensure only Active and Not yet students
+    const whereClause: any = {
+      u_control: controllerId,
+      status: { in: ["active", "not yet", "Active", "Not Yet", "Not yet"] },
+      OR: dayPackageOr,
+    };
+
+    if (ustaz) {
+      whereClause.teacher = {
+        ustazname: ustaz,
+      };
+    }
+
+    if (attendanceStatus) {
+      whereClause.attendance_progress = {
+        some: {
+          date: {
+            gte: dayStart,
+            lte: dayEnd,
+          },
+          attendance_status: { equals: attendanceStatus },
+        },
+      };
+    }
+
+    // Fetch students with matching day packages
+    const records = await prisma.wpos_wpdatatable_23.findMany({
+      where: whereClause,
+      include: {
+        zoom_links: {
+          where: {
+            sent_time: {
+              gte: dayStart,
+              lte: dayEnd,
+            },
+          },
+          select: {
+            id: true,
+            link: true,
+            sent_time: true,
+            clicked_at: true,
+            expiration_date: true,
+            report: true,
+            tracking_token: true,
+          },
+        },
+        attendance_progress: {
+          where: {
+            date: {
+              gte: dayStart,
+              lte: dayEnd,
+            },
+          },
+          select: {
+            attendance_status: true,
+            date: true,
+          },
+        },
+        controller: { select: { name: true } },
+        occupiedTimes: { select: { time_slot: true } },
+      },
+      ...(limit !== undefined && {
+        skip: (page - 1) * (limit as number),
+        take: limit as number,
+      }),
+    });
+
+    // Get teacher info to avoid relation issues
+    const teacherIds = records
+      .map((record: any) => record.ustaz)
+      .filter((id: any) => id && id !== "");
+
+    let teacherMap: { [key: string]: { name: string; phone: string } } = {};
+    if (teacherIds.length > 0) {
+      try {
+        const teachers = await prisma.wpos_wpdatatable_24.findMany({
+          where: {
+            ustazid: {
+              in: [...new Set(teacherIds.filter((id) => id !== null))],
+            },
+          },
+          select: { ustazid: true, ustazname: true, phone: true },
+        });
+        teacherMap = teachers.reduce((acc, teacher) => {
+          acc[teacher.ustazid] = {
+            name: teacher.ustazname || teacher.ustazid,
+            phone: teacher.phone || "",
+          };
+          return acc;
+        }, {} as { [key: string]: { name: string; phone: string } });
+      } catch (error) {
+        teacherIds
+          .filter((id) => id !== null)
+          .forEach((id) => {
+            teacherMap[id] = { name: id, phone: "" };
+          });
+      }
+    }
+
+    const integratedData = await Promise.all(
+      records.map(async (record: any) => {
+        function to24Hour(time12h: string | null | undefined) {
+          if (!time12h || !/\d{1,2}:\d{2}\s?(AM|PM)/i.test(time12h))
+            return "00:00";
+          try {
+            const [time, modifier] = time12h.split(" ");
+            let [hours, minutes] = time.split(":");
+            if (hours === "12") {
+              hours = modifier.toUpperCase() === "AM" ? "00" : "12";
+            } else if (modifier.toUpperCase() === "PM") {
+              hours = String(parseInt(hours, 10) + 12);
+            }
+            return `${hours.padStart(2, "0")}:${minutes}`;
+          } catch {
+            return "00:00";
+          }
+        }
+
+        const time24 = record.occupiedTimes?.[0]?.time_slot;
+        const scheduledAt = time24 ? `${date}T${time24}.000Z` : null;
+
+        const linksForDay = (record.zoom_links || []).map((zl: any) => ({
+          id: zl.id,
+          link: zl.link,
+          sent_time: zl.sent_time ? zl.sent_time.toISOString() : null,
+          clicked_at: zl.clicked_at ? zl.clicked_at.toISOString() : null,
+          expiration_date: zl.expiration_date
+            ? zl.expiration_date.toISOString()
+            : null,
+          report: zl.report || null,
+          tracking_token: zl.tracking_token || null,
+        }));
+
+        const dailyAttendance = record.attendance_progress?.[0];
+        const attendance_status = formatAttendanceStatus(
+          dailyAttendance?.attendance_status
+        );
+
+        let absentDaysCount = 0;
+        if (
+          startDate &&
+          endDate &&
+          isValid(new Date(startDate)) &&
+          isValid(new Date(endDate))
+        ) {
+          // Get all attendance records for this student in the date range
+          const attendanceInRange =
+            await prisma.student_attendance_progress.findMany({
+              where: {
+                student_id: record.wdt_ID,
+                date: {
+                  gte: new Date(startDate),
+                  lte: new Date(endDate),
+                },
+                attendance_status: "Absent",
+              },
+            });
+          absentDaysCount = attendanceInRange.length;
+        }
+
+        return {
+          student_id: record.wdt_ID,
+          studentName: record.name || "Unknown",
+          ustazName: record.ustaz
+            ? teacherMap[record.ustaz]?.name || record.ustaz
+            : "Unknown",
+          controllerName: record.controller?.name || "N/A",
+          scheduledAt,
+          links: linksForDay,
+          attendance_status,
+          absentDaysCount,
+          daypackages: record.daypackages || "All days",
+        };
+      })
+    );
+
+    const total = await prisma.wpos_wpdatatable_23.count({
+      where: whereClause,
+    });
+
+    // Get total stats for all matching students (not just current page)
+    const totalRecords = await prisma.wpos_wpdatatable_23.findMany({
+      where: whereClause,
+      include: {
+        zoom_links: {
+          where: {
+            sent_time: {
+              gte: dayStart,
+              lte: dayEnd,
+            },
+          },
+          select: {
+            id: true,
+            link: true,
+            sent_time: true,
+            clicked_at: true,
+          },
+        },
+        attendance_progress: {
+          where: {
+            date: {
+              gte: dayStart,
+              lte: dayEnd,
+            },
+          },
+          select: {
+            attendance_status: true,
+          },
+        },
+      },
+    });
+
+    const allIntegratedData = totalRecords.map((record: any) => {
+      const dailyAttendance = record.attendance_progress?.[0];
+      const attendance_status = formatAttendanceStatus(
+        dailyAttendance?.attendance_status
+      );
+      return {
+        attendance_status,
+        links: record.zoom_links || [],
+      };
+    });
+
+    const stats = {
+      totalStudents: allIntegratedData.length,
+      presentCount: allIntegratedData.filter(
+        (r) => r.attendance_status === "Present"
+      ).length,
+      absentCount: allIntegratedData.filter(
+        (r) => r.attendance_status === "Absent"
+      ).length,
+      permissionCount: allIntegratedData.filter(
+        (r) => r.attendance_status === "Permission"
+      ).length,
+      notTakenCount: allIntegratedData.filter(
+        (r) => r.attendance_status === "Not Taken"
+      ).length,
+      totalLinks: allIntegratedData.reduce(
+        (sum: number, r: any) => sum + r.links.length,
+        0
+      ),
+      totalSent: allIntegratedData.reduce(
+        (sum: number, r: any) =>
+          sum + r.links.filter((l: any) => l.sent_time).length,
+        0
+      ),
+      totalClicked: allIntegratedData.reduce(
+        (sum: number, r: any) =>
+          sum + r.links.filter((l: any) => l.clicked_at).length,
+        0
+      ),
+      responseRate:
+        allIntegratedData.length > 0
+          ? `${(
+              (allIntegratedData.filter(
+                (r: any) => r.attendance_status === "Present"
+              ).length /
+                allIntegratedData.length) *
+              100
+            ).toFixed(2)}%`
+          : "0.00%",
+    };
+
+    // Get all unique teachers for filter dropdown
+    const allTeachersQuery = await prisma.wpos_wpdatatable_23.findMany({
+      where: {
+        ...whereClause,
+        ustaz: { not: null },
+      },
+      select: {
+        ustaz: true,
+      },
+      distinct: ["ustaz"],
+    });
+
+    // Get teacher names separately to avoid relation issues
+    const teacherIdsForNames = allTeachersQuery
+      .map((r: any) => r.ustaz)
+      .filter((id: any) => id && id !== "");
+
+    let teacherNameMap: { [key: string]: string } = {};
+    if (teacherIdsForNames.length > 0) {
+      try {
+        const teachers = await prisma.wpos_wpdatatable_24.findMany({
+          where: { ustazid: { in: [...new Set(teacherIdsForNames)] } },
+          select: { ustazid: true, ustazname: true },
+        });
+        teacherNameMap = teachers.reduce((acc, teacher) => {
+          acc[teacher.ustazid] = teacher.ustazname || teacher.ustazid;
+          return acc;
+        }, {} as { [key: string]: string });
+      } catch (error) {
+        teacherIdsForNames.forEach((id) => {
+          teacherNameMap[id] = id;
+        });
+      }
+    }
+
+    const allTeachers = teacherIdsForNames
+      .map((id: string) => teacherNameMap[id] || id)
+      .filter((name, index, arr) => arr.indexOf(name) === index);
+
+    return NextResponse.json({
+      integratedData,
+      total,
+      stats,
+      allTeachers,
+    });
+  } catch (error: any) {
+    console.error("Error in /api/attendance-list:", {
+      message: error.message,
+      stack: error.stack,
+      queryParams: Object.fromEntries(new URL(req.url).searchParams),
+    });
+    return NextResponse.json(
+      { error: "Failed to fetch attendance data", details: error.message },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    if (
+      !session ||
+      !["controller", "registral", "admin"].includes(session.role)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { updates } = await req.json();
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return NextResponse.json(
+        { error: "Invalid or empty updates array" },
+        { status: 400 }
+      );
+    }
+
+    for (const update of updates) {
+      const { student_id, date, attendance_status } = update;
+      if (!student_id || !date || !attendance_status) {
+        return NextResponse.json(
+          { error: "Missing required fields in update" },
+          { status: 400 }
+        );
+      }
+
+      const parsedDate = new Date(date);
+      if (!isValid(parsedDate)) {
+        return NextResponse.json(
+          { error: `Invalid date format for student ${student_id}` },
+          { status: 400 }
+        );
+      }
+
+      const formattedStatus = formatAttendanceStatus(attendance_status);
+      // Try to find existing record first
+      const existingRecord = await prisma.student_attendance_progress.findFirst(
+        {
+          where: {
+            student_id,
+            date: startOfDay(parsedDate),
+          },
+        }
+      );
+
+      if (existingRecord) {
+        // Update existing record
+        await prisma.student_attendance_progress.update({
+          where: {
+            id: existingRecord.id,
+          },
+          data: {
+            attendance_status: formattedStatus,
+          },
+        });
+      } else {
+        // Create new record
+        await prisma.student_attendance_progress.create({
+          data: {
+            student_id,
+            date: startOfDay(parsedDate),
+            attendance_status: formattedStatus,
+          },
+        });
+      }
+    }
+
+    return NextResponse.json({ message: "Attendance updated successfully" });
+  } catch (error: any) {
+    console.error("Error in POST /api/attendance-list:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    return NextResponse.json(
+      { error: "Failed to update attendance", details: error.message },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
