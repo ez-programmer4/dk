@@ -61,7 +61,7 @@ export function useAuth(options: UseAuthOptions = {}) {
             redirectUrl = schoolSlug ? `/controller/${schoolSlug}/dashboard` : '/login';
             break;
           case 'registral':
-            redirectUrl = schoolSlug ? `/registral/${schoolSlug}/earnings` : '/login';
+            redirectUrl = schoolSlug ? `/registral/${schoolSlug}/dashboard` : '/login';
             break;
           case 'parent':
             redirectUrl = '/parent/dashboard';

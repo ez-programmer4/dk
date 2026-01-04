@@ -29,10 +29,10 @@ import {
 } from "react-icons/fi";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
-import ConfirmModal from "../components/ConfirmModal";
+import ConfirmModal from "@/app/components/ConfirmModal";
 import { useSession, signOut } from "next-auth/react";
 
 interface Registration {
@@ -69,7 +69,9 @@ function to24Hour(time12h: string): string {
   return `${h.toString().padStart(2, "0")}:${minute}`;
 }
 
-export default function Dashboard() {
+export default function RegistralDashboard() {
+  const params = useParams();
+  const schoolSlug = params.schoolSlug as string;
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -815,7 +817,7 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     try {
-      await signOut({ callbackUrl: "/login" });
+      await signOut({ callbackUrl: "/login", redirect: true });
     } catch (error) {
       setNotification({
         message: "Failed to logout",
@@ -892,20 +894,20 @@ export default function Dashboard() {
             </div>
             <div className="flex flex-col md:flex-row gap-4">
               <Link
-                href="/registration"
+                href={`/registral/${schoolSlug}/registration`}
                 className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white px-6 py-3 rounded-xl flex items-center shadow-md hover:shadow-lg transition-all duration-300"
               >
                 <FiPlus className="mr-2" /> New Registration
               </Link>
 
               <Link
-                href="/registral/earnings"
+                href={`/registral/${schoolSlug}/earnings`}
                 className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white px-6 py-3 rounded-xl flex items-center shadow-md hover:shadow-lg transition-all duration-300"
               >
                 <FiPlus className="mr-2" /> My earning
               </Link>
               <Link
-                href="/us-student"
+                href={`/us-student?schoolSlug=${schoolSlug}`}
                 className="relative bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl flex items-center shadow-md hover:shadow-lg transition-all duration-300"
               >
                 <FiUser className="mr-2" /> US Students
@@ -1445,7 +1447,7 @@ export default function Dashboard() {
                                 )}
                               </motion.button>
                               <Link
-                                href={`/registration?id=${reg.id}&step=3`}
+                                href={`/registral/${schoolSlug}/registration?id=${reg.id}&step=3`}
                                 className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors"
                                 title="Edit"
                               >
@@ -1759,7 +1761,7 @@ export default function Dashboard() {
                   : "Get started by creating your first student registration"}
               </p>
               <Link
-                href="/registration"
+                href={`/registral/${schoolSlug}/registration`}
                 className="mt-6 inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300"
               >
                 <FiPlus className="mr-2" /> Add New Student

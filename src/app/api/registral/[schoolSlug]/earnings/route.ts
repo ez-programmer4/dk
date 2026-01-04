@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 
@@ -7,7 +7,10 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
     const session = await getToken({
       req: request,
@@ -29,7 +32,19 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const month =
       searchParams.get("month") || new Date().toISOString().slice(0, 7);
+    const schoolSlug = params.schoolSlug;
     const registralName = session.name || session.username;
+
+    // Determine schoolId for filtering
+    const schoolId = schoolSlug === "darulkubra" ? null : schoolSlug;
+
+    // Check if user has access to this school
+    if (session.schoolSlug && session.schoolSlug !== schoolSlug) {
+      return NextResponse.json(
+        { error: "Forbidden - Access to this school not allowed" },
+        { status: 403 }
+      );
+    }
 
     // Validate registral name
     if (!registralName) {
@@ -41,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     // Get successful registrations (started + paid in same month)
     const successQuery = `
-      SELECT 
+      SELECT
         s.wdt_ID,
         s.subject
       FROM wpos_wpdatatable_23 s
@@ -52,29 +67,33 @@ export async function GET(request: NextRequest) {
         AND s.status IN ('Active', 'Not yet')
         AND m.month = ?
         AND (UPPER(m.payment_status) IN ('PAID','COMPLETE','SUCCESS') OR m.is_free_month = 1)
+        ${schoolId ? `AND s.schoolId = ?` : `AND (s.schoolId IS NULL OR s.schoolId = '')`}
     `;
 
     const successResults = (await prisma.$queryRawUnsafe(
       successQuery,
       registralName,
       month,
-      month
+      month,
+      ...(schoolId ? [schoolId] : [])
     )) as any[];
 
     // Get total registrations in month (only Active and Not yet statuses, excluding referrals)
     const totalQuery = `
       SELECT COUNT(*) as count
-      FROM wpos_wpdatatable_23 
+      FROM wpos_wpdatatable_23
       WHERE rigistral = ?
         AND (refer IS NULL OR refer = '')
         AND DATE_FORMAT(registrationdate, '%Y-%m') = ?
         AND status IN ('Active', 'Not yet')
+        ${schoolId ? `AND schoolId = ?` : `AND (schoolId IS NULL OR schoolId = '')`}
     `;
 
     const totalResult = (await prisma.$queryRawUnsafe(
       totalQuery,
       registralName,
-      month
+      month,
+      ...(schoolId ? [schoolId] : [])
     )) as any[];
 
     // Calculate not success count (total registrations - successful registrations)

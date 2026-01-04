@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useParams } from "next/navigation";
 import {
   FiDollarSign,
   FiUsers,
@@ -29,27 +30,25 @@ interface RegistrarEarning {
 }
 
 export default function RegistralEarningsPage() {
+  const params = useParams();
+  const schoolSlug = params.schoolSlug as string;
   const { data: session } = useSession();
   const [earnings, setEarnings] = useState<RegistrarEarning | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${(now.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}`;
+    return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
   });
 
   const fetchEarnings = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `/api/registral/earnings?month=${selectedMonth}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch earnings");
+      const response = await fetch(`/api/registral/${schoolSlug}/earnings?month=${selectedMonth}`);
+      if (!response.ok) throw new Error('Failed to fetch earnings');
       const data = await response.json();
       setEarnings(data.earnings || null);
     } catch (error) {
-      console.error("Error fetching earnings:", error);
+      console.error('Error fetching earnings:', error);
     } finally {
       setLoading(false);
     }
@@ -57,7 +56,7 @@ export default function RegistralEarningsPage() {
 
   useEffect(() => {
     fetchEarnings();
-  }, [selectedMonth]);
+  }, [selectedMonth, schoolSlug]);
 
   if (loading) {
     return (
@@ -90,12 +89,8 @@ export default function RegistralEarningsPage() {
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
                   My Earnings Dashboard
                 </h1>
-                <p className="text-gray-600 text-lg mt-2">
-                  Track your performance and rewards
-                </p>
-                <p className="text-emerald-600 font-semibold mt-1">
-                  Welcome, {session?.user?.name}!
-                </p>
+                <p className="text-gray-600 text-lg mt-2">Track your performance and rewards</p>
+                <p className="text-emerald-600 font-semibold mt-1">Welcome, {session?.user?.name}!</p>
               </div>
             </div>
 
@@ -138,9 +133,7 @@ export default function RegistralEarningsPage() {
                       Total Reward
                     </span>
                   </div>
-                  <div className="text-4xl font-bold mb-2">
-                    ${earnings.reward}
-                  </div>
+                  <div className="text-4xl font-bold mb-2">${earnings.reward}</div>
                   <div className="text-emerald-100">Your monthly earnings</div>
                 </div>
               </motion.div>
@@ -159,9 +152,7 @@ export default function RegistralEarningsPage() {
                       Registrations
                     </span>
                   </div>
-                  <div className="text-4xl font-bold mb-2">
-                    {earnings.totalReg}
-                  </div>
+                  <div className="text-4xl font-bold mb-2">{earnings.totalReg}</div>
                   <div className="text-blue-100">Total this month</div>
                 </div>
               </motion.div>
@@ -181,12 +172,7 @@ export default function RegistralEarningsPage() {
                     </span>
                   </div>
                   <div className="text-4xl font-bold mb-2">
-                    {earnings.totalReg > 0
-                      ? Math.round(
-                          (earnings.successReg / earnings.totalReg) * 100
-                        )
-                      : 0}
-                    %
+                    {earnings.totalReg > 0 ? Math.round((earnings.successReg / earnings.totalReg) * 100) : 0}%
                   </div>
                   <div className="text-purple-100">Conversion rate</div>
                 </div>
@@ -206,9 +192,7 @@ export default function RegistralEarningsPage() {
                       Level
                     </span>
                   </div>
-                  <div className="text-2xl font-bold mb-2">
-                    {earnings.level || "Standard"}
-                  </div>
+                  <div className="text-2xl font-bold mb-2">{earnings.level || "Standard"}</div>
                   <div className="text-orange-100">Your current level</div>
                 </div>
               </motion.div>
@@ -222,12 +206,8 @@ export default function RegistralEarningsPage() {
               className="bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden"
             >
               <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                  Performance Breakdown
-                </h2>
-                <p className="text-gray-600">
-                  Detailed analysis of your monthly performance
-                </p>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Performance Breakdown</h2>
+                <p className="text-gray-600">Detailed analysis of your monthly performance</p>
               </div>
 
               <div className="p-8">
@@ -237,15 +217,9 @@ export default function RegistralEarningsPage() {
                     <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mx-auto mb-4">
                       <FiTarget className="h-10 w-10 text-green-600" />
                     </div>
-                    <div className="text-3xl font-bold text-green-600 mb-2">
-                      {earnings.successReg}
-                    </div>
-                    <div className="text-gray-600 font-medium">
-                      Success Registrations
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Students who started & paid
-                    </div>
+                    <div className="text-3xl font-bold text-green-600 mb-2">{earnings.successReg}</div>
+                    <div className="text-gray-600 font-medium">Success Registrations</div>
+                    <div className="text-sm text-gray-500 mt-1">Students who started & paid</div>
                   </div>
 
                   {/* Reading Students */}
@@ -253,15 +227,9 @@ export default function RegistralEarningsPage() {
                     <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-4">
                       <FiActivity className="h-10 w-10 text-blue-600" />
                     </div>
-                    <div className="text-3xl font-bold text-blue-600 mb-2">
-                      {earnings.reading}
-                    </div>
-                    <div className="text-gray-600 font-medium">
-                      Reading Students
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Nethor & Qaidah ($50 each)
-                    </div>
+                    <div className="text-3xl font-bold text-blue-600 mb-2">{earnings.reading}</div>
+                    <div className="text-gray-600 font-medium">Reading Students</div>
+                    <div className="text-sm text-gray-500 mt-1">Nethor & Qaidah ($50 each)</div>
                   </div>
 
                   {/* Hifz Students */}
@@ -269,15 +237,9 @@ export default function RegistralEarningsPage() {
                     <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center mx-auto mb-4">
                       <FiStar className="h-10 w-10 text-purple-600" />
                     </div>
-                    <div className="text-3xl font-bold text-purple-600 mb-2">
-                      {earnings.hifz}
-                    </div>
-                    <div className="text-gray-600 font-medium">
-                      Hifz Students
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Memorization ($100 each)
-                    </div>
+                    <div className="text-3xl font-bold text-purple-600 mb-2">{earnings.hifz}</div>
+                    <div className="text-gray-600 font-medium">Hifz Students</div>
+                    <div className="text-sm text-gray-500 mt-1">Memorization ($100 each)</div>
                   </div>
 
                   {/* Not Success */}
@@ -285,13 +247,9 @@ export default function RegistralEarningsPage() {
                     <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-4">
                       <FiTrendingDown className="h-10 w-10 text-red-600" />
                     </div>
-                    <div className="text-3xl font-bold text-red-600 mb-2">
-                      {earnings.notSuccess}
-                    </div>
+                    <div className="text-3xl font-bold text-red-600 mb-2">{earnings.notSuccess}</div>
                     <div className="text-gray-600 font-medium">Not Success</div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Students who didn't continue
-                    </div>
+                    <div className="text-sm text-gray-500 mt-1">Students who didn't continue</div>
                   </div>
 
                   {/* Reward Calculation */}
@@ -303,29 +261,17 @@ export default function RegistralEarningsPage() {
                       </h3>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-700">
-                            Reading Students ({earnings.reading} × $50)
-                          </span>
-                          <span className="font-bold text-emerald-600">
-                            ${earnings.reading * 50}
-                          </span>
+                          <span className="text-gray-700">Reading Students ({earnings.reading} × $50)</span>
+                          <span className="font-bold text-emerald-600">${earnings.reading * 50}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-700">
-                            Hifz Students ({earnings.hifz} × $100)
-                          </span>
-                          <span className="font-bold text-emerald-600">
-                            ${earnings.hifz * 100}
-                          </span>
+                          <span className="text-gray-700">Hifz Students ({earnings.hifz} × $100)</span>
+                          <span className="font-bold text-emerald-600">${earnings.hifz * 100}</span>
                         </div>
                         <div className="border-t border-emerald-200 pt-3">
                           <div className="flex justify-between items-center">
-                            <span className="text-lg font-bold text-emerald-800">
-                              Total Reward
-                            </span>
-                            <span className="text-2xl font-bold text-emerald-600">
-                              ${earnings.reward}
-                            </span>
+                            <span className="text-lg font-bold text-emerald-800">Total Reward</span>
+                            <span className="text-2xl font-bold text-emerald-600">${earnings.reward}</span>
                           </div>
                         </div>
                       </div>
@@ -344,15 +290,9 @@ export default function RegistralEarningsPage() {
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <FiUsers className="h-12 w-12 text-gray-400" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-600 mb-4">
-              No Earnings Data
-            </h3>
-            <p className="text-gray-500 text-lg">
-              No earnings found for the selected month.
-            </p>
-            <p className="text-gray-400 mt-2">
-              Try selecting a different month or start registering students!
-            </p>
+            <h3 className="text-2xl font-bold text-gray-600 mb-4">No Earnings Data</h3>
+            <p className="text-gray-500 text-lg">No earnings found for the selected month.</p>
+            <p className="text-gray-400 mt-2">Try selecting a different month or start registering students!</p>
           </motion.div>
         )}
       </div>

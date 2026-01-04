@@ -1,9 +1,10 @@
 "use client";
+
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import {
@@ -117,6 +118,8 @@ const convertTo12Hour = (time: string): string => {
 };
 
 function RegistrationContent() {
+  const params = useParams();
+  const schoolSlug = params.schoolSlug as string;
   const searchParams = useSearchParams();
   const editId = searchParams.get("id");
   const initialStep = parseInt(searchParams.get("step") || "1", 10);
@@ -353,7 +356,7 @@ function RegistrationContent() {
 
       const normalized = normalizeStatus(currentStatusValue);
 
-      // Try to find exact or case-insensitive match in available statuses
+      // Try to find exact match first
       const allAvailableStatuses = [
         ...studentConfigs.statuses,
         "Not yet",
@@ -936,9 +939,9 @@ function RegistrationContent() {
       sessionStorage.removeItem("usStudentId");
 
       setTimeout(() => {
-        // Redirect admins back to admin students page after update
-        if ((session as any)?.role === "admin" && editId) {
-          window.location.href = "/admin/students";
+        // Redirect registral back to registral dashboard after update
+        if ((session as any)?.role === "registral" && editId) {
+          window.location.href = `/registral/${schoolSlug}/dashboard`;
         } else if (usStudentId) {
           window.location.href = "/dashboard";
         } else {
@@ -1157,7 +1160,7 @@ function RegistrationContent() {
   //     selectedTime === slot.time
   //       ? "bg-teal-600 text-white shadow-md"
   //       : availableTimeSlots[slot.time]
-  //       ? "bg-gray-50 text-gray-800 hover:bg-teal-50 border border-gray-200 hover:border-teal-300"
+  //       ? "bg-white text-gray-800 hover:bg-green-50 border border-gray-200 hover:border-green-300"
   //       : "bg-gray-200 text-gray-400 border border-gray-200 cursor-not-allowed"
   //   }`}
   //   title={
@@ -1578,7 +1581,6 @@ function RegistrationContent() {
                                             : "bg-red-500"
                                         }`}
                                       />
-
                                       <div className="flex items-center justify-between">
                                         <div className="flex flex-col">
                                           <span className="text-lg font-bold">
@@ -2573,7 +2575,7 @@ function RegistrationContent() {
                           </select>
                         ) : (
                           <div className="w-full px-5 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 text-sm">
-                           sorry, No controllers available
+                            Sorry, No controllers available
                           </div>
                         )}
                       </div>
@@ -2600,7 +2602,7 @@ function RegistrationContent() {
                         >
                           <option value="">Select config (optional)</option>
                           {subscriptionConfigs.map((config) => (
-                            <option key={config.id} value={config.id}>
+                            <option key={config.id} value={config.name}>
                               {config.name}
                               {config.description
                                 ? ` - ${config.description}`
@@ -2691,7 +2693,7 @@ function RegistrationContent() {
   );
 }
 
-export default function Registration() {
+export default function Registration({ params }: { params: { schoolSlug: string } }) {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <RegistrationContent />
