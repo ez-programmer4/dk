@@ -17,6 +17,7 @@ import {
   FiHome,
   FiTrendingUp,
   FiClipboard,
+  FiUsers
 } from "react-icons/fi";
 import { signOut } from "next-auth/react";
 
@@ -165,7 +166,9 @@ export default function RegistralLayout({
                 }}
               />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{schoolName}</h1>
+                <h1 className="text-xl font-bold text-gray-900">
+                  {schoolName}
+                </h1>
                 <p className="text-xs text-gray-500">Registral Portal</p>
               </div>
             </div>
@@ -227,9 +230,7 @@ export default function RegistralLayout({
 
         {/* Main Content */}
         <main className="flex-1 p-8">
-          <AnimatePresence mode="wait">
-            {children}
-          </AnimatePresence>
+          <AnimatePresence mode="wait">{children}</AnimatePresence>
         </main>
       </div>
     </div>

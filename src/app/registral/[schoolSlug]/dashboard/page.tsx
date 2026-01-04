@@ -26,6 +26,7 @@ import {
   FiArrowDown,
   FiBarChart2,
   FiLogOut,
+  FiUsers,
 } from "react-icons/fi";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
