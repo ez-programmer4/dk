@@ -21,3 +21,4 @@ async function testDatabaseQuery() {
 }
 
 testDatabaseQuery();
+

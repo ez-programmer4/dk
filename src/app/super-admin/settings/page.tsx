@@ -966,3 +966,4 @@ export default function SuperAdminSettings() {
     </div>
   );
 }
+

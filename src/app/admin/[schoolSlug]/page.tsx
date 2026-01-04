@@ -23,6 +23,7 @@ import {
   FiClock,
   FiShield,
   FiStar,
+  FiZap,
 } from "react-icons/fi";
 import {
   BarChart,
@@ -39,7 +40,6 @@ import {
   Pie,
   Cell,
   AreaChart,
-  FiZap,
   Area,
 } from "recharts";
 import { DateRange } from "react-day-picker";
