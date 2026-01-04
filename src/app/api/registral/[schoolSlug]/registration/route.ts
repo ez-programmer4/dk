@@ -57,12 +57,12 @@ const checkTeacherAvailability = async (
     ? teacher.schedule.split(",").map((t) => t.trim())
     : [];
 
-  // Normalize time formats for comparison
+  // Normalize time formats for comparison - handle both 12-hour and 24-hour formats with seconds
   const normalizedScheduleTimes = scheduleTimes.map((time) => {
     try {
-      return to24Hour(time);
+      return to24Hour(time); // This now handles HH:MM:SS format properly
     } catch {
-      return time;
+      return time; // Keep original if conversion fails
     }
   });
 
@@ -95,6 +95,7 @@ const checkTeacherAvailability = async (
     const normalize = (pkg: string) => pkg.trim().toLowerCase();
     const sel = normalize(selectedPackage);
 
+    // Check each existing booking for conflicts with the new booking
     for (const booking of teacherBookings) {
       const booked = normalize(booking.daypackage);
       if (booked === sel) {
@@ -114,8 +115,11 @@ const checkTeacherAvailability = async (
   return { isAvailable: true };
 };
 
-// Main registration API supporting all user roles with multi-tenancy
-export async function POST(request: NextRequest) {
+// Multi-tenant registral registration API - FULL FUNCTIONALITY
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
     const session = await getToken({
       req: request,
@@ -126,33 +130,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const {
-      fullName,
-      phoneNumber,
-      parentPhone,
-      classfee,
-      classfeeCurrency,
-      startdate,
-      status,
-      ustaz,
-      package: regionPackage,
-      subject,
-      country,
-      daypackages: selectedDayPackage,
-      refer,
-      selectedTime,
-      registrationdate,
-      email,
-      usStudentId,
-      chatId,
-      reason,
-      subscriptionPackageConfigId,
-      schoolSlug,
-    } = body;
+    if (session.role !== "registral") {
+      return NextResponse.json(
+        { message: "Forbidden - Registral role required" },
+        { status: 403 }
+      );
+    }
 
-    // Derive schoolId for multi-tenancy based on user's school association
+    const schoolSlug = params.schoolSlug;
+    // Get schoolId from the user's school association
     const userSchoolSlug = session.schoolSlug || "darulkubra";
+
+    // Verify the registral belongs to the correct school
+    if (session.schoolSlug !== schoolSlug) {
+      return NextResponse.json(
+        {
+          error:
+            "Unauthorized - You can only manage students for your assigned school",
+        },
+        { status: 403 }
+      );
+    }
 
     // Determine schoolId - create school if it doesn't exist for non-darulkubra
     let schoolId = userSchoolSlug === "darulkubra" ? null : userSchoolSlug;
@@ -181,7 +179,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Basic validation (required for all roles)
+    const body = await request.json();
+    const {
+      fullName,
+      phoneNumber,
+      parentPhone,
+      classfee,
+      classfeeCurrency,
+      startdate,
+      status,
+      ustaz,
+      package: regionPackage,
+      subject,
+      country,
+      daypackages: selectedDayPackage,
+      refer,
+      selectedTime,
+      registrationdate,
+      email,
+      usStudentId,
+      chatId,
+      reason,
+      subscriptionPackageConfigId,
+    } = body;
+
+    // Basic validation (registral gets simplified validation)
     if (!fullName || fullName.trim() === "") {
       return NextResponse.json(
         { message: "Full name is required" },
@@ -195,46 +217,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Role-based validation
-    if (session.role === "controller" && !selectedDayPackage) {
-      return NextResponse.json(
-        { message: "Day package is required" },
-        { status: 400 }
-      );
-    }
-
     // For registral users - simplified validation
     // Only require teacher and time if status is not "On Progress"
-    if (session.role === "registral") {
-      if (status !== "On Progress" && status !== "on progress") {
-        if (!ustaz || ustaz.trim() === "") {
-          return NextResponse.json(
-            { message: "Teacher is required" },
-            { status: 400 }
-          );
-        }
-        if (!selectedTime || selectedTime.trim() === "") {
-          return NextResponse.json(
-            { message: "Selected time is required" },
-            { status: 400 }
-          );
-        }
+    if (status !== "On Progress" && status !== "on progress") {
+      if (!ustaz || ustaz.trim() === "") {
+        return NextResponse.json(
+          { message: "Teacher is required" },
+          { status: 400 }
+        );
       }
-    } else {
-      // For admin/controller - require teacher and time for non-"On Progress" statuses
-      if (status !== "On Progress" && status !== "on progress") {
-        if (!ustaz || ustaz.trim() === "") {
-          return NextResponse.json(
-            { message: "Teacher is required" },
-            { status: 400 }
-          );
-        }
-        if (!selectedTime || selectedTime.trim() === "") {
-          return NextResponse.json(
-            { message: "Selected time is required" },
-            { status: 400 }
-          );
-        }
+      if (!selectedTime || selectedTime.trim() === "") {
+        return NextResponse.json(
+          { message: "Selected time is required" },
+          { status: 400 }
+        );
       }
     }
 
@@ -251,6 +247,14 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+    }
+
+    // Day package is required for registral users
+    if (!selectedDayPackage || selectedDayPackage.trim() === "") {
+      return NextResponse.json(
+        { message: "Day package is required" },
+        { status: 400 }
+      );
     }
 
     let timeToMatch: string = "",
@@ -277,7 +281,7 @@ export async function POST(request: NextRequest) {
       // Check teacher availability
       const availability = await checkTeacherAvailability(
         timeToMatch,
-        selectedDayPackage || "",
+        selectedDayPackage,
         ustaz,
         undefined,
         schoolId
@@ -303,7 +307,7 @@ export async function POST(request: NextRequest) {
               { time_slot: toDbFormat(selectedTime) },
               { time_slot: timeToMatch },
             ],
-            daypackage: selectedDayPackage || "",
+            daypackage: selectedDayPackage,
             end_at: null, // Only active assignments
             ...(schoolId ? { schoolId } : { schoolId: null }),
           },
@@ -334,7 +338,7 @@ export async function POST(request: NextRequest) {
       // Check for day package conflicts
       const hasConflict = existingBookings.some((booking) => {
         const normalize = (pkg: string) => pkg.trim().toLowerCase();
-        const sel = (selectedDayPackage || "").toLowerCase();
+        const sel = selectedDayPackage.toLowerCase();
         const booked = booking.daypackage.toLowerCase();
 
         // If either the existing booking or the new booking is "All days", there's a conflict
@@ -365,10 +369,8 @@ export async function POST(request: NextRequest) {
     // Determine the u_control value (controller assignment)
     let u_control = null;
 
-    if (session.role === "controller") {
-      u_control = session.code;
-    } else if (ustaz && ustaz.trim() !== "") {
-      // For registral/admin, auto-assign based on teacher
+    // For registral, we can auto-assign based on teacher or leave it null
+    if (ustaz && ustaz.trim() !== "") {
       const teacher = await prismaClient.wpos_wpdatatable_24.findUnique({
         where: { ustazid: ustaz },
         select: { control: true },
@@ -397,8 +399,8 @@ export async function POST(request: NextRequest) {
         package: regionPackage || null,
         subject: subject || null,
         country: country || null,
-        rigistral: session.role === "registral" ? session.username : null,
-        daypackages: selectedDayPackage || null,
+        rigistral: session.username,
+        daypackages: selectedDayPackage,
         refer: refer || null,
         registrationdate: registrationdate
           ? new Date(registrationdate)
@@ -445,7 +447,7 @@ export async function POST(request: NextRequest) {
             ustaz_id: ustaz,
             student_id: registration.wdt_ID,
             time_slot: timeSlot,
-            daypackage: selectedDayPackage || "",
+            daypackage: selectedDayPackage,
             occupied_at: new Date(),
             end_at: null,
             schoolId: schoolId,
@@ -469,8 +471,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET method for fetching registrations
-export async function GET(request: NextRequest) {
+// GET method for registral to fetch their registrations - FULL FUNCTIONALITY
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
     const session = await getToken({
       req: request,
@@ -481,41 +486,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    if (session.role !== "registral") {
+      return NextResponse.json(
+        { message: "Forbidden - Registral role required" },
+        { status: 403 }
+      );
+    }
+
+    const schoolSlug = params.schoolSlug;
+    // Get schoolId from the user's school association
+    const userSchoolSlug = session.schoolSlug || "darulkubra";
+    const schoolId = userSchoolSlug === "darulkubra" ? null : userSchoolSlug;
+
+    // Verify the registral belongs to the correct school
+    if (session.schoolSlug !== schoolSlug) {
+      return NextResponse.json(
+        {
+          error:
+            "Unauthorized - You can only manage students for your assigned school",
+        },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const student = searchParams.get("student");
     const daypackage = searchParams.get("daypackage");
-    const schoolSlug = searchParams.get("schoolSlug");
-
-    // Derive schoolId for multi-tenancy based on user's school association
-    const userSchoolSlug = session.schoolSlug || "darulkubra";
-
-    // Determine schoolId - create school if it doesn't exist for non-darulkubra
-    let schoolId = userSchoolSlug === "darulkubra" ? null : userSchoolSlug;
-
-    if (schoolId && userSchoolSlug !== "darulkubra") {
-      // Check if school exists, create if not
-      const existingSchool = await prismaClient.school.findUnique({
-        where: { slug: userSchoolSlug },
-        select: { id: true, name: true },
-      });
-
-      if (!existingSchool) {
-        // Create the school automatically
-        const newSchool = await prismaClient.school.create({
-          data: {
-            slug: userSchoolSlug,
-            name: `${
-              userSchoolSlug.charAt(0).toUpperCase() + userSchoolSlug.slice(1)
-            } School`,
-            email: `admin@${userSchoolSlug}.com`,
-          },
-        });
-        schoolId = newSchool.id;
-      } else {
-        schoolId = existingSchool.id;
-      }
-    }
 
     // Handle student slot count request
     if (student && daypackage) {
@@ -539,6 +536,7 @@ export async function GET(request: NextRequest) {
       const registration = (await prismaClient.wpos_wpdatatable_23.findUnique({
         where: {
           wdt_ID: parseInt(id),
+          rigistral: session.username,
           ...(schoolId ? { schoolId } : { schoolId: null }),
         },
         select: {
@@ -601,25 +599,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get all registrations based on user role
-    let whereClause: any = { name: { not: "" } };
-
-    if (session.role === "controller") {
-      whereClause = { ...whereClause, u_control: session.code };
-    } else if (session.role === "registral") {
-      // For registral users, show all students (they manage all registrations)
-      // Optionally filter by rigistral field if needed
-      // whereClause = { ...whereClause, rigistral: session.username };
-    }
-
-    // Add school filtering
-    const finalWhereClause = {
-      ...whereClause,
-      ...(schoolId ? { schoolId } : { schoolId: null }),
-    };
-
+    // Get all registrations for this registral
     const registrations = await prismaClient.wpos_wpdatatable_23.findMany({
-      where: finalWhereClause,
+      where: {
+        rigistral: session.username,
+        ...(schoolId ? { schoolId } : { schoolId: null }),
+      },
       select: {
         wdt_ID: true,
         name: true,
@@ -648,8 +633,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT method for updating registrations
-export async function PUT(request: NextRequest) {
+// PUT method for registral to update registrations - FULL FUNCTIONALITY
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
     const session = await getToken({
       req: request,
@@ -658,6 +646,29 @@ export async function PUT(request: NextRequest) {
 
     if (!session) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.role !== "registral") {
+      return NextResponse.json(
+        { message: "Forbidden - Registral role required" },
+        { status: 403 }
+      );
+    }
+
+    const schoolSlug = params.schoolSlug;
+    // Get schoolId from the user's school association
+    const userSchoolSlug = session.schoolSlug || "darulkubra";
+    const schoolId = userSchoolSlug === "darulkubra" ? null : userSchoolSlug;
+
+    // Verify the registral belongs to the correct school
+    if (session.schoolSlug !== schoolSlug) {
+      return NextResponse.json(
+        {
+          error:
+            "Unauthorized - You can only manage students for your assigned school",
+        },
+        { status: 403 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -689,43 +700,13 @@ export async function PUT(request: NextRequest) {
       chatId,
       reason,
       subscriptionPackageConfigId,
-      schoolSlug,
     } = body;
-
-    // Derive schoolId for multi-tenancy based on user's school association
-    const userSchoolSlug = session.schoolSlug || "darulkubra";
-
-    // Determine schoolId - create school if it doesn't exist for non-darulkubra
-    let schoolId = userSchoolSlug === "darulkubra" ? null : userSchoolSlug;
-
-    if (schoolId && userSchoolSlug !== "darulkubra") {
-      // Check if school exists, create if not
-      const existingSchool = await prismaClient.school.findUnique({
-        where: { slug: userSchoolSlug },
-        select: { id: true, name: true },
-      });
-
-      if (!existingSchool) {
-        // Create the school automatically
-        const newSchool = await prismaClient.school.create({
-          data: {
-            slug: userSchoolSlug,
-            name: `${
-              userSchoolSlug.charAt(0).toUpperCase() + userSchoolSlug.slice(1)
-            } School`,
-            email: `admin@${userSchoolSlug}.com`,
-          },
-        });
-        schoolId = newSchool.id;
-      } else {
-        schoolId = existingSchool.id;
-      }
-    }
 
     const existingRegistration =
       (await prismaClient.wpos_wpdatatable_23.findUnique({
         where: {
           wdt_ID: parseInt(id),
+          rigistral: session.username,
           ...(schoolId ? { schoolId } : { schoolId: null }),
         },
         select: {
@@ -747,23 +728,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Role-based authorization
-    if (session.role === "controller") {
-      if (existingRegistration.u_control !== session.code) {
-        return NextResponse.json(
-          { message: "Unauthorized to update this registration" },
-          { status: 403 }
-        );
-      }
-    } else if (session.role === "registral") {
-      if (existingRegistration.rigistral !== session.username) {
-        return NextResponse.json(
-          { message: "Unauthorized to update this registration" },
-          { status: 403 }
-        );
-      }
-    }
-
     // Basic validation
     if (!fullName || fullName.trim() === "") {
       return NextResponse.json(
@@ -778,39 +742,20 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Role-based validation
-    if (session.role === "registral") {
-      // For registral users - simplified validation
-      // Only require teacher and time if status is not "On Progress"
-      if (status !== "On Progress" && status !== "on progress") {
-        if (!ustaz || ustaz.trim() === "") {
-          return NextResponse.json(
-            { message: "Teacher is required" },
-            { status: 400 }
-          );
-        }
-        if (!selectedTime || selectedTime.trim() === "") {
-          return NextResponse.json(
-            { message: "Selected time is required" },
-            { status: 400 }
-          );
-        }
+    // For registral users - simplified validation
+    // Only require teacher and time if status is not "On Progress"
+    if (status !== "On Progress" && status !== "on progress") {
+      if (!ustaz || ustaz.trim() === "") {
+        return NextResponse.json(
+          { message: "Teacher is required" },
+          { status: 400 }
+        );
       }
-    } else {
-      // For admin/controller - require teacher and time for non-"On Progress" statuses
-      if (status !== "On Progress" && status !== "on progress") {
-        if (!ustaz || ustaz.trim() === "") {
-          return NextResponse.json(
-            { message: "Teacher is required" },
-            { status: 400 }
-          );
-        }
-        if (!selectedTime || selectedTime.trim() === "") {
-          return NextResponse.json(
-            { message: "Selected time is required" },
-            { status: 400 }
-          );
-        }
+      if (!selectedTime || selectedTime.trim() === "") {
+        return NextResponse.json(
+          { message: "Selected time is required" },
+          { status: 400 }
+        );
       }
     }
 
@@ -827,6 +772,14 @@ export async function PUT(request: NextRequest) {
           { status: 400 }
         );
       }
+    }
+
+    // Day package is required for registral users
+    if (!selectedDayPackage || selectedDayPackage.trim() === "") {
+      return NextResponse.json(
+        { message: "Day package is required" },
+        { status: 400 }
+      );
     }
 
     let timeToMatch: string = "",
@@ -858,7 +811,7 @@ export async function PUT(request: NextRequest) {
       // Check teacher availability (exclude current student)
       const availability = await checkTeacherAvailability(
         timeToMatch,
-        selectedDayPackage || "",
+        selectedDayPackage,
         ustaz,
         parseInt(id),
         schoolId
@@ -884,7 +837,7 @@ export async function PUT(request: NextRequest) {
               { time_slot: toDbFormat(selectedTime) },
               { time_slot: timeToMatch },
             ],
-            daypackage: selectedDayPackage || "",
+            daypackage: selectedDayPackage,
             end_at: null, // Only active assignments
             student_id: { not: parseInt(id) }, // Exclude current student
             ...(schoolId ? { schoolId } : { schoolId: null }),
@@ -903,14 +856,12 @@ export async function PUT(request: NextRequest) {
       // Determine the u_control value (controller assignment)
       let u_control = existingRegistration.u_control;
 
-      if (session.role === "controller") {
-        u_control = session.code;
-      } else if (
+      // Update controller assignment if teacher changed
+      if (
         ustaz &&
         ustaz.trim() !== "" &&
         ustaz !== existingRegistration.ustaz
       ) {
-        // Update controller assignment if teacher changed
         const teacher = await tx.wpos_wpdatatable_24.findUnique({
           where: { ustazid: ustaz },
           select: { control: true },
@@ -934,7 +885,7 @@ export async function PUT(request: NextRequest) {
         package: regionPackage || null,
         subject: subject || null,
         country: country || null,
-        daypackages: selectedDayPackage || null,
+        daypackages: selectedDayPackage,
         refer: refer || null,
         registrationdate: registrationdate
           ? new Date(registrationdate)
@@ -985,7 +936,7 @@ export async function PUT(request: NextRequest) {
             where: { id: existingOccupiedTime.id },
             data: {
               time_slot: timeSlot,
-              daypackage: selectedDayPackage || "",
+              daypackage: selectedDayPackage,
             },
           });
         } else {
@@ -995,7 +946,7 @@ export async function PUT(request: NextRequest) {
               ustaz_id: ustaz,
               student_id: parseInt(id),
               time_slot: timeSlot,
-              daypackage: selectedDayPackage || "",
+              daypackage: selectedDayPackage,
               occupied_at: new Date(),
               end_at: null,
               schoolId: schoolId,

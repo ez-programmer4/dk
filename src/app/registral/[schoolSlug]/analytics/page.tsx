@@ -14,6 +14,7 @@ import {
   FiActivity,
   FiRefreshCw,
 } from "react-icons/fi";
+import { useBranding } from "../layout";
 
 interface AnalyticsData {
   totalStudents: number;
@@ -35,10 +36,16 @@ interface AnalyticsData {
 export default function RegistralAnalyticsPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+  const branding = useBranding();
   const { data: session } = useSession();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState("30");
+
+  // Use branding colors for styling
+  const primaryColor = branding?.primaryColor || "#0f766e";
+  const secondaryColor = branding?.secondaryColor || "#06b6d4";
+  const schoolName = branding?.name || "Quran Academy";
 
   useEffect(() => {
     fetchAnalytics();

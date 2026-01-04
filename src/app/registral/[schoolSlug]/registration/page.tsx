@@ -39,6 +39,7 @@ import {
 } from "@/utils/timeUtils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useBranding } from "../layout";
 
 interface FormData {
   fullName?: string;
@@ -120,11 +121,18 @@ const convertTo12Hour = (time: string): string => {
 function RegistrationContent() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+  const branding = useBranding();
   const searchParams = useSearchParams();
   const editId = searchParams.get("id");
   const initialStep = parseInt(searchParams.get("step") || "1", 10);
   const [editTimeTeacher, setEditTimeTeacher] = useState(false);
   const { data: session, status } = useSession();
+
+  // Use branding colors and info
+  const primaryColor = branding?.primaryColor || "#0f766e";
+  const secondaryColor = branding?.secondaryColor || "#06b6d4";
+  const schoolName = branding?.name || "Quran Academy";
+  const supportEmail = branding?.supportEmail || "support@quranacademy.com";
 
   const [step, setStep] = useState<number>(
     editId ? 3 : Math.min(Math.max(initialStep, 1), 3)
@@ -164,7 +172,11 @@ function RegistrationContent() {
 
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]); // Ensure initialized as empty array
-  const [dayPackages, setDayPackages] = useState<string[]>(["All days", "MWF", "TTS"]); // Default fallback
+  const [dayPackages, setDayPackages] = useState<string[]>([
+    "All days",
+    "MWF",
+    "TTS",
+  ]); // Default fallback
   const [loadingDayPackages, setLoadingDayPackages] = useState<boolean>(false);
   const currencyOptions = ["ETB", "USD", "EUR", "GBP", "SAR", "AED", "CAD"];
   const currencySymbols: Record<string, string> = {
@@ -680,7 +692,9 @@ function RegistrationContent() {
       if (!editId) return;
       if (editId) {
         try {
-          const response = await fetch(`/api/registrations?id=${editId}`);
+          const response = await fetch(
+            `/api/registral/${schoolSlug}/registration?id=${editId}`
+          );
           if (!response.ok) {
             throw new Error(
               `Failed to fetch student data: ${response.statusText}`
@@ -796,8 +810,8 @@ function RegistrationContent() {
     setIsSubmitting(true);
 
     try {
-      // Validate required fields based on student type
-      if (!isUsStudent) {
+      // Validate required fields based on student type (optional for registral users)
+      if (session?.user?.role !== "registral" && !isUsStudent) {
         // Only require class fee if package is not "0 Fee"
         if (data.package !== "0 Fee" && !data.classfee && data.classfee !== 0) {
           throw new Error("Class Fee is required");
@@ -807,8 +821,9 @@ function RegistrationContent() {
         }
       }
 
-      // Only require teacher if not skipped (status is not "On Progress")
+      // Only require teacher if not skipped (status is not "On Progress") and not registral user
       if (
+        session?.user?.role !== "registral" &&
         (!editId || editTimeTeacher) &&
         (!selectedTeacher || selectedTeacher.trim() === "") &&
         data.status !== "On Progress"
@@ -816,8 +831,9 @@ function RegistrationContent() {
         throw new Error("Teacher is required");
       }
 
-      // Require at least one subject (only if subjects are available)
+      // Require at least one subject (only if subjects are available and not registral user)
       if (
+        session?.user?.role !== "registral" &&
         studentConfigs.subjects.length > 0 &&
         (!selectedSubjects || selectedSubjects.length === 0)
       ) {
@@ -885,8 +901,8 @@ function RegistrationContent() {
       };
 
       const url = editId
-        ? `/api/registrations?id=${editId}`
-        : "/api/registrations";
+        ? `/api/registral/${schoolSlug}/registration?id=${editId}`
+        : `/api/registral/${schoolSlug}/registration`;
       const method = editId ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -939,14 +955,16 @@ function RegistrationContent() {
       sessionStorage.removeItem("usStudentId");
 
       setTimeout(() => {
-        // Redirect registral back to registral dashboard after update
-        if ((session as any)?.role === "registral" && editId) {
-          window.location.href = `/registral/${schoolSlug}/dashboard`;
-        } else if (usStudentId) {
-          window.location.href = "/dashboard";
-        } else {
-          window.location.href = "/dashboard";
-        }
+        // Redirect registral back to registral dashboard after registration
+        const userRole = session?.user?.role;
+        const redirectUrl =
+          userRole === "registral"
+            ? `/registral/${schoolSlug}/dashboard`
+            : userRole === "admin"
+            ? `/admin/${schoolSlug}/dashboard`
+            : "/dashboard";
+
+        window.location.href = redirectUrl;
       }, 1500);
     } catch (error) {
       const errorMessage =
@@ -1196,7 +1214,12 @@ function RegistrationContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-teal-50 flex items-center justify-center p-4 md:p-8 font-sans overflow-x-hidden">
+    <div
+      className="min-h-screen flex items-center justify-center p-4 md:p-8 font-sans overflow-x-hidden"
+      style={{
+        background: `linear-gradient(to bottom right, ${primaryColor}10, ${secondaryColor}10)`,
+      }}
+    >
       {/* ARIA live region for error/success messages */}
       <div aria-live="polite" className="sr-only">
         {ariaMessage}
@@ -1257,101 +1280,271 @@ function RegistrationContent() {
           </motion.div>
         </div>
       )}
-      {/* Show summary card after registration/edit */}
+      {/* Show enhanced success card after registration/edit */}
       {showSummary && summaryData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="relative bg-white border-2 border-teal-200 rounded-3xl shadow-2xl p-10 max-w-md w-full flex flex-col items-center"
+            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{
+              duration: 0.4,
+              ease: "easeOut",
+              type: "spring",
+              stiffness: 100,
+            }}
+            className="relative overflow-hidden bg-gradient-to-br from-white via-green-50 to-emerald-50 border-2 border-emerald-200 rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4"
           >
-            {/* Success Icon */}
-            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-teal-100 border-4 border-teal-200 mb-4 shadow-lg">
-              <svg
-                className="w-12 h-12 text-teal-500"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
+            {/* Animated background pattern */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/5 to-green-400/5 animate-pulse" />
+
+            {/* Floating decorative elements */}
+            <div className="absolute top-4 right-4 opacity-20">
+              <FiUser className="h-8 w-8 text-emerald-500" />
+            </div>
+            <div className="absolute bottom-4 left-4 opacity-15">
+              <FiCheck className="h-6 w-6 text-green-500" />
+            </div>
+
+            {/* Success Icon with animation */}
+            <div className="relative flex items-center justify-center mb-6">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{
+                  delay: 0.2,
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 10,
+                }}
+                className="relative"
               >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  fill="#e0f2fe"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8 12l3 3 5-5"
-                />
-              </svg>
-            </div>
-            <h2 className="text-3xl font-extrabold text-teal-700 mb-2 tracking-tight text-center">
-              Registration Successful!
-            </h2>
-            <div className="space-y-2 text-gray-800 text-center text-lg font-medium mb-4">
-              <div>
-                <span className="font-semibold">Name:</span> {summaryData.name}
-              </div>
-              <div>
-                <span className="font-semibold">Phone:</span>{" "}
-                {summaryData.phone}
-              </div>
-              <div>
-                <span className="font-semibold">Time Slot:</span>{" "}
-                {summaryData.time}
-              </div>
-              <div>
-                <span className="font-semibold">Teacher:</span>{" "}
-                {summaryData.teacher}
-              </div>
-              <div>
-                <span className="font-semibold">Package:</span>{" "}
-                {summaryData.package}
-              </div>
-              {summaryData.classfee !== undefined &&
-                summaryData.classfee !== null && (
-                  <div>
-                    <span className="font-semibold">Class Fee:</span>{" "}
-                    {summaryData.currency || "ETB"}{" "}
-                    {Number(summaryData.classfee).toLocaleString()}
-                  </div>
-                )}
-              <div>
-                <span className="font-semibold">Day Package:</span>{" "}
-                {summaryData.daypackage}
-              </div>
-              <div>
-                <span className="font-semibold">Status:</span>{" "}
-                {summaryData.status}
-              </div>
-              <div>
-                <span className="font-semibold">Subject:</span>{" "}
-                {summaryData.subject}
-              </div>
-              <div>
-                <span className="font-semibold">Country:</span>{" "}
-                {summaryData.country}
-              </div>
-            </div>
-            {/* Progress bar for redirect */}
-            <div className="w-full mt-4">
-              <div className="h-2 rounded-full bg-teal-100 overflow-hidden">
+                <div className="p-4 bg-gradient-to-br from-emerald-100 to-green-100 rounded-full shadow-lg border-2 border-emerald-200">
+                  <FiCheck className="h-12 w-12 text-emerald-600" />
+                </div>
+                {/* Success pulse animation */}
                 <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: "100%" }}
-                  transition={{ duration: 1.5, ease: "linear" }}
-                  className="h-2 bg-gradient-to-r from-teal-400 to-blue-500 rounded-full"
+                  initial={{ scale: 0.8, opacity: 0.5 }}
+                  animate={{ scale: 1.4, opacity: 0 }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeOut",
+                    delay: 0.5,
+                  }}
+                  className="absolute inset-0 bg-emerald-400 rounded-full"
                 />
-              </div>
-              <div className="mt-3 text-teal-700 text-center font-semibold text-base tracking-wide animate-pulse">
-                Redirecting to dashboard...
-              </div>
+              </motion.div>
             </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
+              className="text-center mb-6"
+            >
+              <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-700 to-green-700 bg-clip-text text-transparent mb-2">
+                🎉 Registration Successful!
+              </h2>
+              <p className="text-emerald-600 font-medium text-lg">
+                Student has been successfully registered at {schoolName}
+              </p>
+            </motion.div>
+
+            {/* Student details with staggered animation */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.3 }}
+              className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-inner border border-emerald-100 mb-6"
+            >
+              <h3 className="text-lg font-bold text-emerald-800 mb-4 flex items-center">
+                <FiUser className="mr-2 h-5 w-5" />
+                Student Details
+              </h3>
+              <div className="grid grid-cols-1 gap-3 text-sm">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg"
+                >
+                  <span className="font-semibold text-emerald-700">Name:</span>
+                  <span className="text-emerald-900">{summaryData.name}</span>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.55 }}
+                  className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg"
+                >
+                  <span className="font-semibold text-emerald-700">Phone:</span>
+                  <span className="text-emerald-900">{summaryData.phone}</span>
+                </motion.div>
+                {summaryData.time && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg"
+                  >
+                    <span className="font-semibold text-emerald-700">
+                      Time Slot:
+                    </span>
+                    <span className="text-emerald-900">{summaryData.time}</span>
+                  </motion.div>
+                )}
+                {summaryData.teacher && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.65 }}
+                    className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg"
+                  >
+                    <span className="font-semibold text-emerald-700">
+                      Teacher:
+                    </span>
+                    <span className="text-emerald-900">
+                      {summaryData.teacher}
+                    </span>
+                  </motion.div>
+                )}
+                {summaryData.package && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.7 }}
+                    className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg"
+                  >
+                    <span className="font-semibold text-emerald-700">
+                      Package:
+                    </span>
+                    <span className="text-emerald-900">
+                      {summaryData.package}
+                    </span>
+                  </motion.div>
+                )}
+                {summaryData.classfee !== undefined &&
+                  summaryData.classfee !== null && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.75 }}
+                      className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg"
+                    >
+                      <span className="font-semibold text-emerald-700">
+                        Class Fee:
+                      </span>
+                      <span className="text-emerald-900">
+                        {summaryData.currency || "ETB"}{" "}
+                        {Number(summaryData.classfee).toLocaleString()}
+                      </span>
+                    </motion.div>
+                  )}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.8 }}
+                  className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg"
+                >
+                  <span className="font-semibold text-emerald-700">
+                    Status:
+                  </span>
+                  <span className="text-emerald-900">{summaryData.status}</span>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.85 }}
+                  className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg"
+                >
+                  <span className="font-semibold text-emerald-700">
+                    Subject:
+                  </span>
+                  <span className="text-emerald-900">
+                    {summaryData.subject}
+                  </span>
+                </motion.div>
+              </div>
+            </motion.div>
+
+            {/* Progress bar and redirect message */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9, duration: 0.3 }}
+              className="w-full"
+            >
+              <div className="relative mb-4">
+                <div className="h-3 rounded-full bg-emerald-100 overflow-hidden shadow-inner">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 2, ease: "easeInOut", delay: 0.5 }}
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 relative"
+                  >
+                    <motion.div
+                      initial={{ x: "-100%" }}
+                      animate={{ x: "100%" }}
+                      transition={{
+                        duration: 2,
+                        ease: "easeInOut",
+                        delay: 0.5,
+                      }}
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                    />
+                  </motion.div>
+                </div>
+              </div>
+              <div className="text-center">
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.2 }}
+                  className="text-emerald-700 font-semibold text-lg animate-pulse"
+                >
+                  🎯 Redirecting to dashboard...
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.4 }}
+                  className="text-emerald-600 text-sm mt-1"
+                >
+                  Student management portal
+                </motion.p>
+              </div>
+            </motion.div>
+
+            {/* Quick action buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.0, duration: 0.3 }}
+              className="flex gap-3 mt-6 pt-4 border-t border-emerald-200"
+            >
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setShowSummary(false);
+                  window.location.href = `/registral/${schoolSlug}/dashboard`;
+                }}
+                className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm shadow-md transition-all duration-200"
+              >
+                Go to Dashboard
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setShowSummary(false);
+                  window.location.href = `/registral/${schoolSlug}/registration`;
+                }}
+                className="flex-1 px-4 py-2 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-semibold text-sm shadow-md transition-all duration-200"
+              >
+                Register Another
+              </motion.button>
+            </motion.div>
           </motion.div>
         </div>
       )}
@@ -1362,17 +1555,22 @@ function RegistrationContent() {
         className="w-full max-w-3xl md:max-w-5xl lg:max-w-6xl"
       >
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-t-4 border-teal-500">
-          <div className="bg-gradient-to-r from-teal-600 to-indigo-600 p-6 text-white">
+          <div
+            className="p-6 text-white"
+            style={{
+              background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
+            }}
+          >
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex items-center">
                 <img
                   src="https://darelkubra.com/wp-content/uploads/2024/06/cropped-%E1%8B%B3%E1%88%A9%E1%88%8D-%E1%88%8E%E1%8C%8E-150x150.png"
-                  alt="Darulkubra Quran Academy Logo"
+                  alt={`${schoolName} Logo`}
                   className="h-14 w-14 mr-4 rounded-full border-2 border-white/90 shadow-md"
                 />
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight">
-                    Darulkubra Quran Academy
+                    {schoolName}
                   </h1>
                   <p className="text-sm text-teal-100 font-medium">
                     Registration Portal
@@ -1462,7 +1660,10 @@ function RegistrationContent() {
                     </label>
                     <select
                       {...register("daypackages", {
-                        required: "Day package is required",
+                        required:
+                          session?.user?.role === "registral"
+                            ? false
+                            : "Day package is required",
                       })}
                       className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-2.5 focus:ring-2 focus:ring-teal-400 focus:border-teal-400 text-sm font-medium text-gray-800 w-full md:w-auto transition-all duration-200 hover:border-teal-500"
                     >
@@ -2125,11 +2326,15 @@ function RegistrationContent() {
                     <div className="space-y-2">
                       <label className="block text-sm font-semibold text-gray-800 flex items-center">
                         <FiCalendar className="mr-2 text-teal-600" />
-                        Start Date *
+                        Start Date
+                        {session?.user?.role === "registral" ? "" : " *"}
                       </label>
                       <input
                         {...register("startdate", {
-                          required: "Start Date is required",
+                          required:
+                            session?.user?.role === "registral"
+                              ? false
+                              : "Start Date is required",
                         })}
                         className={`w-full px-5 py-3 rounded-xl border focus:ring-2 focus:ring-teal-400 focus:border-teal-400 text-sm font-medium transition-all duration-200 shadow-sm ${
                           errors.startdate
@@ -2148,11 +2353,15 @@ function RegistrationContent() {
                     <div className="space-y-2">
                       <label className="block text-sm font-semibold text-gray-800 flex items-center">
                         <FiCalendar className="mr-2 text-teal-600" />
-                        Registration Date *
+                        Registration Date
+                        {session?.user?.role === "registral" ? "" : " *"}
                       </label>
                       <input
                         {...register("registrationdate", {
-                          required: "Registration Date is required",
+                          required:
+                            session?.user?.role === "registral"
+                              ? false
+                              : "Registration Date is required",
                         })}
                         className={`w-full px-5 py-3 rounded-xl border focus:ring-2 focus:ring-teal-400 focus:border-teal-400 text-sm font-medium transition-all duration-200 shadow-sm ${
                           errors.registrationdate
@@ -2172,11 +2381,14 @@ function RegistrationContent() {
                     <div className="space-y-2">
                       <label className="block text-sm font-semibold text-gray-800 flex items-center">
                         <FiFlag className="mr-2 text-teal-600" />
-                        Package (Region) *
+                        Package (Region)
                       </label>
                       <select
                         {...register("package", {
-                          required: "Package is required",
+                          required:
+                            session?.user?.role === "registral"
+                              ? false
+                              : "Package is required",
                         })}
                         className={`w-full px-5 py-3 rounded-xl border focus:ring-2 focus:ring-teal-400 focus:border-teal-400 text-sm font-medium transition-all duration-200 shadow-sm hover:border-teal-300 ${
                           errors.package ? "border-red-500" : "border-gray-200"
@@ -2206,11 +2418,15 @@ function RegistrationContent() {
                       <div className="space-y-2">
                         <label className="block text-sm font-semibold text-gray-800 flex items-center">
                           <FiUserCheck className="mr-2 text-teal-600" />
-                          Status *
+                          Status
+                          {session?.user?.role === "registral" ? "" : " *"}
                         </label>
                         <select
                           {...register("status", {
-                            required: "Status is required",
+                            required:
+                              session?.user?.role === "registral"
+                                ? false
+                                : "Status is required",
                           })}
                           className={`w-full px-5 py-3 rounded-xl border focus:ring-2 focus:ring-teal-400 focus:border-teal-400 text-sm font-medium transition-all duration-200 shadow-sm ${
                             errors.status
@@ -2674,15 +2890,15 @@ function RegistrationContent() {
 
             <div className="mt-10 text-center text-xs text-gray-600 border-t border-gray-200 pt-8">
               <p className="font-medium">
-                © 2025 Darulkubra Quran Academy. All rights reserved.
+                © 2025 {schoolName}. All rights reserved.
               </p>
               <p className="mt-2">
                 Need help? Contact us at{" "}
                 <a
-                  href="mailto:support@darulkubra.com"
+                  href={`mailto:${supportEmail}`}
                   className="text-teal-600 hover:underline font-semibold"
                 >
-                  support@darulkubra.com
+                  {supportEmail}
                 </a>
               </p>
             </div>
@@ -2693,7 +2909,11 @@ function RegistrationContent() {
   );
 }
 
-export default function Registration({ params }: { params: { schoolSlug: string } }) {
+export default function Registration({
+  params,
+}: {
+  params: { schoolSlug: string };
+}) {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <RegistrationContent />

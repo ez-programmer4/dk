@@ -22,7 +22,11 @@ import {
   FiUsers,
   FiBarChart,
   FiDownload,
+  FiPlus,
+  FiX,
+  FiSave,
 } from "react-icons/fi";
+import { useBranding } from "../layout";
 
 interface Student {
   id: number;
@@ -53,8 +57,14 @@ interface StudentStats {
 export default function RegistralStudentsPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+  const branding = useBranding();
   const { data: session } = useSession();
   const router = useRouter();
+
+  // Use branding colors for styling
+  const primaryColor = branding?.primaryColor || "#0f766e";
+  const secondaryColor = branding?.secondaryColor || "#06b6d4";
+  const schoolName = branding?.name || "Quran Academy";
 
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +74,24 @@ export default function RegistralStudentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const itemsPerPage = 10;
+
+  // Student form state
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    phoneno: "",
+    classfee: "",
+    classfeeCurrency: "ETB",
+    startdate: "",
+    status: "active",
+    package: "",
+    subject: "",
+    daypackages: "",
+    country: "",
+    refer: "",
+  });
+  const [saving, setSaving] = useState(false);
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -92,6 +120,86 @@ export default function RegistralStudentsPage() {
 
   const toggleRow = (id: number) => {
     setExpandedRow(expandedRow === id ? null : id);
+  };
+
+  const handleAddStudent = () => {
+    setEditingStudent(null);
+    setFormData({
+      name: "",
+      phoneno: "",
+      classfee: "",
+      classfeeCurrency: "ETB",
+      startdate: "",
+      status: "active",
+      package: "",
+      subject: "",
+      daypackages: "",
+      country: "",
+      refer: "",
+    });
+    setShowAddForm(true);
+  };
+
+  const handleEditStudent = (student: Student) => {
+    setEditingStudent(student);
+    setFormData({
+      name: student.name,
+      phoneno: student.phoneno,
+      classfee: student.classfee.toString(),
+      classfeeCurrency: student.classfeeCurrency,
+      startdate: student.startdate,
+      status: student.status,
+      package: student.package,
+      subject: student.subject,
+      daypackages: student.daypackages,
+      country: student.country,
+      refer: student.refer,
+    });
+    setShowAddForm(true);
+  };
+
+  const handleSaveStudent = async () => {
+    if (!formData.name.trim() || !formData.phoneno.trim()) {
+      alert("Name and phone number are required");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        ...formData,
+        classfee: formData.classfee ? parseFloat(formData.classfee) : 0,
+        schoolSlug,
+        rigistral: session?.user?.name,
+        registrationdate: editingStudent ? undefined : new Date().toISOString().split('T')[0],
+        isSimpleStudent: true, // Flag for simple student creation
+      };
+
+      const url = editingStudent
+        ? `/api/registrations?id=${editingStudent.id}&schoolSlug=${schoolSlug}`
+        : `/api/registrations?schoolSlug=${schoolSlug}`;
+
+      const response = await fetch(url, {
+        method: editingStudent ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error("Failed to save student");
+
+      setShowAddForm(false);
+      fetchStudents();
+    } catch (error) {
+      console.error("Error saving student:", error);
+      alert("Failed to save student");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setShowAddForm(false);
+    setEditingStudent(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -130,16 +238,25 @@ export default function RegistralStudentsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-3xl shadow-2xl p-8"
         >
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-4 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-3xl shadow-xl">
-              <FiUsers className="h-8 w-8 text-white" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-3xl shadow-xl">
+                <FiUsers className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                  My Students
+                </h1>
+                <p className="text-gray-600 text-lg">Manage students you've registered</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
-                My Students
-              </h1>
-              <p className="text-gray-600 text-lg">Manage students you've registered</p>
-            </div>
+            <button
+              onClick={handleAddStudent}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-xl hover:from-teal-600 hover:to-cyan-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              <FiPlus className="h-4 w-4" />
+              Add Student
+            </button>
           </div>
 
           {/* Stats Cards */}
@@ -199,6 +316,215 @@ export default function RegistralStudentsPage() {
             </div>
           )}
         </motion.div>
+
+        {/* Add/Edit Student Form */}
+        {showAddForm && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ y: 20 }}
+              animate={{ y: 0 }}
+              className="bg-white rounded-3xl shadow-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {editingStudent ? "Edit Student" : "Add New Student"}
+                </h2>
+                <button
+                  onClick={handleCancel}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <FiX className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Required Fields */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+                    placeholder="Enter student full name"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.phoneno}
+                    onChange={(e) => setFormData({ ...formData, phoneno: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+                    placeholder="Enter phone number"
+                    required
+                  />
+                </div>
+
+                {/* Optional Fields */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Class Fee
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={formData.classfee}
+                      onChange={(e) => setFormData({ ...formData, classfee: e.target.value })}
+                      className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+                      placeholder="0"
+                    />
+                    <select
+                      value={formData.classfeeCurrency}
+                      onChange={(e) => setFormData({ ...formData, classfeeCurrency: e.target.value })}
+                      className="px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+                    >
+                      <option value="ETB">ETB</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.startdate}
+                    onChange={(e) => setFormData({ ...formData, startdate: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+                  >
+                    <option value="active">Active</option>
+                    <option value="not yet">Not Yet</option>
+                    <option value="leave">On Leave</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+
+                {/* Optional database-dependent fields */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Package (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.package}
+                    onChange={(e) => setFormData({ ...formData, package: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+                    placeholder="e.g., Basic, Premium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subject (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.subject}
+                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+                    placeholder="e.g., Quran, Arabic"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Day Package (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.daypackages}
+                    onChange={(e) => setFormData({ ...formData, daypackages: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+                    placeholder="e.g., MWF, TTS, All days"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Country (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.country}
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+                    placeholder="e.g., Ethiopia, USA"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Referral (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.refer}
+                    onChange={(e) => setFormData({ ...formData, refer: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+                    placeholder="Referral information"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 mt-8">
+                <button
+                  onClick={handleCancel}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveStudent}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-xl hover:from-teal-600 hover:to-cyan-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                      />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <FiSave className="h-4 w-4" />
+                      {editingStudent ? "Update Student" : "Save Student"}
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
 
         {/* Filters and Search */}
         <motion.div
@@ -342,17 +668,26 @@ export default function RegistralStudentsPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => toggleRow(student.id)}
-                            className="text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                            title={expandedRow === student.id ? "Collapse Details" : "Expand Details"}
-                          >
-                            {expandedRow === student.id ? (
-                              <FiChevronUp size={18} />
-                            ) : (
-                              <FiChevronDown size={18} />
-                            )}
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleEditStudent(student)}
+                              className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                              title="Edit Student"
+                            >
+                              <FiEdit size={18} />
+                            </button>
+                            <button
+                              onClick={() => toggleRow(student.id)}
+                              className="text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                              title={expandedRow === student.id ? "Collapse Details" : "Expand Details"}
+                            >
+                              {expandedRow === student.id ? (
+                                <FiChevronUp size={18} />
+                              ) : (
+                                <FiChevronDown size={18} />
+                              )}
+                            </button>
+                          </div>
                         </td>
                       </motion.tr>
 

@@ -18,20 +18,31 @@ import {
 } from "react-icons/fi";
 import { startOfWeek, format, addWeeks } from "date-fns";
 import { toast } from "@/components/ui/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
 
 const qualityLevels = ["Bad", "Good", "Better", "Excellent", "Exceptional"];
 
-export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: string }) {
+export default function AdminQualityReviewPage({
+  schoolSlug,
+}: {
+  schoolSlug: string;
+}) {
   const apiUrl = `/api/admin/${schoolSlug}/quality-review`;
-  const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [weekStart, setWeekStart] = useState(
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [approving, setApproving] = useState<string | null>(null);
   const [bonus, setBonus] = useState<{ [teacherId: string]: number }>({});
   const [success, setSuccess] = useState<string | null>(null);
-  const [managerOverrides, setManagerOverrides] = useState<{ [teacherId: string]: string }>({});
-  const [managerNotes, setManagerNotes] = useState<{ [teacherId: string]: string }>({});
+  const [managerOverrides, setManagerOverrides] = useState<{
+    [teacherId: string]: string;
+  }>({});
+  const [managerNotes, setManagerNotes] = useState<{
+    [teacherId: string]: string;
+  }>({});
   const [bonusHistory, setBonusHistory] = useState<any[]>([]);
   const [showBonusHistory, setShowBonusHistory] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,7 +57,8 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
     setLoading(true);
     setError(null);
     try {
-      const weekStartStr = weekStart.toISOString().split("T")[0] + "T00:00:00.000Z";
+      const weekStartStr =
+        weekStart.toISOString().split("T")[0] + "T00:00:00.000Z";
       const res = await fetch(`${apiUrl}?weekStart=${weekStartStr}`);
       if (!res.ok) throw new Error("Failed to fetch quality review data");
       const data = await res.json();
@@ -75,7 +87,9 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
     setBonusHistory([]);
     setShowBonusHistory(true);
     try {
-      const res = await fetch(`/api/admin/bonus-history?teacherId=${teacherId}`);
+      const res = await fetch(
+        `/api/admin/bonus-history?teacherId=${teacherId}`
+      );
       if (!res.ok) throw new Error("Failed to fetch bonus history");
       const data = await res.json();
       setBonusHistory(data.bonuses || []);
@@ -94,21 +108,34 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
     setSuccess(null);
     setError(null);
     try {
-      const weekStartStr = weekStart.toISOString().split("T")[0] + "T00:00:00.000Z";
+      const weekStartStr =
+        weekStart.toISOString().split("T")[0] + "T00:00:00.000Z";
       const requestBody = {
         override: managerOverrides[teacherId],
         notes: managerNotes[teacherId],
-        bonus: managerOverrides[teacherId] === "Exceptional" ? (bonus[teacherId] || 0) : 0,
+        bonus:
+          managerOverrides[teacherId] === "Exceptional"
+            ? bonus[teacherId] || 0
+            : 0,
       };
 
-      const res = await fetch(`${apiUrl}?teacherId=${teacherId}&weekStart=${weekStartStr}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
+      const res = await fetch(
+        `${apiUrl}?teacherId=${teacherId}&weekStart=${weekStartStr}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        }
+      );
       if (!res.ok) throw new Error("Failed to approve/override");
-      setSuccess("Saved successfully!");
+      setSuccess("Quality review saved and teachers notified successfully!");
       toast({ title: "Success", description: "Saved and notified!" });
+
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSuccess(null);
+      }, 5000);
+
       await fetchData();
     } catch (e: any) {
       setError(e.message || "Failed to save");
@@ -129,16 +156,22 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
   const badTeachers = teachers.filter((t) => t.overallQuality === "Bad");
   const filteredTeachers = teachers
     .filter((t) => t.overallQuality !== "Bad")
-    .filter((t) => 
-      searchQuery === "" || 
-      (t.teacherName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.teacherId.toLowerCase().includes(searchQuery.toLowerCase())
+    .filter(
+      (t) =>
+        searchQuery === "" ||
+        (t.teacherName || "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        t.teacherId.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  
+
   const totalPages = Math.ceil(filteredTeachers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedTeachers = filteredTeachers.slice(startIndex, startIndex + itemsPerPage);
-  
+  const paginatedTeachers = filteredTeachers.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
+
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
@@ -147,8 +180,12 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
     return (
       <div className="text-center py-12">
         <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-black mx-auto mb-6"></div>
-        <p className="text-black font-medium text-lg">Loading quality review data...</p>
-        <p className="text-gray-500 text-sm mt-2">Please wait while we fetch the data</p>
+        <p className="text-black font-medium text-lg">
+          Loading quality review data...
+        </p>
+        <p className="text-gray-500 text-sm mt-2">
+          Please wait while we fetch the data
+        </p>
       </div>
     );
   }
@@ -159,7 +196,9 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
         <div className="p-8 bg-red-50 rounded-full w-fit mx-auto mb-8">
           <FiAlertTriangle className="h-16 w-16 text-red-500" />
         </div>
-        <h3 className="text-3xl font-bold text-black mb-4">Error Loading Data</h3>
+        <h3 className="text-3xl font-bold text-black mb-4">
+          Error Loading Data
+        </h3>
         <p className="text-red-600 text-xl">{error}</p>
       </div>
     );
@@ -180,7 +219,8 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                   Quality Review Dashboard
                 </h1>
                 <p className="text-gray-600 text-base sm:text-lg lg:text-xl">
-                  Weekly performance review for {format(weekStart, "MMMM dd, yyyy")}
+                  Weekly performance review for{" "}
+                  {format(weekStart, "MMMM dd, yyyy")}
                 </p>
               </div>
             </div>
@@ -190,30 +230,49 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
               <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <FiUsers className="h-5 w-5 text-gray-600" />
-                  <span className="text-xs font-semibold text-gray-600">Teachers</span>
+                  <span className="text-xs font-semibold text-gray-600">
+                    Teachers
+                  </span>
                 </div>
-                <div className="text-2xl font-bold text-black">{teachers.length}</div>
+                <div className="text-2xl font-bold text-black">
+                  {teachers.length}
+                </div>
               </div>
               <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <FiAward className="h-5 w-5 text-gray-600" />
-                  <span className="text-xs font-semibold text-gray-600">Exceptional</span>
+                  <span className="text-xs font-semibold text-gray-600">
+                    Exceptional
+                  </span>
                 </div>
-                <div className="text-2xl font-bold text-black">{teachers.filter(t => t.overallQuality === 'Exceptional').length}</div>
+                <div className="text-2xl font-bold text-black">
+                  {
+                    teachers.filter((t) => t.overallQuality === "Exceptional")
+                      .length
+                  }
+                </div>
               </div>
               <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <FiGift className="h-5 w-5 text-gray-600" />
-                  <span className="text-xs font-semibold text-gray-600">Bonuses</span>
+                  <span className="text-xs font-semibold text-gray-600">
+                    Bonuses
+                  </span>
                 </div>
-                <div className="text-2xl font-bold text-black">{teachers.filter(t => t.bonusAwarded > 0).length}</div>
+                <div className="text-2xl font-bold text-black">
+                  {teachers.filter((t) => t.bonusAwarded > 0).length}
+                </div>
               </div>
               <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <FiAlertTriangle className="h-5 w-5 text-gray-600" />
-                  <span className="text-xs font-semibold text-gray-600">Need Review</span>
+                  <span className="text-xs font-semibold text-gray-600">
+                    Need Review
+                  </span>
                 </div>
-                <div className="text-2xl font-bold text-black">{badTeachers.length}</div>
+                <div className="text-2xl font-bold text-black">
+                  {badTeachers.length}
+                </div>
               </div>
             </div>
           </div>
@@ -245,7 +304,9 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                   </button>
                   <button
                     onClick={() => changeWeek(1)}
-                    disabled={weekStart >= startOfWeek(new Date(), { weekStartsOn: 1 })}
+                    disabled={
+                      weekStart >= startOfWeek(new Date(), { weekStartsOn: 1 })
+                    }
                     className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     Next Week
@@ -255,7 +316,8 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
               </div>
               <div className="lg:col-span-3">
                 <div className="text-sm text-gray-600 text-center">
-                  Showing {paginatedTeachers.length} of {filteredTeachers.length} teachers
+                  Showing {paginatedTeachers.length} of{" "}
+                  {filteredTeachers.length} teachers
                 </div>
               </div>
             </div>
@@ -263,14 +325,58 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
         </div>
 
         {/* Success Message */}
-        {success && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-full">
-              <FiCheck className="h-5 w-5 text-green-600" />
-            </div>
-            <p className="text-green-800 font-semibold">{success}</p>
-          </div>
-        )}
+        <AnimatePresence>
+          {success && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              className="relative overflow-hidden bg-gradient-to-r from-emerald-50 via-green-50 to-emerald-50 border border-emerald-200 rounded-2xl p-6 shadow-lg"
+            >
+              {/* Animated background pattern */}
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-green-400/10 animate-pulse" />
+
+              {/* Success content */}
+              <div className="relative flex items-center gap-4">
+                <div className="relative">
+                  <div className="p-3 bg-emerald-100 rounded-full shadow-md">
+                    <FiCheck className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  {/* Success pulse animation */}
+                  <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-20" />
+                </div>
+
+                <div className="flex-1">
+                  <h4 className="text-lg font-bold text-emerald-900 mb-1">
+                    Review Completed Successfully! 🎉
+                  </h4>
+                  <p className="text-emerald-700 font-medium">{success}</p>
+                  <p className="text-sm text-emerald-600 mt-1">
+                    Teachers have been notified of their quality assessment
+                  </p>
+                </div>
+
+                {/* Decorative elements */}
+                <div className="absolute top-2 right-2 opacity-20">
+                  <FiAward className="h-8 w-8 text-emerald-500" />
+                </div>
+                <div className="absolute bottom-2 right-6 opacity-10">
+                  <FiTarget className="h-6 w-6 text-emerald-400" />
+                </div>
+              </div>
+
+              {/* Progress bar animation */}
+              <div className="mt-4 h-1 bg-emerald-100 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 2, ease: "easeOut" }}
+                  className="h-full bg-gradient-to-r from-emerald-400 to-green-400 rounded-full"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Teachers Requiring Review */}
         {badTeachers.length > 0 && (
@@ -280,20 +386,35 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                 <FiAlertTriangle className="h-6 w-6 text-red-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-black">Teachers Requiring Review</h2>
-                <p className="text-red-600">{badTeachers.length} teacher{badTeachers.length > 1 ? 's' : ''} need immediate attention</p>
+                <h2 className="text-2xl font-bold text-black">
+                  Teachers Requiring Review
+                </h2>
+                <p className="text-red-600">
+                  {badTeachers.length} teacher
+                  {badTeachers.length > 1 ? "s" : ""} need immediate attention
+                </p>
               </div>
             </div>
             <div className="space-y-3">
               {badTeachers.map((t) => (
-                <div key={t.teacherId} className="bg-red-50 rounded-xl p-4 border border-red-200 flex items-center gap-4">
+                <div
+                  key={t.teacherId}
+                  className="bg-red-50 rounded-xl p-4 border border-red-200 flex items-center gap-4"
+                >
                   <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                     <span className="font-bold text-red-800">
-                      {t.teacherName ? t.teacherName.split(" ").map((n: string) => n[0]).join("") : "N/A"}
+                      {t.teacherName
+                        ? t.teacherName
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                        : "N/A"}
                     </span>
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-black">{t.teacherName || "Unknown Teacher"}</p>
+                    <p className="font-semibold text-black">
+                      {t.teacherName || "Unknown Teacher"}
+                    </p>
                     <p className="text-sm text-gray-600">{t.teacherId}</p>
                   </div>
                   <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">
@@ -313,8 +434,12 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                 <FiUsers className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-black">Teacher Performance Review</h2>
-                <p className="text-gray-600">Weekly quality assessment and bonus management</p>
+                <h2 className="text-2xl font-bold text-black">
+                  Teacher Performance Review
+                </h2>
+                <p className="text-gray-600">
+                  Weekly quality assessment and bonus management
+                </p>
               </div>
             </div>
           </div>
@@ -325,9 +450,13 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                 <div className="p-8 bg-gray-100 rounded-full w-fit mx-auto mb-8">
                   <FiUsers className="h-16 w-16 text-gray-500" />
                 </div>
-                <h3 className="text-3xl font-bold text-black mb-4">No Teachers Found</h3>
+                <h3 className="text-3xl font-bold text-black mb-4">
+                  No Teachers Found
+                </h3>
                 <p className="text-gray-600 text-xl">
-                  {searchQuery ? `No teachers match "${searchQuery}"` : "No teacher data available for this week"}
+                  {searchQuery
+                    ? `No teachers match "${searchQuery}"`
+                    : "No teacher data available for this week"}
                 </p>
               </div>
             ) : (
@@ -336,12 +465,24 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                   <table className="min-w-full text-sm divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-black uppercase tracking-wider">Teacher</th>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-black uppercase tracking-wider">Controller Feedback</th>
-                        <th className="px-6 py-4 text-center text-sm font-bold text-black uppercase tracking-wider">Control Rate</th>
-                        <th className="px-6 py-4 text-center text-sm font-bold text-black uppercase tracking-wider">Exam Pass Rate</th>
-                        <th className="px-6 py-4 text-center text-sm font-bold text-black uppercase tracking-wider">Examiner Rating</th>
-                        <th className="px-6 py-4 text-center text-sm font-bold text-black uppercase tracking-wider">Overall Quality</th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-black uppercase tracking-wider">
+                          Teacher
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-black uppercase tracking-wider">
+                          Controller Feedback
+                        </th>
+                        <th className="px-6 py-4 text-center text-sm font-bold text-black uppercase tracking-wider">
+                          Control Rate
+                        </th>
+                        <th className="px-6 py-4 text-center text-sm font-bold text-black uppercase tracking-wider">
+                          Exam Pass Rate
+                        </th>
+                        <th className="px-6 py-4 text-center text-sm font-bold text-black uppercase tracking-wider">
+                          Examiner Rating
+                        </th>
+                        <th className="px-6 py-4 text-center text-sm font-bold text-black uppercase tracking-wider">
+                          Overall Quality
+                        </th>
                         <th className="px-6 py-4 text-left text-sm font-bold text-black uppercase tracking-wider">
                           <div className="flex items-center gap-2">
                             <FiCheck className="h-4 w-4" />
@@ -358,17 +499,31 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
                       {paginatedTeachers.map((t, idx) => (
-                        <tr key={t.teacherId} className={`hover:bg-gray-50 transition-all duration-200 ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                        <tr
+                          key={t.teacherId}
+                          className={`hover:bg-gray-50 transition-all duration-200 ${
+                            idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                          }`}
+                        >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                                 <span className="font-bold text-blue-800 text-sm">
-                                  {t.teacherName ? t.teacherName.split(" ").map((n: string) => n[0]).join("") : "N/A"}
+                                  {t.teacherName
+                                    ? t.teacherName
+                                        .split(" ")
+                                        .map((n: string) => n[0])
+                                        .join("")
+                                    : "N/A"}
                                 </span>
                               </div>
                               <div>
-                                <p className="font-semibold text-black">{t.teacherName || "Unknown Teacher"}</p>
-                                <p className="text-sm text-gray-500">{t.teacherId}</p>
+                                <p className="font-semibold text-black">
+                                  {t.teacherName || "Unknown Teacher"}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  {t.teacherId}
+                                </p>
                               </div>
                             </div>
                           </td>
@@ -379,7 +534,12 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                                   +{t.positiveSum} ({t.positiveCount})
                                 </span>
                                 <span className="text-xs text-gray-500">
-                                  Avg: {t.positiveCount ? (t.positiveSum / t.positiveCount).toFixed(1) : "-"}
+                                  Avg:{" "}
+                                  {t.positiveCount
+                                    ? (t.positiveSum / t.positiveCount).toFixed(
+                                        1
+                                      )
+                                    : "-"}
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
@@ -387,19 +547,29 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                                   -{t.negativeSum} ({t.negativeCount})
                                 </span>
                                 <span className="text-xs text-gray-500">
-                                  Avg: {t.negativeCount ? (t.negativeSum / t.negativeCount).toFixed(1) : "-"}
+                                  Avg:{" "}
+                                  {t.negativeCount
+                                    ? (t.negativeSum / t.negativeCount).toFixed(
+                                        1
+                                      )
+                                    : "-"}
                                 </span>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center">
                             {typeof t.controlRate === "number" ? (
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                t.controlRate <= 4 ? "bg-red-100 text-red-800" :
-                                t.controlRate <= 6 ? "bg-yellow-100 text-yellow-800" :
-                                t.controlRate <= 8 ? "bg-green-100 text-green-800" :
-                                "bg-blue-100 text-blue-800"
-                              }`}>
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                  t.controlRate <= 4
+                                    ? "bg-red-100 text-red-800"
+                                    : t.controlRate <= 6
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : t.controlRate <= 8
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-blue-100 text-blue-800"
+                                }`}
+                              >
                                 {t.controlRate.toFixed(1)}/10
                               </span>
                             ) : (
@@ -413,13 +583,20 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                           </td>
                           <td className="px-6 py-4 text-center">
                             <div className="flex flex-col items-center gap-1">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                t.examinerRating === null ? "bg-gray-100 text-gray-500" :
-                                t.examinerRating >= 8 ? "bg-green-100 text-green-800" :
-                                t.examinerRating >= 6 ? "bg-yellow-100 text-yellow-800" :
-                                "bg-red-100 text-red-800"
-                              }`}>
-                                {t.examinerRating ? `${t.examinerRating}/10` : "No Rating"}
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                  t.examinerRating === null
+                                    ? "bg-gray-100 text-gray-500"
+                                    : t.examinerRating >= 8
+                                    ? "bg-green-100 text-green-800"
+                                    : t.examinerRating >= 6
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {t.examinerRating
+                                  ? `${t.examinerRating}/10`
+                                  : "No Rating"}
                               </span>
                               <span className="text-xs text-gray-400 font-medium">
                                 External System
@@ -427,13 +604,19 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                              t.overallQuality === "Exceptional" ? "bg-yellow-100 text-yellow-800" :
-                              t.overallQuality === "Excellent" ? "bg-green-100 text-green-800" :
-                              t.overallQuality === "Better" ? "bg-blue-100 text-blue-800" :
-                              t.overallQuality === "Good" ? "bg-gray-100 text-gray-800" :
-                              "bg-red-100 text-red-800"
-                            }`}>
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                t.overallQuality === "Exceptional"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : t.overallQuality === "Excellent"
+                                  ? "bg-green-100 text-green-800"
+                                  : t.overallQuality === "Better"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : t.overallQuality === "Good"
+                                  ? "bg-gray-100 text-gray-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
                               {t.overallQuality}
                             </span>
                           </td>
@@ -445,12 +628,19 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                                 </label>
                                 <select
                                   value={managerOverrides[t.teacherId]}
-                                  onChange={(e) => setManagerOverrides(prev => ({ ...prev, [t.teacherId]: e.target.value }))}
+                                  onChange={(e) =>
+                                    setManagerOverrides((prev) => ({
+                                      ...prev,
+                                      [t.teacherId]: e.target.value,
+                                    }))
+                                  }
                                   disabled={approving === t.teacherId}
                                   className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 shadow-sm transition-all"
                                 >
                                   {qualityLevels.map((q) => (
-                                    <option key={q} value={q}>{q}</option>
+                                    <option key={q} value={q}>
+                                      {q}
+                                    </option>
                                   ))}
                                 </select>
                               </div>
@@ -461,7 +651,12 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                                 <textarea
                                   placeholder="Add notes for this override..."
                                   value={managerNotes[t.teacherId] || ""}
-                                  onChange={(e) => setManagerNotes(prev => ({ ...prev, [t.teacherId]: e.target.value }))}
+                                  onChange={(e) =>
+                                    setManagerNotes((prev) => ({
+                                      ...prev,
+                                      [t.teacherId]: e.target.value,
+                                    }))
+                                  }
                                   disabled={approving === t.teacherId}
                                   rows={2}
                                   className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 shadow-sm transition-all resize-none"
@@ -471,7 +666,9 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                                 onClick={() => handleApprove(t.teacherId)}
                                 disabled={approving === t.teacherId}
                                 className={`w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold transition-all hover:scale-105 shadow-lg ${
-                                  approving === t.teacherId ? "opacity-75 cursor-not-allowed" : ""
+                                  approving === t.teacherId
+                                    ? "opacity-75 cursor-not-allowed"
+                                    : ""
                                 }`}
                               >
                                 {approving === t.teacherId ? (
@@ -490,7 +687,8 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                           </td>
                           <td className="px-6 py-4">
                             <div className="bg-yellow-50 rounded-xl p-4 space-y-4 border border-yellow-200">
-                              {managerOverrides[t.teacherId] === "Exceptional" ? (
+                              {managerOverrides[t.teacherId] ===
+                              "Exceptional" ? (
                                 <div className="space-y-3">
                                   <div className="flex items-center gap-2 mb-2">
                                     <FiGift className="h-4 w-4 text-yellow-600" />
@@ -503,11 +701,27 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                                       type="number"
                                       min={0}
                                       max={100}
-                                      value={bonus[t.teacherId] !== undefined ? bonus[t.teacherId] : ""}
+                                      value={
+                                        bonus[t.teacherId] !== undefined
+                                          ? bonus[t.teacherId]
+                                          : ""
+                                      }
                                       placeholder="0"
                                       onChange={(e) => {
-                                        const value = e.target.value === "" ? 0 : Math.min(100, Math.max(0, Number(e.target.value)));
-                                        setBonus(prev => ({ ...prev, [t.teacherId]: value }));
+                                        const value =
+                                          e.target.value === ""
+                                            ? 0
+                                            : Math.min(
+                                                100,
+                                                Math.max(
+                                                  0,
+                                                  Number(e.target.value)
+                                                )
+                                              );
+                                        setBonus((prev) => ({
+                                          ...prev,
+                                          [t.teacherId]: value,
+                                        }));
                                       }}
                                       className="flex-1 px-3 py-2 border border-yellow-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white text-gray-900 shadow-sm transition-all font-bold text-center"
                                     />
@@ -523,14 +737,16 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                                 <div className="text-center py-4">
                                   <div className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-500 rounded-xl">
                                     <FiX className="h-4 w-4" />
-                                    <span className="text-sm font-semibold">No Bonus</span>
+                                    <span className="text-sm font-semibold">
+                                      No Bonus
+                                    </span>
                                   </div>
                                   <div className="text-xs text-gray-500 mt-2">
                                     Only for Exceptional
                                   </div>
                                 </div>
                               )}
-                              
+
                               {t.bonusAwarded > 0 && (
                                 <div className="bg-green-100 border border-green-200 rounded-xl p-3">
                                   <div className="flex items-center gap-2 mb-1">
@@ -544,7 +760,7 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                                   </div>
                                 </div>
                               )}
-                              
+
                               <button
                                 onClick={() => fetchBonusHistory(t.teacherId)}
                                 className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl font-semibold transition-all hover:scale-105 text-sm"
@@ -568,14 +784,18 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
                     </p>
                     <div className="flex items-center gap-4">
                       <button
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        onClick={() =>
+                          setCurrentPage(Math.max(1, currentPage - 1))
+                        }
                         disabled={currentPage === 1}
                         className="p-3 border border-gray-300 rounded-xl bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all hover:scale-105"
                       >
                         <FiChevronLeft className="h-6 w-6" />
                       </button>
                       <button
-                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                        onClick={() =>
+                          setCurrentPage(Math.min(totalPages, currentPage + 1))
+                        }
                         disabled={currentPage === totalPages}
                         className="p-3 border border-gray-300 rounded-xl bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all hover:scale-105"
                       >
@@ -599,35 +819,46 @@ export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: str
               >
                 <FiX className="h-6 w-6" />
               </button>
-              
+
               <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 bg-yellow-100 rounded-xl">
                   <FiGift className="h-6 w-6 text-yellow-600" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-black">Bonus History</h2>
+                  <h2 className="text-2xl font-bold text-black">
+                    Bonus History
+                  </h2>
                   <p className="text-gray-600">Complete bonus award records</p>
                 </div>
               </div>
-              
+
               {bonusHistory.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="p-6 bg-gray-100 rounded-2xl inline-block mb-4">
                     <FiClock className="h-12 w-12 text-gray-400" />
                   </div>
-                  <p className="text-gray-600 text-lg font-medium">No bonus records found</p>
-                  <p className="text-gray-500 text-sm mt-2">This teacher hasn't received any bonuses yet</p>
+                  <p className="text-gray-600 text-lg font-medium">
+                    No bonus records found
+                  </p>
+                  <p className="text-gray-500 text-sm mt-2">
+                    This teacher hasn't received any bonuses yet
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {bonusHistory.map((b: any, i: number) => (
-                    <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex items-center justify-between">
+                    <div
+                      key={i}
+                      className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex items-center justify-between"
+                    >
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-yellow-100 rounded-lg">
                           <FiGift className="h-4 w-4 text-yellow-600" />
                         </div>
                         <div>
-                          <p className="font-bold text-black">+{b.amount} ETB</p>
+                          <p className="font-bold text-black">
+                            +{b.amount} ETB
+                          </p>
                           <p className="text-sm text-gray-600">{b.period}</p>
                         </div>
                       </div>

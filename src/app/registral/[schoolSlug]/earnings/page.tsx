@@ -17,6 +17,7 @@ import {
   FiInfo,
 } from "react-icons/fi";
 import { motion } from "framer-motion";
+import { useBranding } from "../layout";
 
 interface RegistrarEarning {
   registral: string;
@@ -32,9 +33,15 @@ interface RegistrarEarning {
 export default function RegistralEarningsPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+  const branding = useBranding();
   const { data: session } = useSession();
   const [earnings, setEarnings] = useState<RegistrarEarning | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Use branding colors for styling
+  const primaryColor = branding?.primaryColor || "#0f766e";
+  const secondaryColor = branding?.secondaryColor || "#06b6d4";
+  const schoolName = branding?.name || "Quran Academy";
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;

@@ -14,12 +14,19 @@ import {
   FiSave,
   FiEdit,
 } from "react-icons/fi";
+import { useBranding } from "../layout";
 
 export default function RegistralSettingsPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+  const branding = useBranding();
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
+
+  // Use branding colors for styling
+  const primaryColor = branding?.primaryColor || "#0f766e";
+  const secondaryColor = branding?.secondaryColor || "#06b6d4";
+  const schoolName = branding?.name || "Quran Academy";
   const [profile, setProfile] = useState({
     name: "",
     username: "",

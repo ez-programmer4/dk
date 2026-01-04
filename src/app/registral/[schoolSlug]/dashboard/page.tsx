@@ -35,6 +35,7 @@ import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import { useSession, signOut } from "next-auth/react";
+import { useBranding } from "../layout";
 
 interface Registration {
   id: number;
@@ -73,6 +74,7 @@ function to24Hour(time12h: string): string {
 export default function RegistralDashboard() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+  const branding = useBranding();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,12 +85,6 @@ export default function RegistralDashboard() {
     type: "success" | "error";
   } | null>(null);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>("active");
-  const [filterPackage, setFilterPackage] = useState<string>("all");
-  const [filterTrained, setFilterTrained] = useState<string>("all");
-  const [filterDayPackage, setFilterDayPackage] = useState<string>("all");
-  const [filterSubject, setFilterSubject] = useState<string>("all");
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -100,15 +96,14 @@ export default function RegistralDashboard() {
   const [authChecked, setAuthChecked] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
-  const [filterUstaz, setFilterUstaz] = useState<string>("all");
-  const [filterConnection, setFilterConnection] = useState<string>("all");
-  const [dynamicFilters, setDynamicFilters] = useState<{
-    statuses: string[];
-    packages: string[];
-    subjects: string[];
-  }>({ statuses: [], packages: [], subjects: [] });
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  // Use branding colors for styling
+  const primaryColor = branding?.primaryColor || "#0f766e";
+  const secondaryColor = branding?.secondaryColor || "#06b6d4";
+  const schoolName = branding?.name || "Quran Academy";
+  const supportEmail = branding?.supportEmail || "support@quranacademy.com";
 
   useEffect(() => {
     if (status === "loading") return;
@@ -122,7 +117,6 @@ export default function RegistralDashboard() {
     }
     setAuthChecked(true);
     fetchRegistrations();
-    fetchFilterOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, session, router]);
 
@@ -134,28 +128,17 @@ export default function RegistralDashboard() {
     }
   }, [notification]);
 
-  const fetchFilterOptions = async () => {
-    try {
-      const response = await fetch("/api/filter-options");
-      if (response.ok) {
-        const data = await response.json();
-        setDynamicFilters(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch filter options:", error);
-    }
-  };
 
   const fetchRegistrations = async () => {
     try {
       setLoading(true);
       setError(null);
       const [regResponse, usResponse] = await Promise.all([
-        fetch("/api/registrations", {
+        fetch(`/api/registrations?schoolSlug=${schoolSlug}`, {
           credentials: "include",
           headers: { "Content-Type": "application/json" },
         }),
-        fetch("/api/us-student"),
+        fetch(`/api/us-student?schoolSlug=${schoolSlug}`),
       ]);
 
       if (!regResponse.ok) {
@@ -165,10 +148,13 @@ export default function RegistralDashboard() {
       if (!Array.isArray(data)) {
         throw new Error("Expected an array of registrations");
       }
+
       const sanitizedData = data.map((reg) => ({
         ...reg,
         ustaz: reg.ustaz || "Not assigned",
         selectedTime: reg.selectedTime || "Not specified",
+        isTrained: reg.isTrained || false, // Default to false if not present
+        chatId: reg.chatId || null, // Default to null if not present
       }));
       setRegistrations(sanitizedData);
 
@@ -204,9 +190,12 @@ export default function RegistralDashboard() {
       "Are you sure you want to delete this registration?",
       async () => {
         try {
-          const response = await fetch(`/api/registrations?id=${id}`, {
-            method: "DELETE",
-          });
+          const response = await fetch(
+            `/api/registrations?id=${id}&schoolSlug=${schoolSlug}`,
+            {
+              method: "DELETE",
+            }
+          );
 
           if (!response.ok) {
             const errorData = await response.json();
@@ -269,10 +258,13 @@ export default function RegistralDashboard() {
       `Are you sure you want to delete ${selectedRows.length} registration(s)?`,
       async () => {
         try {
-          const response = await fetch("/api/registrations?endpoint=bulk", {
-            method: "DELETE",
-            body: JSON.stringify({ ids: selectedRows }),
-          });
+          const response = await fetch(
+            `/api/registrations?endpoint=bulk&schoolSlug=${schoolSlug}`,
+            {
+              method: "DELETE",
+              body: JSON.stringify({ ids: selectedRows }),
+            }
+          );
 
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({
@@ -395,56 +387,9 @@ export default function RegistralDashboard() {
   };
 
   const filteredRegistrations = useMemo(() => {
-    return registrations.filter((reg) => {
-      const matchesSearch =
-        (reg.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (reg.phoneno || "").includes(searchQuery);
-      const matchesStatus =
-        filterStatus === "all" ||
-        (reg.status || "").toLowerCase() === filterStatus.toLowerCase();
-      const matchesPackage =
-        filterPackage === "all" ||
-        (reg.package || "").toLowerCase() === filterPackage.toLowerCase();
-      const matchesTrained =
-        filterTrained === "all" ||
-        (filterTrained === "trained" && reg.isTrained) ||
-        (filterTrained === "nottrained" && !reg.isTrained);
-      const matchesDayPackage =
-        filterDayPackage === "all" ||
-        (reg.daypackages || "").toLowerCase() ===
-          filterDayPackage.toLowerCase();
-      const matchesUstaz =
-        filterUstaz === "all" ||
-        (reg.ustazname || "").toLowerCase() === filterUstaz.toLowerCase();
-      const matchesSubject =
-        filterSubject === "all" ||
-        (reg.subject || "").toLowerCase() === filterSubject.toLowerCase();
-      const matchesConnection =
-        filterConnection === "all" ||
-        (filterConnection === "connected" && reg.chatId) ||
-        (filterConnection === "not-connected" && !reg.chatId);
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesPackage &&
-        matchesDayPackage &&
-        matchesSubject &&
-        matchesUstaz &&
-        matchesTrained &&
-        matchesConnection
-      );
-    });
-  }, [
-    registrations,
-    searchQuery,
-    filterStatus,
-    filterPackage,
-    filterDayPackage,
-    filterSubject,
-    filterUstaz,
-    filterTrained,
-    filterConnection,
-  ]);
+    // Remove all filtering - show all students
+    return registrations;
+  }, [registrations]);
 
   const sortedRegistrations = useMemo(() => {
     return [...filteredRegistrations].sort((a, b) => {
@@ -889,8 +834,8 @@ export default function RegistralDashboard() {
                 Student Management Dashboard
               </h1>
               <p className="text-gray-600 mt-2 text-sm">
-                Welcome, {session?.user?.name}! Efficiently manage student
-                registrations.
+                Welcome to {schoolName}, {session?.user?.name}! Efficiently
+                manage student registrations.
               </p>
             </div>
             <div className="flex flex-col md:flex-row gap-4">
@@ -931,9 +876,16 @@ export default function RegistralDashboard() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               className="bg-white p-6 rounded-xl shadow-md border border-gray-100 hover:bg-gray-50 transition-all duration-300"
+              style={{
+                borderLeft: `4px solid ${primaryColor}`,
+                boxShadow: `0 4px 6px -1px ${primaryColor}10`,
+              }}
             >
               <div className="flex items-center">
-                <div className="p-3 rounded-xl bg-blue-100 text-blue-700">
+                <div
+                  className="p-3 rounded-xl text-white"
+                  style={{ backgroundColor: primaryColor }}
+                >
                   <FiUser size={24} />
                 </div>
                 <div className="ml-4">
@@ -950,9 +902,16 @@ export default function RegistralDashboard() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               className="bg-white p-6 rounded-xl shadow-md border border-gray-100 hover:bg-gray-50 transition-all duration-300"
+              style={{
+                borderLeft: `4px solid ${secondaryColor}`,
+                boxShadow: `0 4px 6px -1px ${secondaryColor}10`,
+              }}
             >
               <div className="flex items-center">
-                <div className="p-3 rounded-xl bg-green-100 text-green-700">
+                <div
+                  className="p-3 rounded-xl text-white"
+                  style={{ backgroundColor: secondaryColor }}
+                >
                   <FiUser size={24} />
                 </div>
                 <div className="ml-4">
@@ -969,6 +928,10 @@ export default function RegistralDashboard() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               className="bg-white p-6 rounded-xl shadow-md border border-gray-100 hover:bg-gray-50 transition-all duration-300"
+              style={{
+                borderLeft: `4px solid #ef4444`,
+                boxShadow: `0 4px 6px -1px #ef444420`,
+              }}
             >
               <div className="flex items-center">
                 <div className="p-3 rounded-xl bg-red-100 text-red-700">
@@ -988,6 +951,10 @@ export default function RegistralDashboard() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               className="bg-white p-6 rounded-xl shadow-md border border-gray-100 hover:bg-gray-50 transition-all duration-300"
+              style={{
+                borderLeft: `4px solid #6b7280`,
+                boxShadow: `0 4px 6px -1px #6b728020`,
+              }}
             >
               <div className="flex items-center">
                 <div className="p-3 rounded-xl bg-gray-100 text-gray-700">
@@ -1024,162 +991,8 @@ export default function RegistralDashboard() {
                   className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium transition-all duration-200 bg-gray-50 focus:bg-white"
                 />
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="p-2 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-              >
-                <FiFilter size={18} />
-              </motion.button>
             </div>
           </div>
-
-          <AnimatePresence>
-            {isFilterOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="px-6 py-4 border-b border-gray-200 bg-gray-50"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Status
-                    </label>
-                    <select
-                      value={filterStatus}
-                      onChange={(e) => {
-                        setFilterStatus(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full p-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                    >
-                      <option value="all">All Statuses</option>
-                      {dynamicFilters.statuses.map((status, index) => (
-                        <option key={index} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Day Package
-                    </label>
-                    <select
-                      value={filterDayPackage}
-                      onChange={(e) => {
-                        setFilterDayPackage(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full p-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                    >
-                      <option value="all">All Day Packages</option>
-                      <option value="All days">All days</option>
-                      <option value="MWF">MWF</option>
-                      <option value="TTS">TTS</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Package Region
-                    </label>
-                    <select
-                      value={filterPackage}
-                      onChange={(e) => {
-                        setFilterPackage(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full p-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                    >
-                      <option value="all">All Package Regions</option>
-                      {dynamicFilters.packages.map((pkg, index) => (
-                        <option key={index} value={pkg}>
-                          {pkg}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Subject
-                    </label>
-                    <select
-                      value={filterSubject}
-                      onChange={(e) => {
-                        setFilterSubject(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full p-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                    >
-                      <option value="all">All Subjects</option>
-                      {dynamicFilters.subjects.map((subject, index) => (
-                        <option key={index} value={subject}>
-                          {subject}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Ustaz (Teacher)
-                    </label>
-                    <select
-                      value={filterUstaz}
-                      onChange={(e) => {
-                        setFilterUstaz(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full p-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                    >
-                      <option value="all">All Ustaz</option>
-                      {uniqueUstaz.map((u, idx) => (
-                        <option key={idx} value={u}>
-                          {u}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Trained Status
-                    </label>
-                    <select
-                      value={filterTrained}
-                      onChange={(e) => {
-                        setFilterTrained(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full p-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                    >
-                      <option value="all">All</option>
-                      <option value="trained">Trained</option>
-                      <option value="nottrained">Not Trained</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Connection Status
-                    </label>
-                    <select
-                      value={filterConnection}
-                      onChange={(e) => {
-                        setFilterConnection(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full p-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                    >
-                      <option value="all">All</option>
-                      <option value="connected">Connected</option>
-                      <option value="not-connected">Not Connected</option>
-                    </select>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {selectedRows.length > 0 && (
             <div className="px-6 py-3 border-b border-gray-200 bg-blue-50 flex items-center justify-between">
@@ -1210,11 +1023,12 @@ export default function RegistralDashboard() {
                     className="flex items-center px-3 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors appearance-none"
                   >
                     <option value="">Update Status</option>
-                    {dynamicFilters.statuses.map((status, index) => (
-                      <option key={index} value={status}>
-                        {status}
-                      </option>
-                    ))}
+                    <option value="active">Active</option>
+                    <option value="pending">Pending</option>
+                    <option value="fresh">Fresh</option>
+                    <option value="leave">Leave</option>
+                    <option value="remadan leave">Ramadan Leave</option>
+                    <option value="Not yet">Not Yet</option>
                   </select>
                   <FiChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-600 pointer-events-none" />
                 </div>
@@ -1746,20 +1560,10 @@ export default function RegistralDashboard() {
                 <FiUser className="text-gray-400" size={48} />
               </div>
               <h3 className="text-xl font-semibold text-gray-900">
-                {searchQuery ||
-                filterStatus !== "all" ||
-                filterPackage !== "all" ||
-                filterSubject !== "all"
-                  ? "No matching students found"
-                  : "No student registrations yet"}
+                No student registrations yet
               </h3>
               <p className="text-gray-500 mt-4 max-w-lg mx-auto">
-                {searchQuery ||
-                filterStatus !== "all" ||
-                filterPackage !== "all" ||
-                filterSubject !== "all"
-                  ? "Try adjusting your search or filters to find what you're looking for"
-                  : "Get started by creating your first student registration"}
+                Get started by creating your first student registration
               </p>
               <Link
                 href={`/registral/${schoolSlug}/registration`}
@@ -1795,13 +1599,13 @@ export default function RegistralDashboard() {
         <div className="mt-12 text-center text-sm text-gray-600 border-t border-gray-200 pt-8">
           <div className="flex flex-col md:flex-row justify-center items-center gap-4">
             <p className="font-medium">
-              © {new Date().getFullYear()} Darulkubra Quran Academy
+              © {new Date().getFullYear()} {schoolName}
             </p>
             <span className="hidden md:block">•</span>
             <p>
               Need help?{" "}
               <a
-                href="mailto:support@darulkubra.com"
+                href={`mailto:${supportEmail}`}
                 className="text-blue-600 hover:underline font-medium transition-colors"
               >
                 Contact Support
