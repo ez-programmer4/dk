@@ -114,6 +114,7 @@ interface User {
 interface PaymentManagementProps {
   studentId: number;
   user: { name: string; username: string; role: string } | null;
+  schoolSlug?: string;
 }
 
 interface MonthlyPaymentForm {
@@ -183,9 +184,15 @@ const PaymentSkeleton = () => {
 export default function PaymentManagement({
   studentId,
   user,
+  schoolSlug,
 }: PaymentManagementProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Validate that schoolSlug is required for controller operations
+  if (user?.role === "controller" && !schoolSlug) {
+    throw new Error("schoolSlug is required for controller operations");
+  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
@@ -288,9 +295,14 @@ export default function PaymentManagement({
       setError(null);
       try {
         // Fetch student data
-        const studentResponse = await fetch(`/api/students/${studentId}`, {
-          credentials: "include",
-        });
+        const studentResponse = await fetch(
+          user?.role === "controller"
+            ? `/api/admin/${schoolSlug}/students/${studentId}`
+            : `/api/admin/${schoolSlug}/students/${studentId}`,
+          {
+            credentials: "include",
+          }
+        );
         if (!studentResponse.ok) {
           throw new Error("Failed to fetch student data");
         }
@@ -299,7 +311,9 @@ export default function PaymentManagement({
 
         // Fetch deposits
         const depositsResponse = await fetch(
-          `/api/payments/deposit?studentId=${studentId}`,
+          user?.role === "controller"
+            ? `/api/controller/${schoolSlug}/payments/deposit?studentId=${studentId}`
+            : `/api/admin/${schoolSlug}/payments/deposit?studentId=${studentId}`,
           {
             credentials: "include",
           }
@@ -312,7 +326,9 @@ export default function PaymentManagement({
 
         // Fetch monthly payments
         const monthlyResponse = await fetch(
-          `/api/payments/monthly?studentId=${studentId}`,
+          user?.role === "controller"
+            ? `/api/controller/${schoolSlug}/payments/monthly?studentId=${studentId}`
+            : `/api/admin/${schoolSlug}/payments/monthly?studentId=${studentId}`,
           {
             credentials: "include",
           }
@@ -659,20 +675,25 @@ export default function PaymentManagement({
     }
 
     try {
-      const response = await fetch("/api/payments/deposit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          studentId: studentId,
-          amount: parseFloat(newDeposit.amount),
-          reason: newDeposit.reason || "deposit",
-          transactionId: newDeposit.transactionId,
-          paymentDate: newDeposit.paymentDate,
-          status: "pending",
-        }),
-      });
+      const response = await fetch(
+        user?.role === "controller"
+          ? `/api/controller/${schoolSlug}/payments/deposit`
+          : `/api/admin/${schoolSlug}/payments/deposit`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            studentId: studentId,
+            amount: parseFloat(newDeposit.amount),
+            reason: newDeposit.reason || "deposit",
+            transactionId: newDeposit.transactionId,
+            paymentDate: newDeposit.paymentDate,
+            status: "pending",
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -681,7 +702,7 @@ export default function PaymentManagement({
 
       // Fetch updated deposits after successful submission
       const updatedDepositsResponse = await fetch(
-        `/api/payments/deposit?studentId=${studentId}`
+        `/api/admin/${schoolSlug}/payments/deposit?studentId=${studentId}`
       );
 
       if (!updatedDepositsResponse.ok) {
@@ -772,13 +793,18 @@ export default function PaymentManagement({
           };
 
           try {
-            const response = await fetch("/api/payments/monthly", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(payload),
-            });
+            const response = await fetch(
+              user?.role === "controller"
+                ? `/api/controller/${schoolSlug}/payments/monthly`
+                : `/api/admin/${schoolSlug}/payments/monthly`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+              }
+            );
 
             if (!response.ok) {
               const error = await response.json();
@@ -1011,13 +1037,18 @@ export default function PaymentManagement({
 
       // Debug: Log final payload
       // Submit the prize
-      const prizeResponse = await fetch("/api/payments/monthly", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const prizeResponse = await fetch(
+        user?.role === "controller"
+          ? `/api/controller/${schoolSlug}/payments/monthly`
+          : `/api/admin/${schoolSlug}/payments/monthly`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!prizeResponse.ok) {
         const error = await prizeResponse.json();
@@ -1028,20 +1059,25 @@ export default function PaymentManagement({
       if (!isFullPrize) {
         const remainingAmount = baseAmount - prizeAmount;
 
-        const remainingResponse = await fetch("/api/payments/monthly", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            studentId,
-            month: newPrize.month,
-            paidAmount: remainingAmount.toFixed(2),
-            paymentStatus: "Paid",
-            payment_type: "partial",
-            reason: `Remaining payment after ${newPrize.percentage}% prize`,
-          }),
-        });
+        const remainingResponse = await fetch(
+          user?.role === "controller"
+            ? `/api/controller/${schoolSlug}/payments/monthly`
+            : `/api/admin/${schoolSlug}/payments/monthly`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              studentId,
+              month: newPrize.month,
+              paidAmount: remainingAmount.toFixed(2),
+              paymentStatus: "Paid",
+              payment_type: "partial",
+              reason: `Remaining payment after ${newPrize.percentage}% prize`,
+            }),
+          }
+        );
 
         if (!remainingResponse.ok) {
           const error = await remainingResponse.json();
@@ -1149,20 +1185,23 @@ export default function PaymentManagement({
     }
 
     try {
-      const response = await fetch("/api/payments/deposit", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          depositId: editingDeposit.id,
-          amount: parseFloat(newDeposit.amount),
-          reason: newDeposit.reason || "deposit",
-          transactionId: newDeposit.transactionId,
-          paymentDate: newDeposit.paymentDate,
-          status: editingDeposit.status,
-        }),
-      });
+      const response = await fetch(
+        `/api/admin/${schoolSlug}/payments/deposit`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            depositId: editingDeposit.id,
+            amount: parseFloat(newDeposit.amount),
+            reason: newDeposit.reason || "deposit",
+            transactionId: newDeposit.transactionId,
+            paymentDate: newDeposit.paymentDate,
+            status: editingDeposit.status,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -1213,7 +1252,9 @@ export default function PaymentManagement({
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `/api/payments/deposit?depositId=${deposit.id}`,
+        user?.role === "controller"
+          ? `/api/controller/${schoolSlug}/payments/deposit?depositId=${deposit.id}`
+          : `/api/admin/${schoolSlug}/payments/deposit?depositId=${deposit.id}`,
         {
           method: "DELETE",
         }
@@ -1252,19 +1293,22 @@ export default function PaymentManagement({
     setMonthlyError(null);
 
     try {
-      const response = await fetch("/api/payments/monthly", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          paymentId: editingMonthlyPayment.id,
-          paidAmount: editingMonthlyPayment.paid_amount,
-          paymentStatus: editingMonthlyPayment.payment_status,
-          payment_type: editingMonthlyPayment.payment_type,
-          free_month_reason: editingMonthlyPayment.free_month_reason || "",
-        }),
-      });
+      const response = await fetch(
+        `/api/admin/${schoolSlug}/payments/monthly`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            paymentId: editingMonthlyPayment.id,
+            paidAmount: editingMonthlyPayment.paid_amount,
+            paymentStatus: editingMonthlyPayment.payment_status,
+            payment_type: editingMonthlyPayment.payment_type,
+            free_month_reason: editingMonthlyPayment.free_month_reason || "",
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -1291,7 +1335,9 @@ export default function PaymentManagement({
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `/api/payments/monthly?paymentId=${payment.id}`,
+        user?.role === "controller"
+          ? `/api/controller/${schoolSlug}/payments/monthly?paymentId=${payment.id}`
+          : `/api/admin/${schoolSlug}/payments/monthly?paymentId=${payment.id}`,
         {
           method: "DELETE",
         }
@@ -1321,19 +1367,24 @@ export default function PaymentManagement({
     const newStatus = payment.payment_status === "Paid" ? "pending" : "Paid";
 
     try {
-      const response = await fetch("/api/payments/monthly", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          paymentId: payment.id,
-          paidAmount: payment.paid_amount,
-          paymentStatus: newStatus,
-          payment_type: payment.payment_type,
-          free_month_reason: payment.free_month_reason || "",
-        }),
-      });
+      const response = await fetch(
+        user?.role === "controller"
+          ? `/api/controller/${schoolSlug}/payments/monthly`
+          : `/api/admin/${schoolSlug}/payments/monthly`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            paymentId: payment.id,
+            paidAmount: payment.paid_amount,
+            paymentStatus: newStatus,
+            payment_type: payment.payment_type,
+            free_month_reason: payment.free_month_reason || "",
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -1417,8 +1468,16 @@ export default function PaymentManagement({
     try {
       const sid = (student as any).wdt_ID || student.id;
       const [monthlyResponse, depositsResponse] = await Promise.all([
-        fetch(`/api/payments/monthly?studentId=${sid}`),
-        fetch(`/api/payments/deposit?studentId=${sid}`),
+        fetch(
+          user?.role === "controller"
+            ? `/api/controller/${schoolSlug}/payments/monthly?studentId=${sid}`
+            : `/api/admin/${schoolSlug}/payments/monthly?studentId=${sid}`
+        ),
+        fetch(
+          user?.role === "controller"
+            ? `/api/controller/${schoolSlug}/payments/deposit?studentId=${sid}`
+            : `/api/admin/${schoolSlug}/payments/deposit?studentId=${sid}`
+        ),
       ]);
 
       if (!monthlyResponse.ok || !depositsResponse.ok) {

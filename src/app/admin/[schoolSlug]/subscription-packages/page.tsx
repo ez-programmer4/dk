@@ -287,8 +287,8 @@ export default function SubscriptionPackagesPage() {
 
     try {
       const url = editingPackage
-        ? ``/api/admin/${schoolSlug}/subscription-packages`/${editingPackage.id}`
-        : "`/api/admin/${schoolSlug}/subscription-packages`";
+        ? `/api/admin/${schoolSlug}/subscription-packages/${editingPackage.id}`
+        : `/api/admin/${schoolSlug}/subscription-packages`;
       const method = editingPackage ? "PUT" : "POST";
 
       const response = await fetch(url, {

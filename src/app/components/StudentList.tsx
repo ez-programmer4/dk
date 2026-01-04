@@ -65,6 +65,7 @@ interface StudentListProps {
   onDelete: (studentId: number) => void;
   onStatusUpdate?: (studentId: number, newStatus: string) => void;
   user: { name: string; username: string; role: string } | null;
+  schoolSlug?: string;
 }
 
 export default function StudentList({
@@ -73,6 +74,7 @@ export default function StudentList({
   onDelete,
   onStatusUpdate,
   user,
+  schoolSlug,
 }: StudentListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("active-Not yet");
@@ -1131,6 +1133,7 @@ export default function StudentList({
               onDelete={onDelete}
               onStatusUpdate={onStatusUpdate}
               user={user}
+              schoolSlug={schoolSlug}
             />
           ))
         )}

@@ -181,7 +181,6 @@ export function isLegacyRoute(pathname: string): boolean {
     "/api/admin",
     "/api/teachers",
     "/api/students",
-    "/api/registral",
     "/api/control-options",
     "/api/payments",
     "/api/attendance-list",

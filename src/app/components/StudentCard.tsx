@@ -80,6 +80,7 @@ interface StudentCardProps {
   onDelete: (studentId: number) => void;
   onStatusUpdate?: (studentId: number, newStatus: string) => void;
   user: { name: string; username: string; role: string } | null;
+  schoolSlug?: string;
 }
 
 export default function StudentCard({
@@ -88,6 +89,7 @@ export default function StudentCard({
   onEdit,
   onStatusUpdate,
   user,
+  schoolSlug,
 }: StudentCardProps) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);

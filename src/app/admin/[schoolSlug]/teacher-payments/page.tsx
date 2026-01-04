@@ -39,15 +39,15 @@ export default async function TeacherPaymentsPage({
   }
 
   // Await searchParams in Next.js 15
-  const params = await searchParams;
+  const searchParamsData = await searchParams;
 
   // Get current month/year or from search params
   const currentDate = new Date();
-  const selectedMonth = params.month
-    ? parseInt(params.month)
+  const selectedMonth = searchParamsData.month
+    ? parseInt(searchParamsData.month)
     : currentDate.getMonth() + 1;
-  const selectedYear = params.year
-    ? parseInt(params.year)
+  const selectedYear = searchParamsData.year
+    ? parseInt(searchParamsData.year)
     : currentDate.getFullYear();
 
   // Calculate date range
@@ -74,7 +74,7 @@ export default async function TeacherPaymentsPage({
     const calculator = await createSalaryCalculator();
 
     // Clear cache if requested
-    if (params.clearCache === "true") {
+    if (searchParamsData.clearCache === "true") {
       calculator.clearCache();
     }
 
