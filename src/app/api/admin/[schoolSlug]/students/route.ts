@@ -8,6 +8,8 @@ export const revalidate = 0;
 
 export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   // Declare variables outside try block so they're accessible in catch
+  const schoolSlug = params.schoolSlug;
+  const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = parseInt(searchParams.get("limit") || "20", 10);
@@ -34,25 +36,11 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify the user has access to this school
-    if (session.schoolSlug !== params.schoolSlug) {
-      return NextResponse.json({ error: "Access denied to this school" }, { status: 403 });
-    }
-
-    const schoolId = session.schoolId;
-    if (!schoolId) {
-      return NextResponse.json({ error: "No school access" }, { status: 403 });
-    }
-
     const offset = (page - 1) * limit;
 
     // Build WHERE conditions dynamically
     const whereConditions: string[] = [];
     const queryParams: any[] = [];
-
-    // Always filter by school
-    whereConditions.push(`schoolId = ?`);
-    queryParams.push(schoolId);
 
     // Search filter (name search)
     if (search) {
@@ -127,6 +115,14 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       queryParams.push(parseFloat(feeMax));
     }
 
+    // School filtering for multi-tenant
+    if (schoolId) {
+      whereConditions.push(`schoolId = ?`);
+      queryParams.push(schoolId);
+    } else {
+      whereConditions.push(`(schoolId IS NULL OR schoolId = '')`);
+    }
+
     // Build the WHERE clause
     const whereClause =
       whereConditions.length > 0
@@ -141,7 +137,7 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     `;
 
     const studentsQuery = `
-      SELECT
+      SELECT 
         wdt_ID,
         name,
         status,
@@ -189,7 +185,6 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
         ustazid: {
           in: ustazIds,
         },
-        schoolId: schoolId, // Filter teachers by school
       },
       select: {
         ustazid: true,
@@ -215,7 +210,6 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
         code: {
           in: controllerCodes,
         },
-        schoolId: schoolId, // Filter controllers by school
       },
       select: {
         code: true,
@@ -277,6 +271,8 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       startDateTo,
       feeMin,
       feeMax,
+      page,
+      limit,
     });
     return NextResponse.json(
       {
@@ -287,4 +283,3 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     );
   }
 }
-
