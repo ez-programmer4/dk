@@ -12,9 +12,8 @@ import {
 } from "react-icons/fi";
 import { toast } from "@/components/ui/use-toast";
 
-const apiUrl = `/api/admin/${schoolSlug}/quality-descriptions`;
-
 export default function AdminQualityConfigPage({ schoolSlug }: { schoolSlug: string }) {
+  const apiUrl = `/api/admin/${schoolSlug}/quality-descriptions`;
   const [positive, setPositive] = useState<any[]>([]);
   const [negative, setNegative] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

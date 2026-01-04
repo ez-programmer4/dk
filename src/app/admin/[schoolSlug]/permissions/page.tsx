@@ -272,69 +272,120 @@ export default function AdminPermissionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-        {/* Header + Stats */}
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 p-6 sm:p-8 lg:p-10">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-8 mb-8">
+        {/* Enhanced Header + Stats with School Branding */}
+        <div className="relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-6 sm:p-8 lg:p-10">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-50/30 via-transparent to-orange-50/30 rounded-3xl" />
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5QzkyQUMiIGZpbGwtb3BhY2l0eT0iMC4wMiI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIvPjwvZz48L2c+PC9zdmc+PC9zdmc+')] opacity-30" />
+
+          <div className="relative flex flex-col lg:flex-row lg:items-center gap-8 mb-8">
             <div className="flex items-center gap-6">
-              <div className="p-4 bg-black rounded-2xl shadow-lg">
+              <div className="p-4 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg">
                 <FiBell className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-2">
+                {/* Status & School Info */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="flex items-center gap-2 text-green-600 font-medium text-sm bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    System Online
+                  </span>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md font-medium">
+                    School: {schoolSlug}
+                  </span>
+                </div>
+
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent mb-3">
                   Permission Review
                 </h1>
-                <p className="text-gray-600 text-base sm:text-lg lg:text-xl">
-                  Manage teacher absence requests and notifications
+                <p className="text-gray-600 text-lg font-medium">
+                  Manage teacher absence requests and notifications for {schoolSlug}
                 </p>
               </div>
             </div>
 
-            {/* Stats */}
+            {/* Enhanced Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:ml-auto w-full">
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiBell className="h-5 w-5 text-gray-600" />
-                  <span className="text-xs font-semibold text-gray-600">
-                    Total
-                  </span>
-                </div>
-                <div className="text-2xl font-bold text-black">
-                  {stats.total}
-                </div>
-              </div>
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiClock className="h-5 w-5 text-gray-600" />
-                  <span className="text-xs font-semibold text-gray-600">
-                    Pending
-                  </span>
-                </div>
-                <div className="text-2xl font-bold text-black">
-                  {stats.pending}
+              <div className="group bg-gradient-to-br from-white to-gray-50/50 p-6 rounded-2xl border border-gray-200/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl text-white shadow-lg group-hover:shadow-xl transition-all duration-300">
+                    <FiBell className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">
+                      {stats.total}
+                    </div>
+                    <div className="text-sm text-gray-600 font-medium truncate">
+                      Total
+                    </div>
+                    <div className="mt-2 flex items-center gap-1">
+                      <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
+                      <span className="text-xs text-blue-600 font-medium">All Time</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiCheck className="h-5 w-5 text-gray-600" />
-                  <span className="text-xs font-semibold text-gray-600">
-                    Approved
-                  </span>
-                </div>
-                <div className="text-2xl font-bold text-black">
-                  {stats.approved}
+
+              <div className="group bg-gradient-to-br from-white to-gray-50/50 p-6 rounded-2xl border border-gray-200/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl text-white shadow-lg group-hover:shadow-xl transition-all duration-300">
+                    <FiClock className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">
+                      {stats.pending}
+                    </div>
+                    <div className="text-sm text-gray-600 font-medium truncate">
+                      Pending
+                    </div>
+                    <div className="mt-2 flex items-center gap-1">
+                      <div className="w-1 h-1 bg-yellow-500 rounded-full"></div>
+                      <span className="text-xs text-yellow-600 font-medium">Needs Review</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiX className="h-5 w-5 text-gray-600" />
-                  <span className="text-xs font-semibold text-gray-600">
-                    Declined
-                  </span>
+
+              <div className="group bg-gradient-to-br from-white to-gray-50/50 p-6 rounded-2xl border border-gray-200/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl text-white shadow-lg group-hover:shadow-xl transition-all duration-300">
+                    <FiCheck className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">
+                      {stats.approved}
+                    </div>
+                    <div className="text-sm text-gray-600 font-medium truncate">
+                      Approved
+                    </div>
+                    <div className="mt-2 flex items-center gap-1">
+                      <div className="w-1 h-1 bg-green-500 rounded-full"></div>
+                      <span className="text-xs text-green-600 font-medium">Accepted</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-2xl font-bold text-black">
-                  {stats.declined}
+              </div>
+
+              <div className="group bg-gradient-to-br from-white to-gray-50/50 p-6 rounded-2xl border border-gray-200/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl text-white shadow-lg group-hover:shadow-xl transition-all duration-300">
+                    <FiX className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">
+                      {stats.declined}
+                    </div>
+                    <div className="text-sm text-gray-600 font-medium truncate">
+                      Declined
+                    </div>
+                    <div className="mt-2 flex items-center gap-1">
+                      <div className="w-1 h-1 bg-red-500 rounded-full"></div>
+                      <span className="text-xs text-red-600 font-medium">Rejected</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

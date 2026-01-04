@@ -19,10 +19,10 @@ import {
 import { startOfWeek, format, addWeeks } from "date-fns";
 import { toast } from "@/components/ui/use-toast";
 
-const apiUrl = `/api/admin/${schoolSlug}/quality-review`;
 const qualityLevels = ["Bad", "Good", "Better", "Excellent", "Exceptional"];
 
 export default function AdminQualityReviewPage({ schoolSlug }: { schoolSlug: string }) {
+  const apiUrl = `/api/admin/${schoolSlug}/quality-review`;
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
