@@ -23,12 +23,13 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const searchQuery = searchParams.get("search") || "";
+    const schoolSlug = searchParams.get("schoolSlug");
+    const schoolId = schoolSlug === "darulkubra" ? null : schoolSlug;
 
-    const whereClause = searchQuery
-      ? {
-          ustazname: { contains: searchQuery },
-        }
-      : {};
+    const whereClause = {
+      ...(searchQuery ? { ustazname: { contains: searchQuery } } : {}),
+      ...(schoolId ? { schoolId } : { schoolId: null }),
+    };
 
     const teachers = await prisma.wpos_wpdatatable_24.findMany({
       where: whereClause,

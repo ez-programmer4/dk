@@ -9,7 +9,23 @@ export const revalidate = 0;
 export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   // Declare variables outside try block so they're accessible in catch
   const schoolSlug = params.schoolSlug;
-  const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+  let schoolId = schoolSlug === 'darulkubra' ? null : null; // Default to null for darulkubra
+
+  // For non-darulkubra schools, look up the actual school ID
+  if (schoolSlug !== 'darulkubra') {
+    try {
+      const school = await prisma.school.findUnique({
+        where: { slug: schoolSlug },
+        select: { id: true, name: true, slug: true }
+      });
+      schoolId = school?.id || null;
+    } catch (error) {
+      console.error("Error looking up school:", error);
+      schoolId = null;
+    }
+  } else {
+    console.log("API REQUEST - schoolSlug:", schoolSlug, "schoolId: null (darulkubra)");
+  }
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = parseInt(searchParams.get("limit") || "20", 10);
@@ -26,13 +42,14 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
   const startDateTo = searchParams.get("startDateTo") || "";
   const feeMin = searchParams.get("feeMin") || "";
   const feeMax = searchParams.get("feeMax") || "";
+  const registral = searchParams.get("registral") || "";
 
   try {
     const session = await getToken({
       req,
       secret: process.env.NEXTAUTH_SECRET,
     });
-    if (!session || session.role !== "admin") {
+    if (!session || !["admin", "registral"].includes(session.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -42,6 +59,23 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     const whereConditions: string[] = [];
     const queryParams: any[] = [];
 
+    // School filtering
+    whereConditions.push(`schoolId ${schoolId ? `= '${schoolId}'` : 'IS NULL'}`);
+
+    // Registral filtering - registral users only see their own students
+    if (session.role === "registral") {
+      const registralName = session.name || session.username || (session as any).user?.name || (session as any).user?.username;
+      if (registralName) {
+        whereConditions.push(`rigistral = ?`);
+        queryParams.push(registralName);
+      }
+    } else if (registral) {
+      // Admin can filter by registral if specified
+      console.log("Admin filtering by registral:", registral, "school:", schoolSlug);
+      whereConditions.push(`rigistral = ?`);
+      queryParams.push(registral);
+    }
+
     // Search filter (name search)
     if (search) {
       const searchTerm = `%${search.toLowerCase()}%`;
@@ -50,7 +84,7 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     }
 
     // Status filter
-    if (status) {
+    if (status && status !== "all") {
       whereConditions.push(`status = ?`);
       queryParams.push(status);
     }

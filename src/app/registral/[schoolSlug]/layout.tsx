@@ -168,6 +168,14 @@ export default function RegistralLayout({
     pendingRegistrations: 0,
   });
 
+  // Header state
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [systemStatus, setSystemStatus] = useState("online");
+
   // Fetch sidebar stats
   useEffect(() => {
     const fetchSidebarStats = async () => {
@@ -205,6 +213,42 @@ export default function RegistralLayout({
       fetchSidebarStats();
     }
   }, [schoolSlug]);
+
+  // Handle global search
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    // Implement search logic here - could navigate to search results page
+    if (query.trim()) {
+      // For now, just navigate to students page with search
+      router.push(
+        `/registral/${schoolSlug}/students?search=${encodeURIComponent(query)}`
+      );
+      setShowSearch(false);
+      setSearchQuery("");
+    }
+  };
+
+  // Quick actions
+  const quickActions = [
+    {
+      label: "New Student",
+      icon: FiPlus,
+      action: () => router.push(`/registral/${schoolSlug}/registration`),
+      shortcut: "Ctrl+N",
+    },
+    {
+      label: "View Students",
+      icon: FiUsers,
+      action: () => router.push(`/registral/${schoolSlug}/students`),
+      shortcut: "Ctrl+S",
+    },
+    {
+      label: "Earnings Report",
+      icon: FiDollarSign,
+      action: () => router.push(`/registral/${schoolSlug}/earnings`),
+      shortcut: "Ctrl+E",
+    },
+  ];
 
   const navGroups = [
     {
@@ -413,53 +457,197 @@ export default function RegistralLayout({
         } as React.CSSProperties
       }
     >
-      {/* Header */}
+      {/* Enhanced Header */}
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-40"
+        className="sticky top-0 z-40 border-b border-gray-200 shadow-sm"
+        style={{
+          background: `linear-gradient(135deg, ${primaryColor}08 0%, ${secondaryColor}05 100%)`,
+          backdropFilter: "blur(12px)",
+        }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <img
-                src={logoUrl}
-                alt={`${schoolName} Logo`}
-                className="h-10 w-10 rounded-lg mr-3"
-                onError={(e) => {
-                  // Only set fallback if we're not already using it
-                  if (e.currentTarget.src !== "/logo.svg") {
-                    e.currentTarget.src = "/logo.svg";
-                  }
-                }}
-              />
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">
+          <div className="flex justify-between items-center h-20">
+            {/* Left Section - Logo & School Info */}
+            <div className="flex items-center space-x-4">
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                <div className="relative bg-white rounded-xl p-2 shadow-lg ring-1 ring-gray-200/50">
+                  <img
+                    src={logoUrl}
+                    alt={`${schoolName} Logo`}
+                    className="h-10 w-10 rounded-lg object-cover"
+                    onError={(e) => {
+                      if (e.currentTarget.src !== "/logo.svg") {
+                        e.currentTarget.src = "/logo.svg";
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold text-gray-900 leading-tight">
                   {schoolName}
                 </h1>
-                <p className="text-xs text-gray-500">Registral Portal</p>
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-xs text-gray-600 font-medium">
+                      Online
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-400">•</span>
+                  <span className="text-xs text-gray-500">
+                    Registral Portal
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">
-                  {session?.user?.name}
-                </p>
-                <p className="text-xs text-gray-500 capitalize">
-                  {session?.user?.role}
-                </p>
+            {/* Center Section - Search & Quick Actions */}
+            <div className="hidden md:flex items-center space-x-3 flex-1 max-w-md mx-8">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FiSearch className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search students, registrations..."
+                  className="w-full pl-10 pr-4 py-2 bg-white/70 backdrop-blur-sm border border-gray-200/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200 placeholder-gray-400"
+                />
               </div>
-              <button
-                onClick={() =>
-                  signOut({ callbackUrl: "/login", redirect: true })
-                }
-                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                title="Logout"
-              >
-                <FiLogOut size={18} />
-              </button>
             </div>
+
+            {/* Right Section - Actions & User */}
+            <div className="flex items-center space-x-3">
+              {/* Quick Actions */}
+              <div className="hidden lg:flex items-center space-x-2">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() =>
+                    (window.location.href = `/registral/${schoolSlug}/registration`)
+                  }
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl text-sm font-medium shadow-sm transition-all duration-200"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                  }}
+                >
+                  <FiPlus className="w-4 h-4" />
+                  <span>New Registration</span>
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() =>
+                    (window.location.href = `/registral/${schoolSlug}/students`)
+                  }
+                  className="flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200/50 text-gray-700 hover:bg-white hover:shadow-sm rounded-xl text-sm font-medium transition-all duration-200"
+                >
+                  <FiUsers className="w-4 h-4" />
+                  <span>Students</span>
+                </motion.button>
+              </div>
+
+              {/* Mobile Menu Button */}
+              <button className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
+                <FiSearch className="w-5 h-5" />
+              </button>
+
+              {/* Notifications */}
+              <div className="relative">
+                <button className="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
+                  <FiBell className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-bold">
+                    3
+                  </span>
+                </button>
+              </div>
+
+              {/* User Menu */}
+              <div className="relative group">
+                <button className="flex items-center space-x-3 p-2 rounded-xl hover:bg-white/70 backdrop-blur-sm transition-all duration-200 border border-transparent hover:border-gray-200/50">
+                  <div className="relative">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
+                      <FiUser className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
+                  </div>
+                  <div className="hidden sm:block text-left">
+                    <p className="text-sm font-semibold text-gray-900 leading-tight">
+                      {session?.user?.name?.split(" ")[0]}
+                    </p>
+                    <p className="text-xs text-gray-500 capitalize">
+                      {session?.user?.role}
+                    </p>
+                  </div>
+                  <FiChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                </button>
+
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200/50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-50">
+                  <div className="p-4 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {session?.user?.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {session?.user?.email || "No email"}
+                    </p>
+                  </div>
+                  <div className="py-2">
+                    <button className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                      <FiUser className="w-4 h-4" />
+                      <span>Profile Settings</span>
+                    </button>
+                    <button className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                      <FiSettings className="w-4 h-4" />
+                      <span>Preferences</span>
+                    </button>
+                    <button className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                      <FiActivity className="w-4 h-4" />
+                      <span>Activity Log</span>
+                    </button>
+                    <div className="border-t border-gray-100 my-2"></div>
+                    <button
+                      onClick={() =>
+                        signOut({ callbackUrl: "/login", redirect: true })
+                      }
+                      className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <FiLogOut className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Breadcrumb Navigation */}
+        <div className="bg-white/50 backdrop-blur-sm border-t border-gray-200/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav className="flex py-3" aria-label="Breadcrumb">
+              <ol className="flex items-center space-x-2">
+                <li>
+                  <Link
+                    href={`/registral/${schoolSlug}/dashboard`}
+                    className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+                <li className="flex items-center">
+                  <FiChevronRight className="w-4 h-4 text-gray-400 mx-2" />
+                  <span className="text-gray-900 text-sm font-medium capitalize">
+                    {pathname.split("/").pop()?.replace("-", " ") || "Home"}
+                  </span>
+                </li>
+              </ol>
+            </nav>
           </div>
         </div>
       </motion.header>
@@ -469,7 +657,7 @@ export default function RegistralLayout({
         <motion.nav
           initial={{ x: -300 }}
           animate={{ x: 0 }}
-          className="w-80 bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 min-h-[calc(100vh-4rem)] sticky top-16 overflow-hidden"
+          className="w-80 bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 min-h-[calc(100vh-5rem)] sticky top-20 overflow-hidden"
           style={{
             background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}08 100%)`,
           }}

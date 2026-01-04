@@ -195,6 +195,11 @@ function RegistrationContent() {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<{
     [time: string]: boolean;
   }>({});
+
+  const [occupiedTimes, setOccupiedTimes] = useState<any[]>([]);
+  const [teacherAvailability, setTeacherAvailability] = useState<{
+    [ustazId: string]: boolean;
+  }>({});
   const [loadingAvailability, setLoadingAvailability] =
     useState<boolean>(false);
 
@@ -282,7 +287,7 @@ function RegistrationContent() {
     const fetchDayPackages = async () => {
       setLoadingDayPackages(true);
       try {
-        const res = await fetch("/api/day-packages");
+        const res = await fetch(`/api/day-packages?schoolSlug=${schoolSlug}`);
         if (res.ok) {
           const data = await res.json();
           if (data.dayPackages && data.dayPackages.length > 0) {
@@ -305,7 +310,9 @@ function RegistrationContent() {
     const fetchConfigurations = async () => {
       setLoadingConfigs(true);
       try {
-        const res = await fetch("/api/student-configs");
+        const res = await fetch(
+          `/api/student-configs?schoolSlug=${schoolSlug}`
+        );
         if (res.ok) {
           const data = await res.json();
           setStudentConfigs({
@@ -417,7 +424,9 @@ function RegistrationContent() {
 
       setLoadingSubscriptionConfigs(true);
       try {
-        const res = await fetch("/api/admin/subscription-package-configs");
+        const res = await fetch(
+          `/api/admin/${schoolSlug}/subscription-package-configs`
+        );
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.configs) {
@@ -558,7 +567,9 @@ function RegistrationContent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [timeResponse] = await Promise.all([fetch("/api/time-slots")]);
+        const [timeResponse] = await Promise.all([
+          fetch(`/api/time-slots?schoolSlug=${schoolSlug}`),
+        ]);
 
         if (!timeResponse.ok)
           throw new Error(
@@ -586,7 +597,9 @@ function RegistrationContent() {
       const response = await fetch(
         `/api/teachers-by-time?selectedTime=${encodeURIComponent(
           selectedTime
-        )}&selectedDayPackage=${encodeURIComponent(selectedDayPackage)}`
+        )}&selectedDayPackage=${encodeURIComponent(
+          selectedDayPackage
+        )}&schoolSlug=${schoolSlug}`
       );
       const data = await response.json();
       // Log raw response to confirm
@@ -597,30 +610,50 @@ function RegistrationContent() {
       }
       // Handle both { teachers: [...] } and [...] directly
       const teacherData = Array.isArray(data) ? { teachers: data } : data;
+
+      // Filter out teachers who are already occupied for this time slot
+      const availableTeachers = (teacherData.teachers || []).filter(
+        (t: Teacher) => {
+          const hasControl = t.control && t.control.code;
+          if (!hasControl) return false;
+
+          // Check if this teacher is occupied for the selected time slot and day package
+          const isOccupied = occupiedTimes.some(
+            (occupied) =>
+              occupied.ustaz_id === t.ustazid &&
+              occupied.time_slot === selectedTime &&
+              occupied.daypackage === selectedDayPackage
+          );
+
+          return !isOccupied;
+        }
+      );
+
       if (
         selectedTeacher &&
-        !teacherData.teachers.some(
-          (t: Teacher) => t.ustazid === selectedTeacher
-        )
+        !availableTeachers.some((t: Teacher) => t.ustazid === selectedTeacher)
       ) {
         setSelectedTeacher("");
       }
-      setTeachers(
-        (teacherData.teachers || []).filter(
-          (t: Teacher) => t.control && t.control.code
-        )
-      );
+
+      setTeachers(availableTeachers);
       setError(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
       setTeachers([]);
     }
-  }, [selectedTime, selectedDayPackage, selectedTeacher]);
+  }, [
+    selectedTime,
+    selectedDayPackage,
+    selectedTeacher,
+    occupiedTimes,
+    schoolSlug,
+  ]);
 
   const fetchAllTeachers = useCallback(async () => {
     try {
-      const response = await fetch("/api/teachers");
+      const response = await fetch(`/api/teachers?schoolSlug=${schoolSlug}`);
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to fetch teachers: ${response.statusText}`);
@@ -645,7 +678,14 @@ function RegistrationContent() {
         fetchTeachers();
       }
     }
-  }, [step, fetchTeachers, fetchAllTeachers, (session as any)?.role, status]);
+  }, [
+    step,
+    fetchTeachers,
+    fetchAllTeachers,
+    occupiedTimes,
+    (session as any)?.role,
+    status,
+  ]);
 
   // Handle pre-filled data from US students
   const [isUsStudent, setIsUsStudent] = useState(false);
@@ -1016,6 +1056,25 @@ function RegistrationContent() {
     }
   }, [status, session, router]);
 
+  const fetchOccupiedTimes = useCallback(async () => {
+    if (!selectedDayPackage) return;
+
+    try {
+      const res = await fetch(
+        `/api/occupied-times?schoolSlug=${schoolSlug}&dayPackage=${encodeURIComponent(
+          selectedDayPackage
+        )}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setOccupiedTimes(data.occupiedTimes || []);
+      }
+    } catch (error) {
+      console.error("Error fetching occupied times:", error);
+      setOccupiedTimes([]);
+    }
+  }, [schoolSlug, selectedDayPackage]);
+
   const checkAvailability = useCallback(async () => {
     if (!selectedDayPackage) return;
     setLoadingAvailability(true);
@@ -1029,7 +1088,7 @@ function RegistrationContent() {
               slot.time
             )}&selectedDayPackage=${encodeURIComponent(
               selectedDayPackage
-            )}&_t=${Date.now()}`
+            )}&schoolSlug=${schoolSlug}&_t=${Date.now()}`
           );
           if (!res.ok) {
             availability[slot.time] = false;
@@ -1038,7 +1097,15 @@ function RegistrationContent() {
           const data = await res.json();
           const teachers = Array.isArray(data) ? data : data.teachers;
           const isAvailable = teachers && teachers.length > 0;
-          availability[slot.time] = isAvailable;
+
+          // Check if this time slot is already occupied
+          const isOccupied = occupiedTimes.some(
+            (occupied) =>
+              occupied.time_slot === slot.time &&
+              occupied.daypackage === selectedDayPackage
+          );
+
+          availability[slot.time] = isAvailable && !isOccupied;
         } catch (error) {
           availability[slot.time] = false;
         }
@@ -1047,13 +1114,19 @@ function RegistrationContent() {
 
     setAvailableTimeSlots(availability);
     setLoadingAvailability(false);
-  }, [timeSlots, selectedDayPackage]);
+  }, [timeSlots, selectedDayPackage, occupiedTimes, schoolSlug]);
+
+  useEffect(() => {
+    if (selectedDayPackage) {
+      fetchOccupiedTimes();
+    }
+  }, [selectedDayPackage, fetchOccupiedTimes]);
 
   useEffect(() => {
     if (timeSlots.length > 0 && selectedDayPackage) {
       checkAvailability();
     }
-  }, [timeSlots, selectedDayPackage, checkAvailability]);
+  }, [timeSlots, selectedDayPackage, occupiedTimes, checkAvailability]);
 
   // Refresh availability when returning from registration
   useEffect(() => {
@@ -1071,7 +1144,7 @@ function RegistrationContent() {
     if (session?.user?.role === "registral") {
       setLoadingControllers(true);
       setControllersError(null);
-      fetch("/api/control-options")
+      fetch(`/api/control-options?schoolSlug=${schoolSlug}`)
         .then((res) => res.json())
         .then((data) => {
           setControllers(data.controllers || []);
@@ -1735,23 +1808,33 @@ function RegistrationContent() {
                                   const isSelected = selectedTime === slot.time;
                                   const isLoading = loadingAvailability;
 
+                                  // Check if this time slot is occupied
+                                  const isOccupied = occupiedTimes.some(
+                                    (occupied) =>
+                                      occupied.time_slot === slot.time &&
+                                      occupied.daypackage === selectedDayPackage
+                                  );
+
+                                  const finalAvailable =
+                                    isAvailable && !isOccupied;
+
                                   return (
                                     <motion.button
                                       key={slot.id}
                                       type="button"
                                       onClick={() => {
-                                        if (isAvailable && !isLoading) {
+                                        if (finalAvailable && !isLoading) {
                                           setSelectedTime(slot.time);
                                         }
                                       }}
-                                      disabled={!isAvailable || isLoading}
+                                      disabled={!finalAvailable || isLoading}
                                       whileHover={
-                                        isAvailable && !isLoading
+                                        finalAvailable && !isLoading
                                           ? { scale: 1.03 }
                                           : {}
                                       }
                                       whileTap={
-                                        isAvailable && !isLoading
+                                        finalAvailable && !isLoading
                                           ? { scale: 0.97 }
                                           : {}
                                       }
@@ -1760,14 +1843,18 @@ function RegistrationContent() {
                                           ? "bg-teal-600 text-white shadow-md"
                                           : isLoading
                                           ? "bg-gray-100 text-gray-500 border border-gray-200 cursor-wait"
-                                          : isAvailable
+                                          : isOccupied
+                                          ? "bg-orange-50 text-orange-800 border-2 border-orange-500 cursor-not-allowed"
+                                          : finalAvailable
                                           ? "bg-white text-gray-800 hover:bg-green-50 border-2 border-green-500 hover:border-green-600"
                                           : "bg-red-50 text-red-800 border-2 border-red-500 cursor-not-allowed opacity-75"
                                       }`}
                                       title={
                                         isLoading
                                           ? "Checking availability..."
-                                          : isAvailable
+                                          : isOccupied
+                                          ? "This time slot is already occupied"
+                                          : finalAvailable
                                           ? "Click to select this time slot"
                                           : "No teacher available for this time and package"
                                       }
@@ -1796,7 +1883,11 @@ function RegistrationContent() {
                                             <Badge className="bg-gray-100 text-gray-600 text-xs">
                                               Checking...
                                             </Badge>
-                                          ) : isAvailable ? (
+                                          ) : isOccupied ? (
+                                            <Badge className="bg-orange-100 text-orange-800 text-xs font-bold">
+                                              🕐 Occupied
+                                            </Badge>
+                                          ) : finalAvailable ? (
                                             <Badge className="bg-green-100 text-green-800 text-xs font-bold">
                                               ✓ Available
                                             </Badge>
@@ -1811,7 +1902,9 @@ function RegistrationContent() {
                                                 ? "text-white"
                                                 : isLoading
                                                 ? "text-gray-400"
-                                                : isAvailable
+                                                : isOccupied
+                                                ? "text-orange-500"
+                                                : finalAvailable
                                                 ? "text-green-600"
                                                 : "text-red-400"
                                             }`}
@@ -1990,41 +2083,80 @@ function RegistrationContent() {
                         </div>
                       </div>
                     ) : teachers && teachers.length > 0 ? (
-                      teachers.map((teacher) => (
-                        <motion.div
-                          key={teacher.ustazid}
-                          onClick={() => setSelectedTeacher(teacher.ustazid)}
-                          whileHover={{ y: -5 }}
-                          className={`p-5 rounded-xl cursor-pointer transition-all duration-300 border shadow-sm ${
-                            selectedTeacher === teacher.ustazid
-                              ? "border-teal-500 bg-teal-50 shadow-md"
-                              : "border-gray-200 hover:border-teal-400 bg-white hover:shadow-md"
-                          }`}
-                        >
-                          <div className="flex items-center">
-                            <div
-                              className={`h-6 w-6 rounded-full border mr-4 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                                selectedTeacher === teacher.ustazid
-                                  ? "bg-teal-600 border-teal-600"
-                                  : "border-gray-300"
-                              }`}
-                            >
-                              {selectedTeacher === teacher.ustazid && (
-                                <FiCheck className="h-4 w-4 text-white" />
+                      teachers.map((teacher) => {
+                        // Check if this teacher is occupied for the selected time slot
+                        const isOccupied = occupiedTimes.some(
+                          (occupied) =>
+                            occupied.ustaz_id === teacher.ustazid &&
+                            occupied.time_slot === selectedTime &&
+                            occupied.daypackage === selectedDayPackage
+                        );
+
+                        return (
+                          <motion.div
+                            key={teacher.ustazid}
+                            onClick={() =>
+                              !isOccupied && setSelectedTeacher(teacher.ustazid)
+                            }
+                            whileHover={{ y: isOccupied ? 0 : -5 }}
+                            className={`p-5 rounded-xl transition-all duration-300 border shadow-sm ${
+                              isOccupied
+                                ? "border-orange-300 bg-orange-50 cursor-not-allowed opacity-75"
+                                : selectedTeacher === teacher.ustazid
+                                ? "border-teal-500 bg-teal-50 shadow-md cursor-pointer"
+                                : "border-gray-200 hover:border-teal-400 bg-white hover:shadow-md cursor-pointer"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div
+                                  className={`h-6 w-6 rounded-full border mr-4 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                                    selectedTeacher === teacher.ustazid
+                                      ? "bg-teal-600 border-teal-600"
+                                      : isOccupied
+                                      ? "bg-orange-400 border-orange-400"
+                                      : "border-gray-300"
+                                  }`}
+                                >
+                                  {selectedTeacher === teacher.ustazid ? (
+                                    <FiCheck className="h-4 w-4 text-white" />
+                                  ) : isOccupied ? (
+                                    <FiClock className="h-4 w-4 text-white" />
+                                  ) : null}
+                                </div>
+                                <div>
+                                  <p
+                                    className={`font-semibold ${
+                                      isOccupied
+                                        ? "text-gray-600"
+                                        : "text-gray-900"
+                                    }`}
+                                  >
+                                    {teacher.ustazname}
+                                  </p>
+                                  <p className="text-xs text-gray-600 mt-1.5">
+                                    {isOccupied ? (
+                                      <span className="text-orange-600 font-medium">
+                                        🕐 Occupied for this time slot
+                                      </span>
+                                    ) : (
+                                      <>
+                                        Available (Controller:{" "}
+                                        {teacher.control?.code || "Unknown"})
+                                      </>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                              {isOccupied && (
+                                <div className="text-orange-500">
+                                  <FiClock className="w-5 h-5" />
+                                </div>
                               )}
                             </div>
-                            <div>
-                              <p className="font-semibold text-gray-900">
-                                {teacher.ustazname}
-                              </p>
-                              <p className="text-xs text-gray-600 mt-1.5">
-                                Available (Controller:{" "}
-                                {teacher.control?.code || "Unknown"})
-                              </p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))
+                          </motion.div>
+                        );
+                      })
                     ) : (
                       <div className="col-span-full py-10 text-center">
                         <div className="bg-gray-50 rounded-xl p-8 inline-block shadow-sm">

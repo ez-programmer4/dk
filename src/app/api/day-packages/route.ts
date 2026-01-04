@@ -14,18 +14,16 @@ export const revalidate = 0;
  */
 export async function GET(request: NextRequest) {
   try {
-    // Optional: Check for authentication (can be removed if public access needed)
-    // const session = await getToken({
-    //   req: request,
-    //   secret: process.env.NEXTAUTH_SECRET,
-    // });
-    // if (!session) {
-    //   return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    // }
+    const { searchParams } = new URL(request.url);
+    const schoolSlug = searchParams.get("schoolSlug");
+    const schoolId = schoolSlug === "darulkubra" ? null : schoolSlug;
 
     // Fetch active daypackages from database
     const dayPackages = await prisma.studentdaypackage.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(schoolId ? { schoolId } : { schoolId: null }),
+      },
       orderBy: { name: "asc" },
       select: {
         id: true,

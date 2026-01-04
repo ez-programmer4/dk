@@ -19,7 +19,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
+    const { searchParams } = new URL(request.url);
+    const schoolSlug = searchParams.get("schoolSlug");
+    const schoolId = schoolSlug === "darulkubra" ? null : schoolSlug;
+
     const controllers = await prisma.wpos_wpdatatable_28.findMany({
+      where: {
+        ...(schoolId ? { schoolId } : { schoolId: null }),
+      },
       select: { username: true, name: true, code: true },
       orderBy: { name: "asc" },
     });

@@ -96,8 +96,11 @@ export default function RegistralStudentsPage() {
   const fetchStudents = useCallback(async () => {
     try {
       setLoading(true);
+      const registralName = session?.user?.name || session?.user?.username || "";
+      console.log("Fetching students for registral:", registralName, "session user:", session?.user, "school:", schoolSlug);
+      const statusParam = statusFilter === "all" ? "" : `&status=${statusFilter}`;
       const response = await fetch(
-        `/api/admin/${schoolSlug}/students?registral=${encodeURIComponent(session?.user?.name || "")}&page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}&status=${statusFilter}`
+        `/api/admin/${schoolSlug}/students?registral=${encodeURIComponent(registralName)}&page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}${statusParam}`
       );
 
       if (!response.ok) throw new Error("Failed to fetch students");
@@ -552,10 +555,11 @@ export default function RegistralStudentsPage() {
                 className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
               >
                 <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="not yet">Not Yet</option>
-                <option value="leave">On Leave</option>
-                <option value="completed">Completed</option>
+                <option value="Active">Active</option>
+                <option value="Not yet">Not Yet</option>
+                <option value="Leave">On Leave</option>
+                <option value="Completed">Completed</option>
+                <option value="On Progress">On Progress</option>
               </select>
             </div>
 
