@@ -94,10 +94,11 @@ export default function AdminSettingsPage() {
           </div>
         </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {settings.map((setting) => (
-          <SettingCard key={setting.title} {...setting} />
-        ))}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {settings.map((setting) => (
+            <SettingCard key={setting.title} {...setting} />
+          ))}
+        </div>
       </div>
     </div>
   );

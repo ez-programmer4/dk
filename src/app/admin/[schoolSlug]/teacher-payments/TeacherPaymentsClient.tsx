@@ -451,7 +451,7 @@ export default function TeacherPaymentsClient({
     async (action: string, teacherIds?: string[]) => {
       try {
         setLoading(true);
-        const response = await fetch("`/api/admin/${schoolSlug}/teacher-payments`", {
+        const response = await fetch(`/api/admin/${schoolSlug}/teacher-payments`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

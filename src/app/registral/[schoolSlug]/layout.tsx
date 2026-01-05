@@ -81,8 +81,8 @@ export default function RegistralLayout({
       const userRole = session.user.role;
       const userSchoolSlug = session.user.schoolSlug;
 
-      // Only allow registral role
-      if (userRole !== "registral") {
+      // Only allow registral and controller roles
+      if (userRole !== "registral" && userRole !== "controller") {
         router.replace("/login");
         return;
       }
@@ -107,7 +107,10 @@ export default function RegistralLayout({
     if (schoolSlug) {
       const fetchBranding = async () => {
         try {
-          const response = await fetch(`/api/registral/${schoolSlug}/branding`);
+          const brandingApi = userRole === "controller"
+            ? `/api/controller/${schoolSlug}/branding`
+            : `/api/registral/${schoolSlug}/branding`;
+          const response = await fetch(brandingApi);
           if (response.ok) {
             const data = await response.json();
             setBranding(data);
@@ -194,9 +197,10 @@ export default function RegistralLayout({
         }
 
         // Fetch earnings
-        const earningsRes = await fetch(
-          `/api/registral/${schoolSlug}/earnings`
-        );
+        const earningsApi = session?.user?.role === "controller"
+          ? `/api/controller/${schoolSlug}/earnings`
+          : `/api/registral/${schoolSlug}/earnings`;
+        const earningsRes = await fetch(earningsApi);
         if (earningsRes.ok) {
           const earningsData = await earningsRes.json();
           setSidebarStats((prev) => ({

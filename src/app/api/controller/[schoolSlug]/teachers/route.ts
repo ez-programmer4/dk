@@ -22,7 +22,22 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
     }
 
     const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+    let schoolId = schoolSlug === 'darulkubra' ? null : null; // Default to null for darulkubra
+
+    // For non-darulkubra schools, look up the actual school ID
+    if (schoolSlug !== 'darulkubra') {
+      try {
+        const school = await prisma.school.findUnique({
+          where: { slug: schoolSlug },
+          select: { id: true, name: true, slug: true }
+        });
+        schoolId = school?.id || null;
+      } catch (error) {
+        console.error("Error looking up school:", error);
+        schoolId = null;
+      }
+    }
+
 
     // Get teachers assigned to this controller for the specific school
     const teachers = await prisma.wpos_wpdatatable_24.findMany({
@@ -52,3 +67,4 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
     );
   }
 }
+

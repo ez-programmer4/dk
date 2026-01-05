@@ -297,7 +297,7 @@ export default function PaymentManagement({
         // Fetch student data
         const studentResponse = await fetch(
           user?.role === "controller"
-            ? `/api/admin/${schoolSlug}/students/${studentId}`
+            ? `/api/controller/${schoolSlug}/students/${studentId}`
             : `/api/admin/${schoolSlug}/students/${studentId}`,
           {
             credentials: "include",
@@ -702,7 +702,9 @@ export default function PaymentManagement({
 
       // Fetch updated deposits after successful submission
       const updatedDepositsResponse = await fetch(
-        `/api/admin/${schoolSlug}/payments/deposit?studentId=${studentId}`
+        user?.role === "controller"
+          ? `/api/controller/${schoolSlug}/payments/deposit?studentId=${studentId}`
+          : `/api/admin/${schoolSlug}/payments/deposit?studentId=${studentId}`
       );
 
       if (!updatedDepositsResponse.ok) {

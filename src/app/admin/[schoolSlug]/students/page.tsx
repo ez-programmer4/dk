@@ -1432,8 +1432,8 @@ export default function StudentsPage() {
   };
 
   const handleEditStudent = (student: Student) => {
-    // Redirect to registration page for editing
-    window.location.href = `/registration?id=${student.id}`;
+    // Redirect to multi-tenant registral registration page for editing
+    window.location.href = `/registral/${schoolSlug}/registration?studentId=${student.id}&edit=true`;
   };
 
   const handleUpdateStudent = async (updatedData: Partial<Student>) => {

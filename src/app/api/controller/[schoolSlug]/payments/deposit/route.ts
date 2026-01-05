@@ -7,7 +7,10 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // GET deposits for a specific student
-export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
     const session = await getToken({
       req,
@@ -19,13 +22,30 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     }
 
     const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+    let schoolId: string | null = schoolSlug === "darulkubra" ? null : null; // Default to null for darulkubra
+
+    // For non-darulkubra schools, look up the actual school ID
+    if (schoolSlug !== "darulkubra") {
+      try {
+        const school = await prisma.school.findUnique({
+          where: { slug: schoolSlug },
+          select: { id: true },
+        });
+        schoolId = school?.id || null;
+      } catch (error) {
+        console.error("Error looking up school:", error);
+        schoolId = null;
+      }
+    }
 
     const { searchParams } = new URL(req.url);
     const studentId = searchParams.get("studentId");
 
     if (!studentId) {
-      return NextResponse.json({ error: "Student ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Student ID required" },
+        { status: 400 }
+      );
     }
 
     // Get deposits for this student, but only if the student belongs to teachers assigned to this controller
@@ -34,13 +54,15 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
         studentid: parseInt(studentId),
         wpos_wpdatatable_23: {
           ustaz: {
-            in: await prisma.wpos_wpdatatable_24.findMany({
-              where: {
-                control: session.code,
-                ...(schoolId ? { schoolId } : { schoolId: null }),
-              },
-              select: { ustazid: true },
-            }).then(teachers => teachers.map(t => t.ustazid))
+            in: await prisma.wpos_wpdatatable_24
+              .findMany({
+                where: {
+                  control: session.code,
+                  ...(schoolId ? { schoolId } : { schoolId: null }),
+                },
+                select: { ustazid: true },
+              })
+              .then((teachers) => teachers.map((t) => t.ustazid)),
           },
           ...(schoolId ? { schoolId } : { schoolId: null }),
         },
@@ -49,21 +71,12 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
         id: true,
         studentid: true,
         studentname: true,
-        amount: true,
         paidamount: true,
         reason: true,
         transactionid: true,
-        sendername: true,
         paymentdate: true,
         status: true,
-        month: true,
-        payment_type: true,
-        payment_status: true,
-        paymentmethod: true,
         source: true,
-        providerReference: true,
-        providerStatus: true,
-        providerFee: true,
         currency: true,
         wpos_wpdatatable_23: {
           select: {
@@ -81,22 +94,18 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       id: deposit.id,
       studentid: deposit.studentid,
       studentname: deposit.studentname,
-      amount: deposit.amount,
+      amount: deposit.paidamount, // Use paidamount as amount
       paidamount: deposit.paidamount,
       reason: deposit.reason,
       transactionid: deposit.transactionid,
-      sendername: deposit.sendername,
-      paymentdate: deposit.paymentdate?.toISOString().split('T')[0] || '',
+      sendername: deposit.studentname || "Unknown", // Derive sendername from studentname
+      paymentdate: deposit.paymentdate?.toISOString().split("T")[0] || "",
       status: deposit.status,
-      month: deposit.month,
-      payment_type: deposit.payment_type,
-      payment_status: deposit.payment_status,
-      paymentmethod: deposit.paymentmethod,
       source: deposit.source,
-      providerReference: deposit.providerReference,
-      providerStatus: deposit.providerStatus,
-      providerFee: deposit.providerFee,
-      currency: deposit.currency || deposit.wpos_wpdatatable_23?.classfeeCurrency || 'ETB',
+      currency:
+        deposit.currency ||
+        deposit.wpos_wpdatatable_23?.classfeeCurrency ||
+        "ETB",
     }));
 
     return NextResponse.json(transformedDeposits);
@@ -110,7 +119,10 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
 }
 
 // POST create a new deposit
-export async function POST(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
     const session = await getToken({
       req,
@@ -122,7 +134,21 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
     }
 
     const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+    let schoolId: string | null = schoolSlug === "darulkubra" ? null : null; // Default to null for darulkubra
+
+    // For non-darulkubra schools, look up the actual school ID
+    if (schoolSlug !== "darulkubra") {
+      try {
+        const school = await prisma.school.findUnique({
+          where: { slug: schoolSlug },
+          select: { id: true },
+        });
+        schoolId = school?.id || null;
+      } catch (error) {
+        console.error("Error looking up school:", error);
+        schoolId = null;
+      }
+    }
 
     const {
       studentId,
@@ -134,6 +160,14 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       paymentMethod,
     } = await req.json();
 
+    console.log("Controller deposit API debug:", {
+      schoolSlug,
+      schoolId,
+      studentId,
+      sessionCode: session.code,
+      sessionRole: session.role,
+    });
+
     // Verify the student belongs to teachers assigned to this controller
     const student = await prisma.wpos_wpdatatable_23.findUnique({
       where: { wdt_ID: parseInt(studentId) },
@@ -142,45 +176,102 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
         schoolId: true,
         name: true,
         classfeeCurrency: true,
+        u_control: true, // Add u_control field
       },
+    });
+
+    console.log("Student data:", {
+      studentId,
+      studentUstaz: student?.ustaz,
+      studentSchoolId: student?.schoolId,
+      studentUControl: student?.u_control,
+      studentName: student?.name,
     });
 
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    // Check if student's teacher is assigned to this controller
-    const teacherAssigned = await prisma.wpos_wpdatatable_24.findFirst({
-      where: {
-        ustazid: student.ustaz,
-        control: session.code,
-        ...(schoolId ? { schoolId } : { schoolId: null }),
-      },
-    });
+    // First check if student is directly assigned to this controller via u_control
+    if (student.u_control === session.code) {
+      console.log(
+        "Student is directly assigned to this controller via u_control"
+      );
+    } else {
+      console.log(
+        "Student is NOT directly assigned via u_control, checking teacher assignment"
+      );
 
-    if (!teacherAssigned) {
-      return NextResponse.json({ error: "Unauthorized - student not assigned to your teachers" }, { status: 403 });
+      // Check if student's teacher is assigned to this controller
+      const teacherAssigned = await prisma.wpos_wpdatatable_24.findFirst({
+        where: {
+          ustazid: student.ustaz || "",
+          control: session.code,
+          ...(schoolId ? { schoolId } : { schoolId: null }),
+        },
+      });
+
+      console.log("Teacher assignment check:", {
+        studentUstaz: student.ustaz,
+        sessionCode: session.code,
+        schoolId,
+        teacherAssigned: !!teacherAssigned,
+      });
+
+      if (!teacherAssigned) {
+        // Also check if there are any teachers assigned to this controller at all
+        const allControllerTeachers = await prisma.wpos_wpdatatable_24.findMany(
+          {
+            where: {
+              control: session.code,
+              ...(schoolId ? { schoolId } : { schoolId: null }),
+            },
+            select: { ustazid: true },
+          }
+        );
+
+        console.log(
+          "All teachers assigned to this controller:",
+          allControllerTeachers
+        );
+
+        return NextResponse.json(
+          {
+            error: "Unauthorized - student not assigned to your teachers",
+            debug: {
+              studentUstaz: student.ustaz,
+              sessionCode: session.code,
+              schoolId,
+              studentUControl: student.u_control,
+              controllerTeachersCount: allControllerTeachers.length,
+            },
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // Check if student belongs to the same school
-    if ((schoolId === null && student.schoolId !== null) ||
-        (schoolId !== null && student.schoolId !== schoolId)) {
-      return NextResponse.json({ error: "Unauthorized - student belongs to different school" }, { status: 403 });
+    if (
+      (schoolId === null && student.schoolId !== null) ||
+      (schoolId !== null && student.schoolId !== schoolId)
+    ) {
+      return NextResponse.json(
+        { error: "Unauthorized - student belongs to different school" },
+        { status: 403 }
+      );
     }
 
     // Create the deposit
     const deposit = await prisma.payment.create({
       data: {
         studentid: parseInt(studentId),
-        studentname: student.name,
-        amount: parseFloat(amount),
+        studentname: student.name || "",
         paidamount: parseFloat(amount),
         reason: reason || "deposit",
         transactionid: transactionId,
-        sendername: senderName,
         paymentdate: paymentDate ? new Date(paymentDate) : new Date(),
         status: "Paid",
-        paymentmethod: paymentMethod,
         source: "manual",
         currency: student.classfeeCurrency || "ETB",
       },
@@ -197,7 +288,10 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
 }
 
 // DELETE a deposit
-export async function DELETE(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
     const session = await getToken({
       req,
@@ -209,13 +303,30 @@ export async function DELETE(req: NextRequest, { params }: { params: { schoolSlu
     }
 
     const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+    let schoolId: string | null = schoolSlug === "darulkubra" ? null : null; // Default to null for darulkubra
+
+    // For non-darulkubra schools, look up the actual school ID
+    if (schoolSlug !== "darulkubra") {
+      try {
+        const school = await prisma.school.findUnique({
+          where: { slug: schoolSlug },
+          select: { id: true },
+        });
+        schoolId = school?.id || null;
+      } catch (error) {
+        console.error("Error looking up school:", error);
+        schoolId = null;
+      }
+    }
 
     const { searchParams } = new URL(req.url);
     const depositId = searchParams.get("depositId");
 
     if (!depositId) {
-      return NextResponse.json({ error: "Deposit ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Deposit ID required" },
+        { status: 400 }
+      );
     }
 
     // Verify the deposit belongs to a student of this controller's teachers
@@ -237,14 +348,17 @@ export async function DELETE(req: NextRequest, { params }: { params: { schoolSlu
     // Check if student's teacher is assigned to this controller
     const teacherAssigned = await prisma.wpos_wpdatatable_24.findFirst({
       where: {
-        ustazid: deposit.wpos_wpdatatable_23?.ustaz,
+        ustazid: deposit.wpos_wpdatatable_23?.ustaz || "",
         control: session.code,
         ...(schoolId ? { schoolId } : { schoolId: null }),
       },
     });
 
     if (!teacherAssigned) {
-      return NextResponse.json({ error: "Unauthorized - deposit not accessible" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Unauthorized - deposit not accessible" },
+        { status: 403 }
+      );
     }
 
     // Delete the deposit

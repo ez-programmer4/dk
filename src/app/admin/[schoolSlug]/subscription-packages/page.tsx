@@ -325,7 +325,7 @@ export default function SubscriptionPackagesPage() {
 
     setError(null);
     try {
-      const response = await fetch(``/api/admin/${schoolSlug}/subscription-packages`/${id}`, {
+      const response = await fetch(`/api/admin/${schoolSlug}/subscription-packages/${id}`, {
         method: "DELETE",
       });
 

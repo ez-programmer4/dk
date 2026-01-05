@@ -225,7 +225,7 @@ export default function ControllerTeachers() {
 
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <a
-                      href={`/controller/${schoolSlug}/teachers/${teacher.ustazid}/lateness`}
+                      href={`/controller/${schoolSlug}/teachers/${teacher.ustazid}`}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--secondary-color)] text-white rounded-lg hover:opacity-90 transition-colors text-sm font-medium"
                     >
                       <FiEye className="h-4 w-4" />
@@ -241,3 +241,4 @@ export default function ControllerTeachers() {
     </div>
   );
 }
+

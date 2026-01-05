@@ -64,6 +64,7 @@ interface StudentListProps {
   onEdit: (student: Student) => void;
   onDelete: (studentId: number) => void;
   onStatusUpdate?: (studentId: number, newStatus: string) => void;
+  onPaymentClick?: (student: Student) => void;
   user: { name: string; username: string; role: string } | null;
   schoolSlug?: string;
 }
@@ -73,6 +74,7 @@ export default function StudentList({
   onEdit,
   onDelete,
   onStatusUpdate,
+  onPaymentClick,
   user,
   schoolSlug,
 }: StudentListProps) {
@@ -1132,6 +1134,7 @@ export default function StudentList({
               onEdit={onEdit}
               onDelete={onDelete}
               onStatusUpdate={onStatusUpdate}
+              onPaymentClick={onPaymentClick}
               user={user}
               schoolSlug={schoolSlug}
             />

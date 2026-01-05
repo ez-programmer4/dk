@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
     const dayPackages = await prisma.studentdaypackage.findMany({
       where: {
         isActive: true,
-        ...(schoolId ? { schoolId } : { schoolId: null }),
       },
       orderBy: { name: "asc" },
       select: {

@@ -7,38 +7,38 @@ import { differenceInDays } from "date-fns";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-async function getLastSeen(studentId: number): Promise<string> {
-  const lastProgressUpdatedDate = await prisma.studentProgress.findFirst({
-    where: {
-      studentId,
-    },
-    select: {
-      updatedAt: true,
-    },
-    orderBy: {
-      updatedAt: "desc",
-    },
-  });
-
-  if (!lastProgressUpdatedDate) return "-";
-
-  const daysAgo = differenceInDays(
-    new Date(),
-    lastProgressUpdatedDate.updatedAt
-  );
-
-  if (daysAgo === 0) return "Today";
-  if (daysAgo === 1) return "1 day ago";
-  if (daysAgo <= 7) return `${daysAgo} days ago`;
-  if (daysAgo <= 14) return "1 week ago";
-  if (daysAgo <= 30) return `${Math.floor(daysAgo / 7)} weeks ago`;
-  if (daysAgo <= 60) return "1 month ago";
-  if (daysAgo <= 365) return `${Math.floor(daysAgo / 30)} months ago`;
-  if (daysAgo <= 730) return "1 year ago";
-  return `${Math.floor(daysAgo / 365)} years ago`;
-}
-
 export async function GET(request: NextRequest, { params }: { params: { schoolSlug: string } }) {
+
+  async function getLastSeen(studentId: number): Promise<string> {
+    const lastProgressUpdatedDate = await prisma.studentProgress.findFirst({
+      where: {
+        studentId,
+      },
+      select: {
+        updatedAt: true,
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    });
+
+    if (!lastProgressUpdatedDate) return "-";
+
+    const daysAgo = differenceInDays(
+      new Date(),
+      lastProgressUpdatedDate.updatedAt
+    );
+
+    if (daysAgo === 0) return "Today";
+    if (daysAgo === 1) return "1 day ago";
+    if (daysAgo <= 7) return `${daysAgo} days ago`;
+    if (daysAgo <= 14) return "1 week ago";
+    if (daysAgo <= 30) return `${Math.floor(daysAgo / 7)} weeks ago`;
+    if (daysAgo <= 60) return "1 month ago";
+    if (daysAgo <= 365) return `${Math.floor(daysAgo / 30)} months ago`;
+    if (daysAgo <= 730) return "1 year ago";
+    return `${Math.floor(daysAgo / 365)} years ago`;
+  }
   try {
     const session = await getToken({
       req: request,
@@ -54,7 +54,21 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
     }
 
     const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+    let schoolId = schoolSlug === 'darulkubra' ? null : null; // Default to null for darulkubra
+
+    // For non-darulkubra schools, look up the actual school ID
+    if (schoolSlug !== 'darulkubra') {
+      try {
+        const school = await prisma.school.findUnique({
+          where: { slug: schoolSlug },
+          select: { id: true, name: true, slug: true }
+        });
+        schoolId = school?.id || null;
+      } catch (error) {
+        console.error("Error looking up school:", error);
+        schoolId = null;
+      }
+    }
 
     // Get teachers assigned to this controller
     const controllerTeachers = await prisma.wpos_wpdatatable_24.findMany({
@@ -88,32 +102,43 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
         classfee: true,
         country: true,
         chatId: true,
-        phone: true,
+        phoneno: true,
         package: true,
       },
     });
 
     // Get attendance data for these students
     const studentIds = students.map(s => s.wdt_ID);
-    const attendanceRecords = await prisma.tarbiaAttendance.findMany({
+
+    if (studentIds.length === 0) {
+      // Return empty analytics if no students
+      return NextResponse.json({
+        totalStudents: 0,
+        activeStudents: 0,
+        averageAttendance: 0,
+        students: [],
+      });
+    }
+
+    const attendanceRecords = await prisma.student_attendance_progress.findMany({
       where: {
-        studentId: {
+        student_id: {
           in: studentIds,
         },
       },
       select: {
-        studentId: true,
+        student_id: true,
         date: true,
-        status: true,
+        attendance_status: true,
       },
     });
 
     // Process attendance data
     const attendanceByStudent = attendanceRecords.reduce((acc, record) => {
-      if (!acc[record.studentId]) {
-        acc[record.studentId] = [];
+      if (!acc[record.student_id]) {
+        acc[record.student_id] = [];
       }
-      acc[record.studentId].push(record);
+      acc[record.student_id].push(record);
       return acc;
     }, {} as Record<number, any[]>);
 
@@ -122,8 +147,8 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
       students.map(async (student) => {
         const studentAttendance = attendanceByStudent[student.wdt_ID] || [];
         const totalClasses = studentAttendance.length;
-        const presentClasses = studentAttendance.filter(a => a.status === 'present').length;
-        const absentClasses = studentAttendance.filter(a => a.status === 'absent').length;
+        const presentClasses = studentAttendance.filter(a => a.attendance_status === 'present').length;
+        const absentClasses = studentAttendance.filter(a => a.attendance_status === 'absent').length;
         const attendanceRate = totalClasses > 0 ? (presentClasses / totalClasses) * 100 : 0;
 
         const lastSeen = await getLastSeen(student.wdt_ID);
@@ -139,7 +164,7 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
           classFee: student.classfee,
           country: student.country,
           chatId: student.chatId,
-          phone: student.phone,
+          phone: student.phoneno,
           package: student.package,
           attendance: {
             total: totalClasses,

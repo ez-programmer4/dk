@@ -105,6 +105,8 @@ export async function POST(request: NextRequest) {
           name: name.trim(),
           description: description?.trim() || null,
           isActive,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       });
 

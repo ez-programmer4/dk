@@ -123,7 +123,8 @@ function RegistrationContent() {
   const schoolSlug = params.schoolSlug as string;
   const branding = useBranding();
   const searchParams = useSearchParams();
-  const editId = searchParams.get("id");
+  const editId = searchParams.get("id") || searchParams.get("studentId");
+  const isEditMode = searchParams.get("edit") === "true" || !!editId;
   const initialStep = parseInt(searchParams.get("step") || "1", 10);
   const [editTimeTeacher, setEditTimeTeacher] = useState(false);
   const { data: session, status } = useSession();
@@ -135,7 +136,7 @@ function RegistrationContent() {
   const supportEmail = branding?.supportEmail || "support@quranacademy.com";
 
   const [step, setStep] = useState<number>(
-    editId ? 3 : Math.min(Math.max(initialStep, 1), 3)
+    isEditMode ? 3 : Math.min(Math.max(initialStep, 1), 3)
   );
 
   // Debug current step
@@ -414,10 +415,11 @@ function RegistrationContent() {
   // Fetch subscription package configs (for registrars and admins)
   useEffect(() => {
     const fetchSubscriptionConfigs = async () => {
-      // Only fetch if user is registral or admin
+      // Only fetch if user is registral, admin, or controller
       if (
         session?.user?.role !== "registral" &&
-        session?.user?.role !== "admin"
+        session?.user?.role !== "admin" &&
+        session?.user?.role !== "controller"
       ) {
         return;
       }

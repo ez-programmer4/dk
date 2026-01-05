@@ -23,7 +23,6 @@ import {
 } from "react-icons/fi";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import PaymentManagement from "./PaymentManagement";
@@ -79,6 +78,7 @@ interface StudentCardProps {
   onEdit: (student: Student) => void;
   onDelete: (studentId: number) => void;
   onStatusUpdate?: (studentId: number, newStatus: string) => void;
+  onPaymentClick?: (student: Student) => void;
   user: { name: string; username: string; role: string } | null;
   schoolSlug?: string;
 }
@@ -87,7 +87,9 @@ export default function StudentCard({
   student,
   index,
   onEdit,
+  onDelete,
   onStatusUpdate,
+  onPaymentClick,
   user,
   schoolSlug,
 }: StudentCardProps) {
@@ -105,7 +107,12 @@ export default function StudentCard({
   const handlePaymentClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    router.push(`/paymentmanagement/${student.id}`);
+
+    if (onPaymentClick) {
+      onPaymentClick(student);
+    } else {
+      router.push(`/paymentmanagement/${student.id}`);
+    }
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -221,24 +228,24 @@ export default function StudentCard({
               <div className="flex items-center space-x-2">
                 {isNotYet ? (
                   <>
-                    <Link
-                      href={
-                        student.id ? `/registration?id=${student.id}&step=3` : "#"
-                      }
-                      onClick={(e) => {
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
                         if (!student.id) {
-                          e.preventDefault();
                           toast.error(
                             "Student ID is missing. Cannot edit this student."
                           );
+                          return;
                         }
+                        onEdit(student);
                       }}
                       className="p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-all duration-300 shadow-sm"
                       title="Add/Edit"
                       aria-label="Add or edit student"
                     >
                       <FiEdit size={16} />
-                    </Link>
+                    </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -273,24 +280,24 @@ export default function StudentCard({
                     </motion.button>
                   </>
                 ) : (
-                  <Link
-                    href={
-                      student.id ? `/registration?id=${student.id}&step=3` : "#"
-                    }
-                    onClick={(e) => {
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
                       if (!student.id) {
-                        e.preventDefault();
                         toast.error(
                           "Student ID is missing. Cannot edit this student."
                         );
+                        return;
                       }
+                      onEdit(student);
                     }}
                     className="p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-all duration-300 shadow-sm"
                     title="Edit"
                     aria-label="Edit student"
                   >
                     <FiEdit size={16} />
-                  </Link>
+                  </motion.button>
                 )}
                 <button
                   onClick={handlePaymentClick}

@@ -10,19 +10,27 @@ export const revalidate = 0;
  * GET /api/admin/subscription-package-configs
  * Get all subscription package configs
  */
-export async function GET(request: NextRequest, { params }: { params: { schoolSlug: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
     const session = await getToken({
       req: request,
       secret: process.env.NEXTAUTH_SECRET,
     });
 
-    if (!session || (session.role !== "admin" && session.role !== "registral")) {
+    if (
+      !session ||
+      (session.role !== "admin" &&
+        session.role !== "registral" &&
+        session.role !== "controller")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+    const schoolId = schoolSlug === "darulkubra" ? null : schoolSlug;
 
     const configs = await prisma.subscription_package_config.findMany({
       include: {
@@ -109,6 +117,8 @@ export async function POST(request: NextRequest) {
           name: name.trim(),
           description: description?.trim() || null,
           isActive,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       });
 
@@ -176,7 +186,8 @@ export async function PUT(request: NextRequest) {
       // Update the config
       const updateData: any = {};
       if (name !== undefined) updateData.name = name.trim();
-      if (description !== undefined) updateData.description = description?.trim() || null;
+      if (description !== undefined)
+        updateData.description = description?.trim() || null;
       if (isActive !== undefined) updateData.isActive = isActive;
 
       const updatedConfig = await tx.subscription_package_config.update({
@@ -215,7 +226,9 @@ export async function PUT(request: NextRequest) {
               },
             });
             console.log(
-              `[ConfigAPI] Assigned ${assignedCount.count} packages to config ${updatedConfig.id}: [${validPackageIds.join(", ")}]`
+              `[ConfigAPI] Assigned ${assignedCount.count} packages to config ${
+                updatedConfig.id
+              }: [${validPackageIds.join(", ")}]`
             );
           } else {
             console.warn(
@@ -293,12 +306,18 @@ export async function DELETE(request: NextRequest) {
       message: "Config deleted successfully",
     });
   } catch (error: any) {
-    console.error("DELETE /api/admin/subscription-package-configs error:", error);
-    
+    console.error(
+      "DELETE /api/admin/subscription-package-configs error:",
+      error
+    );
+
     // Check if error is due to foreign key constraint
     if (error.code === "P2003" || error.message?.includes("foreign key")) {
       return NextResponse.json(
-        { error: "Cannot delete config: Students are assigned to this config. Please reassign them first." },
+        {
+          error:
+            "Cannot delete config: Students are assigned to this config. Please reassign them first.",
+        },
         { status: 400 }
       );
     }
@@ -309,4 +328,3 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
-

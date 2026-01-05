@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       req,
       secret: process.env.NEXTAUTH_SECRET,
     });
-    if (!session || !["admin", "registral"].includes(session.role)) {
+    if (!session || !["admin", "registral", "controller"].includes(session.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
