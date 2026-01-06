@@ -34,6 +34,41 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Get appropriate label and placeholder based on role
+  const getUsernameLabel = () => {
+    switch (role) {
+      case "teacher":
+        return "Teacher ID";
+      case "controller":
+        return "Username";
+      case "registral":
+        return "Username";
+      case "admin":
+        return "Username";
+      case "superAdmin":
+        return "Email";
+      default:
+        return "Username";
+    }
+  };
+
+  const getUsernamePlaceholder = () => {
+    switch (role) {
+      case "teacher":
+        return "Enter your teacher ID";
+      case "controller":
+        return "Enter your username";
+      case "registral":
+        return "Enter your username";
+      case "admin":
+        return "Enter your username";
+      case "superAdmin":
+        return "Enter your email";
+      default:
+        return "Enter your username";
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -88,7 +123,7 @@ export function LoginForm({
             htmlFor="username"
             className="block text-sm font-semibold text-gray-700 mb-1.5 group-focus-within:text-blue-600 transition-colors duration-200"
           >
-            Username
+            {getUsernameLabel()}
           </Label>
           <div className="relative">
             <Input
@@ -99,7 +134,7 @@ export function LoginForm({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ease-in-out bg-gray-50/50 hover:bg-white"
-              placeholder="Enter your username"
+              placeholder={getUsernamePlaceholder()}
             />
           </div>
         </div>

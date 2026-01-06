@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { Toaster, toast } from "react-hot-toast";
-import AttendanceListSkeleton from "../../../attendance-list/AttendanceListSkeleton";
+import AttendanceListSkeleton from "./AttendanceListSkeleton";
 import {
   FiArrowLeft,
   FiUser,

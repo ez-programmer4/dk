@@ -19,20 +19,18 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     }
 
     const schoolSlug = params.schoolSlug;
-    let schoolId: string | null = schoolSlug === 'darulkubra' ? null : null; // Default to null for darulkubra
+    let schoolId: string | null = null;
 
-    // For non-darulkubra schools, look up the actual school ID
-    if (schoolSlug !== 'darulkubra') {
-      try {
-        const school = await prisma.school.findUnique({
-          where: { slug: schoolSlug },
-          select: { id: true, name: true, slug: true }
-        });
-        schoolId = school?.id || null;
-      } catch (error) {
-        console.error("Error looking up school:", error);
-        schoolId = null;
-      }
+    // Look up the school ID for all schools
+    try {
+      const school = await prisma.school.findUnique({
+        where: { slug: schoolSlug },
+        select: { id: true, name: true, slug: true }
+      });
+      schoolId = school?.id || null;
+    } catch (error) {
+      console.error("Error looking up school:", error);
+      schoolId = null;
     }
 
     const { searchParams } = new URL(req.url);
@@ -121,7 +119,19 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
     }
 
     const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+    let schoolId = null;
+
+    // Look up the school ID
+    try {
+      const school = await prisma.school.findUnique({
+        where: { slug: schoolSlug },
+        select: { id: true }
+      });
+      schoolId = school?.id || null;
+    } catch (error) {
+      console.error("Error looking up school:", error);
+      schoolId = null;
+    }
 
     const {
       studentId,
@@ -207,7 +217,19 @@ export async function PUT(req: NextRequest, { params }: { params: { schoolSlug: 
     }
 
     const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+    let schoolId = null;
+
+    // Look up the school ID
+    try {
+      const school = await prisma.school.findUnique({
+        where: { slug: schoolSlug },
+        select: { id: true }
+      });
+      schoolId = school?.id || null;
+    } catch (error) {
+      console.error("Error looking up school:", error);
+      schoolId = null;
+    }
 
     const {
       paymentId,
@@ -276,7 +298,19 @@ export async function DELETE(req: NextRequest, { params }: { params: { schoolSlu
     }
 
     const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+    let schoolId = null;
+
+    // Look up the school ID
+    try {
+      const school = await prisma.school.findUnique({
+        where: { slug: schoolSlug },
+        select: { id: true }
+      });
+      schoolId = school?.id || null;
+    } catch (error) {
+      console.error("Error looking up school:", error);
+      schoolId = null;
+    }
 
     const { searchParams } = new URL(req.url);
     const paymentId = searchParams.get("paymentId");

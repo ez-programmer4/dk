@@ -14,20 +14,18 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
 
   try {
     const schoolSlug = params.schoolSlug;
-    let schoolId = schoolSlug === 'darulkubra' ? null : null; // Default to null for darulkubra
+    let schoolId = null;
 
-    // For non-darulkubra schools, look up the actual school ID
-    if (schoolSlug !== 'darulkubra') {
-      try {
-        const school = await prisma.school.findUnique({
-          where: { slug: schoolSlug },
-          select: { id: true, name: true, slug: true }
-        });
-        schoolId = school?.id || null;
-      } catch (error) {
-        console.error("Error looking up school:", error);
-        schoolId = null;
-      }
+    // Look up the school ID for all schools
+    try {
+      const school = await prisma.school.findUnique({
+        where: { slug: schoolSlug },
+        select: { id: true, name: true, slug: true }
+      });
+      schoolId = school?.id || null;
+    } catch (error) {
+      console.error("Error looking up school:", error);
+      schoolId = null;
     }
 
     const { searchParams } = new URL(req.url);

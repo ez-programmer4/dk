@@ -121,7 +121,7 @@ export default function ControllerLayout({
         return;
       }
 
-      if (!userSchoolSlug && schoolSlug !== "darulkubra") {
+      if (!userSchoolSlug) {
         router.push("/login");
         return;
       }
@@ -141,12 +141,9 @@ export default function ControllerLayout({
           } else {
             // If API fails, use fallback branding
             const fallbackBranding = {
-              name:
-                schoolSlug === "darulkubra"
-                  ? "Darulkubra Quran Academy"
-                  : `${
-                      schoolSlug.charAt(0).toUpperCase() + schoolSlug.slice(1)
-                    } Academy`,
+              name: `${
+                schoolSlug.charAt(0).toUpperCase() + schoolSlug.slice(1)
+              } Academy`,
               logo: "/logo.svg",
               primaryColor: "#0f766e",
               secondaryColor: "#06b6d4",
@@ -159,12 +156,9 @@ export default function ControllerLayout({
           console.error("Failed to fetch branding:", error);
           // Use fallback branding on error
           const fallbackBranding = {
-            name:
-              schoolSlug === "darulkubra"
-                ? "Darulkubra Quran Academy"
-                : `${
-                    schoolSlug.charAt(0).toUpperCase() + schoolSlug.slice(1)
-                  } Academy`,
+            name: `${
+              schoolSlug.charAt(0).toUpperCase() + schoolSlug.slice(1)
+            } Academy`,
             logo: "/logo.svg",
             primaryColor: "#0f766e",
             secondaryColor: "#06b6d4",
@@ -268,9 +262,7 @@ export default function ControllerLayout({
   const logoUrl = branding?.logo || "/logo.svg";
   const schoolName =
     branding?.name ||
-    (schoolSlug === "darulkubra"
-      ? "Darulkubra Quran Academy"
-      : `${schoolSlug.charAt(0).toUpperCase() + schoolSlug.slice(1)} Academy`);
+    `${schoolSlug.charAt(0).toUpperCase() + schoolSlug.slice(1)} Academy`;
   const supportEmail = branding?.supportEmail || `support@${schoolSlug}.com`;
 
   const navGroups = [

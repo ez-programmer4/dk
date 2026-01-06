@@ -21,20 +21,18 @@ export async function GET(
     }
 
     const schoolSlug = params.schoolSlug;
-    let schoolId: string | null = schoolSlug === "darulkubra" ? null : null;
+    let schoolId: string | null = null;
 
-    // For non-darulkubra schools, look up the actual school ID
-    if (schoolSlug !== "darulkubra") {
-      try {
-        const school = await prisma.school.findUnique({
-          where: { slug: schoolSlug },
-          select: { id: true },
-        });
-        schoolId = school?.id || null;
-      } catch (error) {
-        console.error("Error looking up school:", error);
-        schoolId = null;
-      }
+    // Look up the school ID for all schools
+    try {
+      const school = await prisma.school.findUnique({
+        where: { slug: schoolSlug },
+        select: { id: true },
+      });
+      schoolId = school?.id || null;
+    } catch (error) {
+      console.error("Error looking up school:", error);
+      schoolId = null;
     }
 
     const teacherId = params.teacherId;

@@ -452,10 +452,7 @@ export default function SuperAdminSchools() {
             <SchoolCreationModal
               isOpen={isCreateModalOpen}
               onOpenChange={setIsCreateModalOpen}
-              onSuccess={() => {
-                fetchSchools();
-                // Stay on schools page instead of redirecting elsewhere
-              }}
+              onSuccess={fetchSchools}
               plans={plans}
             />
           </div>
