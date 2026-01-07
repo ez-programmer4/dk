@@ -11,7 +11,7 @@ export async function POST(
     if (!token || token.role !== "teacher") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
-    const teacherId = token.user?.id || token.id as string;
+    const teacherId = token.id as string;
     const studentId = Number(params.studentId);
     const schoolSlug = params.schoolSlug;
 
@@ -23,10 +23,14 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { attendance_status, surah, pages_read, level, lesson, notes, ayah, next_class } = body;
-    if (!attendance_status) {
+    const { status, surah, pages_read, level, lesson, notes } = body;
+
+    console.log("Attendance API received body:", body);
+
+    if (!status) {
+      console.log("❌ Attendance API failed: status is required");
       return NextResponse.json(
-        { error: "attendance_status is required" },
+        { error: "status is required" },
         { status: 400 }
       );
     }
@@ -36,11 +40,15 @@ export async function POST(
     try {
       const school = await prisma.school.findUnique({
         where: { slug: schoolSlug },
-        select: { id: true }
+        select: { id: true },
       });
       schoolId = school?.id || null;
+      console.log("Attendance API - School lookup result:", {
+        schoolSlug,
+        schoolId,
+      });
     } catch (error) {
-      console.error("Error looking up school:", error);
+      console.error("Attendance API - Error looking up school:", error);
       schoolId = null;
     }
 
@@ -50,25 +58,39 @@ export async function POST(
       whereClause.schoolId = schoolId;
     }
 
+    console.log("Attendance API - Student lookup whereClause:", whereClause);
+
     const student = await prisma.wpos_wpdatatable_23.findUnique({
       where: whereClause,
       select: { ustaz: true, name: true },
     });
+
+    console.log("Attendance API - Student lookup result:", {
+      found: !!student,
+      studentId,
+      teacherId,
+      schoolId,
+    });
+
     if (!student) {
-      return NextResponse.json({ error: "Student not found or not assigned to this teacher/school" }, { status: 403 });
+      return NextResponse.json(
+        {
+          error: "Student not found or not assigned to this teacher/school",
+          details: { studentId, teacherId, schoolId },
+        },
+        { status: 403 }
+      );
     }
 
     const created = await prisma.student_attendance_progress.create({
       data: {
         student_id: studentId,
-        attendance_status,
+        attendance_status: status,
         surah: surah ?? null,
         pages_read: pages_read != null ? Number(pages_read) : null,
         level: level ?? null,
         lesson: lesson ?? null,
         notes: notes ?? null,
-        ayah: ayah ?? null,
-        next_class: next_class ?? null,
       },
     });
 
@@ -76,7 +98,7 @@ export async function POST(
       {
         id: created.id,
         student_name: student.name,
-        status: attendance_status,
+        status: status,
       },
       { status: 201 }
     );

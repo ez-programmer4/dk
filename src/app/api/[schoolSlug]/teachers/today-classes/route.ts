@@ -3,7 +3,6 @@ import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 import { daypackageIncludesDay } from "@/lib/daypackage-utils";
 
-
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -23,14 +22,13 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get school ID for validation
     const schoolSlug = params.schoolSlug;
-
-    // Get school ID
     let schoolId = null;
     try {
       const school = await prisma.school.findUnique({
         where: { slug: schoolSlug },
-        select: { id: true }
+        select: { id: true },
       });
       schoolId = school?.id || null;
     } catch (error) {
@@ -38,19 +36,24 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       schoolId = null;
     }
 
+    // Verify teacher belongs to the school
+    const teacher = await prisma.wpos_wpdatatable_24.findUnique({
+      where: { ustazid: teacherId },
+      select: { schoolId: true },
+    });
+
+    if (!teacher || teacher.schoolId !== schoolId) {
+      return NextResponse.json(
+        { error: "Teacher not found in this school" },
+        { status: 404 }
+      );
+    }
+
     const today = new Date();
     const dayIndex = today.getDay();
 
-    // Filter records by school if schoolId is available
-    const whereClause: any = { ustaz_id: teacherId };
-    if (schoolId) {
-      whereClause.student = {
-        schoolId: schoolId
-      };
-    }
-
     const records = await prisma.wpos_ustaz_occupied_times.findMany({
-      where: whereClause,
+      where: { ustaz_id: teacherId },
       select: {
         time_slot: true,
         daypackage: true,

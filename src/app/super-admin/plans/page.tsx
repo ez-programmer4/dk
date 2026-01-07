@@ -384,232 +384,232 @@ export default function SuperAdminPlans() {
                     </TabsList>
 
                     <TabsContent value="basic" className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="name">Plan Name *</Label>
-                          <Input
-                            id="name"
-                            value={planForm.name}
-                            onChange={(e) => handleNameChange(e.target.value)}
-                            placeholder="Basic Plan"
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="slug">Slug *</Label>
-                          <Input
-                            id="slug"
-                            value={planForm.slug}
-                            onChange={(e) =>
-                              setPlanForm({ ...planForm, slug: e.target.value })
-                            }
-                            placeholder="basic-plan"
-                            required
-                          />
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Plan Name *</Label>
+                      <Input
+                        id="name"
+                        value={planForm.name}
+                        onChange={(e) => handleNameChange(e.target.value)}
+                        placeholder="Basic Plan"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="slug">Slug *</Label>
+                      <Input
+                        id="slug"
+                        value={planForm.slug}
+                        onChange={(e) =>
+                          setPlanForm({ ...planForm, slug: e.target.value })
+                        }
+                        placeholder="basic-plan"
+                        required
+                      />
+                    </div>
+                  </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                          id="description"
-                          value={planForm.description}
-                          onChange={(e) =>
-                            setPlanForm({
-                              ...planForm,
-                              description: e.target.value,
-                            })
-                          }
-                          placeholder="Plan description..."
-                          rows={3}
-                        />
-                      </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={planForm.description}
+                      onChange={(e) =>
+                        setPlanForm({
+                          ...planForm,
+                          description: e.target.value,
+                        })
+                      }
+                      placeholder="Plan description..."
+                      rows={3}
+                    />
+                  </div>
 
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="basePrice">Base Price *</Label>
-                          <Input
-                            id="basePrice"
-                            type="number"
-                            step="0.01"
-                            value={planForm.basePrice}
-                            onChange={(e) =>
-                              setPlanForm({
-                                ...planForm,
-                                basePrice: e.target.value,
-                              })
-                            }
-                            placeholder="0.00"
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="perStudentPrice">Per Student *</Label>
-                          <Input
-                            id="perStudentPrice"
-                            type="number"
-                            step="0.01"
-                            value={planForm.perStudentPrice}
-                            onChange={(e) =>
-                              setPlanForm({
-                                ...planForm,
-                                perStudentPrice: e.target.value,
-                              })
-                            }
-                            placeholder="0.00"
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="currency">Currency</Label>
-                          <Input
-                            id="currency"
-                            value={planForm.currency}
-                            onChange={(e) =>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="basePrice">Base Price *</Label>
+                      <Input
+                        id="basePrice"
+                        type="number"
+                        step="0.01"
+                        value={planForm.basePrice}
+                        onChange={(e) =>
+                          setPlanForm({
+                            ...planForm,
+                            basePrice: e.target.value,
+                          })
+                        }
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="perStudentPrice">Per Student *</Label>
+                      <Input
+                        id="perStudentPrice"
+                        type="number"
+                        step="0.01"
+                        value={planForm.perStudentPrice}
+                        onChange={(e) =>
+                          setPlanForm({
+                            ...planForm,
+                            perStudentPrice: e.target.value,
+                          })
+                        }
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currency">Currency</Label>
+                      <Input
+                        id="currency"
+                        value={planForm.currency}
+                        onChange={(e) =>
                               setPlanForm({
                                 ...planForm,
                                 currency: e.target.value,
                               })
-                            }
-                            placeholder="ETB"
-                          />
-                        </div>
-                      </div>
+                        }
+                        placeholder="ETB"
+                      />
+                    </div>
+                  </div>
 
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="maxStudents">Max Students</Label>
-                          <Input
-                            id="maxStudents"
-                            type="number"
-                            value={planForm.maxStudents}
-                            onChange={(e) =>
-                              setPlanForm({
-                                ...planForm,
-                                maxStudents: e.target.value,
-                              })
-                            }
-                            placeholder="Leave empty for unlimited"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="maxTeachers">Max Teachers</Label>
-                          <Input
-                            id="maxTeachers"
-                            type="number"
-                            value={planForm.maxTeachers}
-                            onChange={(e) =>
-                              setPlanForm({
-                                ...planForm,
-                                maxTeachers: e.target.value,
-                              })
-                            }
-                            placeholder="Leave empty for unlimited"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="trialDays">Trial Days</Label>
-                          <Input
-                            id="trialDays"
-                            type="number"
-                            value={planForm.trialDays}
-                            onChange={(e) =>
-                              setPlanForm({
-                                ...planForm,
-                                trialDays: e.target.value,
-                              })
-                            }
-                            placeholder="0"
-                          />
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="maxStudents">Max Students</Label>
+                      <Input
+                        id="maxStudents"
+                        type="number"
+                        value={planForm.maxStudents}
+                        onChange={(e) =>
+                          setPlanForm({
+                            ...planForm,
+                            maxStudents: e.target.value,
+                          })
+                        }
+                        placeholder="Leave empty for unlimited"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="maxTeachers">Max Teachers</Label>
+                      <Input
+                        id="maxTeachers"
+                        type="number"
+                        value={planForm.maxTeachers}
+                        onChange={(e) =>
+                          setPlanForm({
+                            ...planForm,
+                            maxTeachers: e.target.value,
+                          })
+                        }
+                        placeholder="Leave empty for unlimited"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="trialDays">Trial Days</Label>
+                      <Input
+                        id="trialDays"
+                        type="number"
+                        value={planForm.trialDays}
+                        onChange={(e) =>
+                          setPlanForm({
+                            ...planForm,
+                            trialDays: e.target.value,
+                          })
+                        }
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
 
-                      <div className="space-y-2">
-                        <Label>Features</Label>
-                        <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
-                          <div className="flex items-center space-x-2">
-                            <Switch
-                              checked={planForm.features.zoom}
-                              onCheckedChange={(checked) =>
-                                setPlanForm({
-                                  ...planForm,
+                  <div className="space-y-2">
+                    <Label>Features</Label>
+                    <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={planForm.features.zoom}
+                          onCheckedChange={(checked) =>
+                            setPlanForm({
+                              ...planForm,
                                   features: {
                                     ...planForm.features,
                                     zoom: checked,
                                   },
-                                })
-                              }
-                            />
-                            <Label>Zoom Integration</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Switch
-                              checked={planForm.features.analytics}
-                              onCheckedChange={(checked) =>
-                                setPlanForm({
-                                  ...planForm,
-                                  features: {
-                                    ...planForm.features,
-                                    analytics: checked,
-                                  },
-                                })
-                              }
-                            />
-                            <Label>Analytics</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Switch
-                              checked={planForm.features.telegram}
-                              onCheckedChange={(checked) =>
-                                setPlanForm({
-                                  ...planForm,
-                                  features: {
-                                    ...planForm.features,
-                                    telegram: checked,
-                                  },
-                                })
-                              }
-                            />
-                            <Label>Telegram Bot</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Switch
-                              checked={planForm.features.stripe}
-                              onCheckedChange={(checked) =>
-                                setPlanForm({
-                                  ...planForm,
-                                  features: {
-                                    ...planForm.features,
-                                    stripe: checked,
-                                  },
-                                })
-                              }
-                            />
-                            <Label>Stripe Payments</Label>
-                          </div>
-                        </div>
+                            })
+                          }
+                        />
+                        <Label>Zoom Integration</Label>
                       </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={planForm.features.analytics}
+                          onCheckedChange={(checked) =>
+                            setPlanForm({
+                              ...planForm,
+                              features: {
+                                ...planForm.features,
+                                analytics: checked,
+                              },
+                            })
+                          }
+                        />
+                        <Label>Analytics</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={planForm.features.telegram}
+                          onCheckedChange={(checked) =>
+                            setPlanForm({
+                              ...planForm,
+                              features: {
+                                ...planForm.features,
+                                telegram: checked,
+                              },
+                            })
+                          }
+                        />
+                        <Label>Telegram Bot</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={planForm.features.stripe}
+                          onCheckedChange={(checked) =>
+                            setPlanForm({
+                              ...planForm,
+                              features: {
+                                ...planForm.features,
+                                stripe: checked,
+                              },
+                            })
+                          }
+                        />
+                        <Label>Stripe Payments</Label>
+                      </div>
+                    </div>
+                  </div>
 
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            checked={planForm.isActive}
-                            onCheckedChange={(checked) =>
-                              setPlanForm({ ...planForm, isActive: checked })
-                            }
-                          />
-                          <Label>Active</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            checked={planForm.isPublic}
-                            onCheckedChange={(checked) =>
-                              setPlanForm({ ...planForm, isPublic: checked })
-                            }
-                          />
-                          <Label>Public (Visible to schools)</Label>
-                        </div>
-                      </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={planForm.isActive}
+                        onCheckedChange={(checked) =>
+                          setPlanForm({ ...planForm, isActive: checked })
+                        }
+                      />
+                      <Label>Active</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={planForm.isPublic}
+                        onCheckedChange={(checked) =>
+                          setPlanForm({ ...planForm, isPublic: checked })
+                        }
+                      />
+                      <Label>Public (Visible to schools)</Label>
+                    </div>
+                  </div>
                     </TabsContent>
 
                     <TabsContent value="tiers" className="space-y-4">
@@ -814,17 +814,17 @@ export default function SuperAdminPlans() {
                             </div>
                           ) : (
                             <>
-                              <div className="font-medium">
-                                {parseFloat(plan.basePrice).toLocaleString()}{" "}
-                                {plan.currency}/mo
-                              </div>
-                              <div className="text-gray-500">
-                                +{" "}
+                          <div className="font-medium">
+                            {parseFloat(plan.basePrice).toLocaleString()}{" "}
+                            {plan.currency}/mo
+                          </div>
+                          <div className="text-gray-500">
+                            +{" "}
                                 {parseFloat(
                                   plan.perStudentPrice
                                 ).toLocaleString()}{" "}
-                                {plan.currency} per student
-                              </div>
+                            {plan.currency} per student
+                          </div>
                             </>
                           )}
                         </div>
@@ -923,30 +923,30 @@ export default function SuperAdminPlans() {
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-name">Plan Name *</Label>
-                    <Input
-                      id="edit-name"
-                      value={planForm.name}
-                      onChange={(e) => handleNameChange(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-slug">Slug *</Label>
-                    <Input
-                      id="edit-slug"
-                      value={planForm.slug}
-                      onChange={(e) =>
-                        setPlanForm({ ...planForm, slug: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Plan Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={planForm.name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-slug">Slug *</Label>
+                <Input
+                  id="edit-slug"
+                  value={planForm.slug}
+                  onChange={(e) =>
+                    setPlanForm({ ...planForm, slug: e.target.value })
+                  }
+                  required
+                />
+              </div>
+            </div>
 
-                {/* Include all other form fields similar to create form */}
+            {/* Include all other form fields similar to create form */}
                 <div className="space-y-2">
                   <Label htmlFor="edit-description">Description</Label>
                   <Textarea

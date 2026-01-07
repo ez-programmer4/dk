@@ -31,7 +31,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigge,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,

@@ -34,3 +34,5 @@ export const formatCurrency = (
 
   return `${symbol} ${numeric.toLocaleString(undefined, finalOptions)}`;
 };
+
+

@@ -492,7 +492,15 @@ export default function SchoolUserManagementPage() {
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
 
+    let generatedUsernameForTeacher = "";
+    let generatedPasswordForTeacher = "";
+
     if ((editingUser ? editingUser.role : newUserRole) === "teacher") {
+      // Auto-generate username and password only for teachers
+      const generatedId = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+      generatedUsernameForTeacher = generatedId;
+      generatedPasswordForTeacher = generatedId + (data.name || '').replace(/\s+/g, '').toLowerCase();
+
       if (
         !teacherControlId ||
         teacherControlId === "" ||
@@ -512,13 +520,16 @@ export default function SchoolUserManagementPage() {
         return;
       }
 
-      // Use the already generated password from state
+      // Set auto-generated credentials for teachers
+      data.username = generatedUsernameForTeacher;
+      data.password = generatedPasswordForTeacher;
+      data.plainPassword = generatedPasswordForTeacher;
+
       data.controlId = teacherControlId;
       data.schedule = teacherSchedule.trim();
       data.phone = teacherPhone.trim();
-      data.password = generatedPassword;
-      data.plainPassword = generatedPassword;
     }
+    // For other roles (admin, controller, registral), use manually entered credentials
 
     const payload = {
       ...data,
@@ -542,15 +553,10 @@ export default function SchoolUserManagementPage() {
 
       const result = await res.json();
 
-      // Show generated credentials for new teachers
-      if (
-        !editingUser &&
-        newUserRole === "teacher" &&
-        result.generatedUsername &&
-        result.generatedPassword
-      ) {
-        setGeneratedUsername(result.generatedUsername);
-        setGeneratedPassword(result.generatedPassword);
+      // Show generated credentials only for new teachers
+      if (!editingUser && newUserRole === "teacher") {
+        setGeneratedUsername(generatedUsernameForTeacher);
+        setGeneratedPassword(generatedPasswordForTeacher);
         setShowCredentials(true);
       } else {
         setIsModalOpen(false);
@@ -1126,6 +1132,9 @@ export default function SchoolUserManagementPage() {
                           <h3 className="text-xl font-bold text-gray-900">
                             Controller Assignment
                           </h3>
+                          <p className="text-gray-600 text-sm">
+                            Assign this teacher to a controller for management
+                          </p>
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           <div>

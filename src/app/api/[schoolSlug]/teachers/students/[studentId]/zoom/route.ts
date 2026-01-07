@@ -17,7 +17,7 @@ export async function POST(
         { status: 403 }
       );
     }
-    const teacherId = token.user?.id || token.id as string;
+    const teacherId = token.id as string;
     const studentId = Number(params.studentId);
     const schoolSlug = params.schoolSlug;
 
@@ -30,12 +30,14 @@ export async function POST(
 
     // Get school ID for filtering
     let schoolId = null;
+    let school = null;
     try {
-      const school = await prisma.school.findUnique({
+      school = await prisma.school.findUnique({
         where: { slug: schoolSlug },
-        select: { id: true }
+        select: { id: true, telegramBotToken: true }
       });
       schoolId = school?.id || null;
+      console.log("School lookup result:", { schoolSlug, schoolId, hasBotToken: !!school?.telegramBotToken });
     } catch (error) {
       console.error("Error looking up school:", error);
       schoolId = null;
@@ -55,6 +57,8 @@ export async function POST(
       whereClause.schoolId = schoolId;
     }
 
+    console.log("Student lookup whereClause:", whereClause);
+
     const student = await prisma.wpos_wpdatatable_23.findUnique({
       where: whereClause,
       select: {
@@ -68,8 +72,13 @@ export async function POST(
       },
     });
 
+    console.log("Student lookup result:", { found: !!student, studentId, teacherId, schoolId, chatId: student?.chatId });
+
     if (!student) {
-      return NextResponse.json({ error: "Student not found or not assigned to this teacher/school" }, { status: 404 });
+      return NextResponse.json({
+        error: "Student not found or not assigned to this teacher/school",
+        details: { studentId, teacherId, schoolId }
+      }, { status: 404 });
     }
 
     // Rest of the logic remains the same as the original implementation
@@ -236,14 +245,15 @@ export async function POST(
           participant_count: 0,
           recording_started: false,
           screen_share_started: false,
+          schoolId: schoolId,
         },
       });
     } catch (createError: any) {
       // Fallback to manual link creation
       try {
         await prisma.$executeRaw`
-          INSERT INTO wpos_zoom_links (studentid, ustazid, link, tracking_token, sent_time, expiration_date, packageId, packageRate, clicked_at, report, session_status, last_activity_at, session_ended_at, session_duration_minutes)
-          VALUES (${studentId}, ${teacherId}, ${link}, ${tokenToUse}, ${localTime}, ${expiry}, ${packageId}, ${packageRate}, NULL, 0, 'active', NULL, NULL, NULL)
+          INSERT INTO wpos_zoom_links (studentid, ustazid, link, tracking_token, sent_time, expiration_date, packageId, packageRate, clicked_at, report, session_status, last_activity_at, session_ended_at, session_duration_minutes, schoolId)
+          VALUES (${studentId}, ${teacherId}, ${link}, ${tokenToUse}, ${localTime}, ${expiry}, ${packageId}, ${packageRate}, NULL, 0, 'active', NULL, NULL, NULL, ${schoolId})
         `;
 
         const createdRecord = (await prisma.$queryRaw`
@@ -292,26 +302,39 @@ export async function POST(
     // Skip notification for auto-created meetings (will be sent when teacher starts the class)
     const skipNotification = createdViaApi;
 
+    console.log("Zoom link creation result:", {
+      createdViaApi,
+      skipNotification,
+      zoomLink: zoomLink ? "PRESENT" : "MISSING",
+      meetingId: meetingId ? "PRESENT" : "MISSING",
+      studentChatId: student.chatId ? "PRESENT" : "MISSING"
+    });
+
     if (!skipNotification && student.country === "USA") {
       // send email
       await fetch(`https://exam.darelkubra.com/api/email`, {
         method: "POST",
         body: JSON.stringify({ id: student.wdt_ID, token: tokenToUse }),
       });
-    } else if (!skipNotification) {
+    } else     if (!skipNotification) {
       // Send Telegram notification (only for manual links)
-      // Get school-specific Telegram bot token from database
-      const school = await prisma.school.findUnique({
-        where: { slug: schoolSlug },
-        select: { telegramBotToken: true }
-      });
-
+      // Use already fetched school data for Telegram bot token
       const botToken = school?.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
+
+      console.log("Telegram notification setup:", {
+        botToken: botToken ? "PRESENT" : "MISSING",
+        studentChatId: student.chatId ? "PRESENT" : "MISSING",
+        schoolSlug,
+        schoolId,
+        skipNotification
+      });
 
       if (!botToken) {
         notificationError = "Telegram bot token not configured for this school";
+        console.log("❌ Telegram notification failed: No bot token");
       } else if (!student.chatId) {
         notificationError = "Student has no Telegram chat ID";
+        console.log("❌ Telegram notification failed: No chat ID");
       } else {
         try {
           const message = `📚 **${schoolSlug.charAt(0).toUpperCase() + schoolSlug.slice(1)} Online Class Invitation**
@@ -389,11 +412,21 @@ Click the button below to join your online class session.
 
           const responseData = await telegramResponse!.json();
 
+          console.log("Telegram API response:", {
+            status: telegramResponse!.status,
+            ok: responseData.ok,
+            description: responseData.description,
+            chat_id: student.chatId,
+            botTokenPresent: !!botToken
+          });
+
           if (telegramResponse!.ok && responseData.ok) {
             notificationSent = true;
+            console.log("✅ Telegram notification sent successfully!");
           } else {
             notificationError =
               responseData.description || "Telegram API error";
+            console.log("❌ Telegram notification failed:", notificationError);
           }
         } catch (err) {
           notificationError =

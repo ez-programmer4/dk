@@ -701,7 +701,7 @@ export default function ControllerLayout({
             </nav>
           </div>
         </div>
-
+ 
         <div className="flex">
           {/* Enhanced Sidebar */}
           <motion.nav

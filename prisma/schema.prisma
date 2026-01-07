@@ -62,6 +62,7 @@ model School {
     payments            SchoolPayment[]
     plan                SubscriptionPlan?     @relation("SchoolPlan", fields: [planId], references: [id])
     planChangeHistories plan_change_history[]
+    permissionrequests  permissionrequest[]
 
     @@map("schools")
 }
@@ -705,12 +706,15 @@ model permissionrequest {
     createdAt                 DateTime             @default(now())
     adminId                   String?
     wpos_wpdatatable_28Wdt_ID Int?
+    schoolId                  String?
     absencerecord             absencerecord[]
     admin                     admin?               @relation(fields: [adminId], references: [id], map: "PermissionRequest_admin_fkey")
     wpos_wpdatatable_24       wpos_wpdatatable_24  @relation(fields: [teacherId], references: [ustazid], map: "PermissionRequest_teacherId_fkey")
     wpos_wpdatatable_28       wpos_wpdatatable_28? @relation(fields: [wpos_wpdatatable_28Wdt_ID], references: [wdt_ID], map: "PermissionRequest_wpos_wpdatatable_28Wdt_ID_fkey")
+    school                    School?              @relation(fields: [schoolId], references: [id], map: "PermissionRequest_school_fkey")
 
     @@index([adminId], map: "PermissionRequest_admin_fkey")
+    @@index([schoolId], map: "PermissionRequest_school_fkey")
     @@index([teacherId], map: "PermissionRequest_teacherId_fkey")
     @@index([wpos_wpdatatable_28Wdt_ID], map: "PermissionRequest_wpos_wpdatatable_28Wdt_ID_fkey")
     @@map("PermissionRequest")

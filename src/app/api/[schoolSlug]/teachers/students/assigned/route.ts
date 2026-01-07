@@ -40,12 +40,9 @@ export async function GET(
     // Filter students by teacher and school
     const whereClause: any = {
       ustaz: teacherId,
-      status: { in: ["active", "not yet"] },
+      status: { in: ["active", "not yet", "On progress"] },
+      OR: schoolId ? [{ schoolId: schoolId }, { schoolId: null }] : undefined,
     };
-
-    if (schoolId) {
-      whereClause.schoolId = schoolId;
-    }
 
     const students = await prisma.wpos_wpdatatable_23.findMany({
       where: whereClause,

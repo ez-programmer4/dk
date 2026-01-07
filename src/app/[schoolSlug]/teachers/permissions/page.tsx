@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useParams } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,122 +29,351 @@ import {
   FiClock,
 } from "react-icons/fi";
 import dayjs from "dayjs";
-import { useParams } from "next/navigation";
 
 type Permission = {
-  id?: string;
   date?: string;
   dates?: string[];
   reason: string;
   details?: string;
   status?: string;
-  requestedDate?: string;
-  timeSlots?: string;
-  reasonCategory?: string;
-  reasonDetails?: string;
-  createdAt?: string;
 };
 
 export default function TeacherPermissions() {
-  const { toast } = useToast();
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
-
+  const { toast } = useToast();
+  const { user, isLoading: authLoading } = useAuth({
+    requiredRole: "teacher",
+    redirectTo: `/${schoolSlug}/teachers/login`,
+  });
+  const [schoolInfo, setSchoolInfo] = useState<any>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(() =>
-    dayjs().format("YYYY-MM")
+    dayjs().startOf("month")
   );
   const [showForm, setShowForm] = useState(false);
+  const [date, setDate] = useState("");
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([]);
+  const [isWholeDaySelected, setIsWholeDaySelected] = useState(false);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [reason, setReason] = useState("");
+  const [details, setDetails] = useState("");
+  const [permissionReasons, setPermissionReasons] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [todayRequestCount, setTodayRequestCount] = useState(0);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    date: "",
-    timeSlots: [] as string[],
-    reason: "",
-    details: "",
-  });
+  // Fetch school information
+  useEffect(() => {
+    const fetchSchoolInfo = async () => {
+      try {
+        const res = await fetch(`/api/${schoolSlug}/school`);
+        if (res.ok) {
+          const data = await res.json();
+          setSchoolInfo(data);
+        }
+      } catch (error) {
+        console.error("Error fetching school info:", error);
+      }
+    };
+    fetchSchoolInfo();
+  }, [schoolSlug]);
 
-  const loadPermissions = async () => {
-    try {
+  // Fetch permissions for the selected month
+  useEffect(() => {
+    const fetchPermissions = async () => {
       setIsLoading(true);
       setError(null);
-      const response = await fetch(`/api/${schoolSlug}/teachers/permissions`);
-      if (!response.ok) throw new Error("Failed to load permissions");
-      const data = await response.json();
-      setPermissions(data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load permissions"
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      try {
+        const month = selectedMonth.format("YYYY-MM");
+        const response = await fetch(
+          `/api/${schoolSlug}/teachers/permissions?month=${month}`,
+          {
+            credentials: "include",
+          }
+        );
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch permissions: ${errorText}`);
+        }
+        const data = await response.json();
 
+        const mappedPermissions = Array.isArray(data)
+          ? data.map((perm) => ({
+              date: perm.requestedDate,
+              dates: [perm.requestedDate],
+              reason: perm.reasonCategory,
+              details: perm.reasonDetails,
+              status: perm.status,
+              createdAt: perm.createdAt,
+              timeSlots: perm.timeSlots ? JSON.parse(perm.timeSlots) : [],
+            }))
+          : [];
+        setPermissions(mappedPermissions);
+
+        // Count today's requests
+        const today = new Date().toISOString().split("T")[0];
+        const todayCount = mappedPermissions.filter((perm) => {
+          if (perm.createdAt) {
+            const requestDate = new Date(perm.createdAt)
+              .toISOString()
+              .split("T")[0];
+            return requestDate === today;
+          }
+          return false;
+        }).length;
+        setTodayRequestCount(todayCount);
+      } catch (err: any) {
+        setError(err.message || "Could not fetch permissions.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (!authLoading) fetchPermissions();
+  }, [selectedMonth, authLoading]);
+
+  // Fetch available time slots for selected date
   useEffect(() => {
-    loadPermissions();
-  }, [schoolSlug]);
+    const fetchTimeSlots = async () => {
+      if (!date || date.trim() === "" || !user?.id) {
+        setAvailableTimeSlots([]);
+        return;
+      }
+
+      const parsedDate = new Date(date);
+      if (isNaN(parsedDate.getTime())) {
+        setAvailableTimeSlots([]);
+        return;
+      }
+      try {
+        const res = await fetch(
+          `/api/${schoolSlug}/teachers/time-slots?date=${encodeURIComponent(
+            date
+          )}&teacherId=${user.id}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableTimeSlots(data.timeSlots || []);
+        } else {
+          setAvailableTimeSlots([]);
+        }
+      } catch (error) {
+        setAvailableTimeSlots([]);
+      }
+    };
+    fetchTimeSlots();
+  }, [date, user?.id]);
+
+  // Fetch permission reasons
+  useEffect(() => {
+    const loadReasons = async () => {
+      try {
+        const res = await fetch(`/api/${schoolSlug}/permission-reasons`, {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (
+            data.reasons &&
+            Array.isArray(data.reasons) &&
+            data.reasons.length > 0
+          ) {
+            setPermissionReasons(data.reasons);
+          } else {
+            try {
+              await fetch(`/api/${schoolSlug}/seed-permission-reasons`, {
+                method: "POST",
+              });
+              const retryRes = await fetch(
+                `/api/${schoolSlug}/permission-reasons`,
+                {
+                  credentials: "include",
+                }
+              );
+              if (retryRes.ok) {
+                const retryData = await retryRes.json();
+                if (
+                  retryData.reasons &&
+                  Array.isArray(retryData.reasons) &&
+                  retryData.reasons.length > 0
+                ) {
+                  setPermissionReasons(retryData.reasons);
+                  return;
+                }
+              }
+            } catch (retryError) {
+              // Ignore retry errors and fall back to default reasons
+            }
+
+            setPermissionReasons([
+              "Sick Leave",
+              "Personal Emergency",
+              "Family Matter",
+              "Medical Appointment",
+              "Other",
+            ]);
+          }
+        } else {
+          setPermissionReasons([
+            "Sick Leave",
+            "Personal Emergency",
+            "Family Matter",
+            "Medical Appointment",
+            "Other",
+          ]);
+        }
+      } catch (error) {
+        setPermissionReasons([
+          "Sick Leave",
+          "Personal Emergency",
+          "Family Matter",
+          "Medical Appointment",
+          "Other",
+        ]);
+      }
+    };
+    if (!authLoading) loadReasons();
+  }, [authLoading]);
+
+  const reloadPermissions = async () => {
+    try {
+      const month = selectedMonth.format("YYYY-MM");
+      const response = await fetch(
+        `/api/${schoolSlug}/teachers/permissions?month=${month}`,
+        {
+          credentials: "include",
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const mappedPermissions = Array.isArray(data)
+          ? data.map((perm) => ({
+              date: perm.requestedDate,
+              dates: [perm.requestedDate],
+              reason: perm.reasonCategory,
+              details: perm.reasonDetails,
+              status: perm.status,
+              timeSlots: perm.timeSlots ? JSON.parse(perm.timeSlots) : [],
+            }))
+          : [];
+        setPermissions(mappedPermissions);
+      }
+    } catch {}
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !formData.date ||
-      !formData.timeSlots.length ||
-      !formData.reason ||
-      !formData.details
-    ) {
+    if (!date || !reason || selectedTimeSlots.length === 0) {
       toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields.",
+        title: "Error",
+        description: "Date, reason, and at least one time slot are required.",
         variant: "destructive",
       });
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-      const response = await fetch(`/api/${schoolSlug}/teachers/permissions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || "Failed to submit permission request"
-        );
-      }
-
-      const result = await response.json();
-
+    if (!details || details.trim() === "") {
       toast({
-        title: "Success",
-        description: result.message,
+        title: "Error",
+        description: "Details are required for the permission request.",
+        variant: "destructive",
       });
+      return;
+    }
 
-      // Reset form
-      setFormData({
-        date: "",
-        timeSlots: [],
-        reason: "",
-        details: "",
-      });
-      setShowForm(false);
+    const duplicateCheck = permissions.some((req) => {
+      const reqDate = req.date;
+      const reqDates = req.dates;
+      const matches =
+        reqDate === date ||
+        (Array.isArray(reqDates) && reqDates.includes(date));
 
-      // Reload permissions
-      loadPermissions();
-    } catch (err) {
+      return matches;
+    });
+
+    if (duplicateCheck) {
       toast({
         title: "Error",
         description:
-          err instanceof Error ? err.message : "Failed to submit request",
+          "You have already submitted a permission request for this date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch(`/api/${schoolSlug}/teachers/permissions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date,
+          timeSlots: selectedTimeSlots,
+          reason,
+          details,
+        }),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        let msg = "Failed to submit request";
+        try {
+          const j = await res.json();
+          if (j?.error) {
+            msg = j.error;
+          }
+        } catch (parseError) {
+          if (res.status === 400) {
+            msg = "Invalid request. Please check your input and try again.";
+          } else if (res.status === 403) {
+            msg = "You don't have permission to perform this action.";
+          } else if (res.status === 500) {
+            msg = "Server error. Please try again later.";
+          }
+        }
+        throw new Error(msg);
+      }
+
+      const responseData = await res.json();
+
+      setSubmitted(true);
+
+      // Build notification message with debug info
+      let description = "";
+      if (responseData.notifications?.sms_sent > 0) {
+        description = `📱 Admin team notified via SMS (${responseData.notifications.sms_sent}/${responseData.notifications.total_admins} messages sent)`;
+      } else if (responseData.debug?.warning) {
+        description = responseData.debug.warning;
+      } else if (responseData.notifications?.total_admins === 0) {
+        description =
+          "⚠️ No admin phone numbers configured. Request saved but not sent via SMS.";
+      } else {
+        description =
+          "📧 Request submitted successfully. Admin team will be notified.";
+      }
+
+      toast({
+        title: "✅ Request Submitted!",
+        description: description,
+      });
+      setDate("");
+      setSelectedTimeSlots([]);
+      setReason("");
+      setDetails("");
+      setShowForm(false);
+      reloadPermissions();
+      setTimeout(() => {
+        setSubmitted(false);
+      }, 1800);
+    } catch (err: any) {
+      toast({
+        title: "Request Failed",
+        description:
+          err.message || "Failed to submit request. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -151,326 +381,643 @@ export default function TeacherPermissions() {
     }
   };
 
-  const getStatusColor = (status?: string) => {
-    switch (status?.toLowerCase()) {
-      case "approved":
-        return "text-green-600 bg-green-100";
-      case "rejected":
-        return "text-red-600 bg-red-100";
-      case "pending":
-      default:
-        return "text-yellow-600 bg-yellow-100";
+  const handleTimeSlotToggle = (timeSlot: string) => {
+    if (timeSlot === "Whole Day") {
+      if (isWholeDaySelected) {
+        setIsWholeDaySelected(false);
+        setSelectedTimeSlots([]);
+      } else {
+        setIsWholeDaySelected(true);
+        setSelectedTimeSlots(["Whole Day"]);
+      }
+    } else {
+      setIsWholeDaySelected(false);
+      setSelectedTimeSlots((prev) =>
+        prev.includes(timeSlot)
+          ? prev.filter((slot) => slot !== timeSlot && slot !== "Whole Day")
+          : [...prev.filter((slot) => slot !== "Whole Day"), timeSlot]
+      );
     }
   };
 
-  const getStatusIcon = (status?: string) => {
-    switch (status?.toLowerCase()) {
-      case "approved":
-        return <FiCheckCircle className="w-4 h-4" />;
-      case "rejected":
-        return <FiX className="w-4 h-4" />;
-      case "pending":
-      default:
-        return <FiClock className="w-4 h-4" />;
-    }
-  };
+  // Summary
+  const summary = permissions.reduce(
+    (acc, perm) => {
+      acc.total++;
+      if (perm.status === "Approved") acc.approved++;
+      else if (perm.status === "Rejected" || perm.status === "Declined")
+        acc.rejected++;
+      else acc.pending++;
+      return acc;
+    },
+    { total: 0, approved: 0, pending: 0, rejected: 0 }
+  );
 
-  const filteredPermissions = permissions.filter((permission) => {
-    if (!permission.requestedDate) return false;
-    return dayjs(permission.requestedDate).format("YYYY-MM") === selectedMonth;
-  });
+  // Month navigation
+  const goToPreviousMonth = () =>
+    setSelectedMonth((m) => m.subtract(1, "month"));
+  const goToNextMonth = () => setSelectedMonth((m) => m.add(1, "month"));
+  const goToCurrentMonth = () => setSelectedMonth(dayjs().startOf("month"));
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-white p-4">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-2/3"></div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl p-4 border">
+                <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+        <div className="bg-white rounded-2xl shadow-lg border p-8 text-center max-w-sm mx-auto">
+          <div className="bg-green-100 rounded-full p-4 w-16 h-16 mx-auto mb-4">
+            <FiCheckCircle className="text-green-600 text-2xl mx-auto" />
+          </div>
+          <h2 className="text-xl font-bold text-black mb-2">
+            Request Submitted!
+          </h2>
+          <p className="text-gray-600 mb-6 text-sm">
+            Your permission request has been sent via SMS to the admin team. You
+            will be notified once reviewed.
+          </p>
+          <Button
+            onClick={() => setSubmitted(false)}
+            className="w-full bg-black hover:bg-gray-800 text-white py-3 rounded-xl font-medium"
+          >
+            <FiArrowLeft className="mr-2 h-4 w-4" /> Back to Permissions
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Permission Requests
-          </h1>
-          <p className="text-gray-600">
-            Manage your absence and permission requests
-          </p>
-        </div>
-        <Button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2"
-        >
-          <FiPlus className="w-4 h-4" />
-          New Request
-        </Button>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-          <div className="flex items-center gap-2">
-            <FiInfo className="text-red-500 w-5 h-5" />
-            <span className="text-red-700">{error}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Month Selector */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Label htmlFor="month-select">Select Month:</Label>
-            <Input
-              id="month-select"
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-auto"
-            />
-          </div>
-          <div className="text-sm text-gray-600">
-            {filteredPermissions.length} request
-            {filteredPermissions.length !== 1 ? "s" : ""} for{" "}
-            {dayjs(selectedMonth).format("MMMM YYYY")}
-          </div>
-        </div>
-      </div>
-
-      {/* Permissions List */}
-      <div className="space-y-4">
-        {filteredPermissions.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <FiCalendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No Requests Found
-            </h3>
-            <p className="text-gray-600 mb-4">
-              You haven't submitted any permission requests for this month.
-            </p>
-            <Button onClick={() => setShowForm(true)}>
-              Submit Your First Request
-            </Button>
-          </div>
-        ) : (
-          filteredPermissions.map((permission, index) => (
+    <div
+      className={`min-h-screen ${
+        schoolInfo?.primaryColor
+          ? ""
+          : "bg-gradient-to-br from-gray-50 via-blue-50/20 to-indigo-50/20"
+      }`}
+      style={
+        schoolInfo?.primaryColor
+          ? { backgroundColor: `${schoolInfo.primaryColor}05` }
+          : {}
+      }
+    >
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        {/* Header */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-6 sm:p-8 lg:p-10">
+          <div className="flex items-center gap-6">
             <div
-              key={permission.id || index}
-              className="bg-white rounded-lg shadow p-6"
+              className={`p-4 rounded-2xl shadow-lg ${
+                schoolInfo?.primaryColor
+                  ? ""
+                  : "bg-gradient-to-r from-blue-600 to-purple-600"
+              }`}
+              style={
+                schoolInfo?.primaryColor
+                  ? {
+                      background: `linear-gradient(135deg, ${
+                        schoolInfo.primaryColor
+                      }, ${
+                        schoolInfo.secondaryColor || schoolInfo.primaryColor
+                      })`,
+                    }
+                  : {}
+              }
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`p-2 rounded-full ${getStatusColor(
-                      permission.status
-                    )}`}
-                  >
-                    {getStatusIcon(permission.status)}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">
-                      {dayjs(permission.requestedDate).format(
-                        "dddd, MMMM D, YYYY"
-                      )}
-                    </h3>
-                    <p className="text-sm text-gray-600 capitalize">
-                      {permission.reasonCategory || permission.reason}
-                    </p>
-                  </div>
-                </div>
-                <div
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                    permission.status
-                  )}`}
-                >
-                  {permission.status || "Pending"}
-                </div>
-              </div>
-
-              {permission.timeSlots && (
-                <div className="mb-3">
-                  <span className="text-sm font-medium text-gray-700">
-                    Time Slots:{" "}
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    {JSON.parse(permission.timeSlots).includes("Whole Day")
-                      ? "Whole Day"
-                      : JSON.parse(permission.timeSlots).join(", ")}
-                  </span>
-                </div>
-              )}
-
-              {permission.reasonDetails && (
-                <div className="mb-3">
-                  <span className="text-sm font-medium text-gray-700">
-                    Details:{" "}
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    {permission.reasonDetails}
-                  </span>
-                </div>
-              )}
-
-              <div className="text-xs text-gray-500">
-                Submitted on{" "}
-                {dayjs(permission.createdAt).format("MMM D, YYYY 'at' h:mm A")}
-              </div>
+              <FiCalendar className="h-8 w-8 text-white" />
             </div>
-          ))
-        )}
-      </div>
+            <div>
+              <h1
+                className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 ${
+                  schoolInfo?.primaryColor
+                    ? ""
+                    : "bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent"
+                }`}
+                style={
+                  schoolInfo?.primaryColor
+                    ? {
+                        color: "black",
+                        textShadow: `0 2px 4px ${schoolInfo.primaryColor}20`,
+                      }
+                    : {}
+                }
+              >
+                Permission Requests
+              </h1>
+              <p className="text-gray-600 text-base sm:text-lg lg:text-xl">
+                Request time off and view your permission history
+              </p>
+              {schoolInfo?.name && (
+                <div className="flex items-center gap-2 mt-2">
+                  <div
+                    className={`h-1 w-8 rounded-full ${
+                      schoolInfo?.primaryColor
+                        ? ""
+                        : "bg-gradient-to-r from-blue-500 to-purple-500"
+                    }`}
+                    style={
+                      schoolInfo?.primaryColor
+                        ? {
+                            background: `linear-gradient(90deg, ${
+                              schoolInfo.primaryColor
+                            }, ${
+                              schoolInfo.secondaryColor ||
+                              schoolInfo.primaryColor
+                            })`,
+                          }
+                        : {}
+                    }
+                  ></div>
+                  <span className="text-sm text-gray-500 font-medium">
+                    {schoolInfo.name}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-      {/* Permission Request Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
+        {/* Request Permission Form */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div
+                className={`p-3 rounded-2xl shadow-lg ${
+                  schoolInfo?.primaryColor
+                    ? ""
+                    : "bg-gradient-to-r from-green-500 to-emerald-500"
+                }`}
+                style={
+                  schoolInfo?.primaryColor
+                    ? {
+                        background: `linear-gradient(135deg, ${
+                          schoolInfo.primaryColor
+                        }, ${
+                          schoolInfo.secondaryColor || schoolInfo.primaryColor
+                        })`,
+                      }
+                    : {}
+                }
+              >
+                <FiPlus className="h-5 w-5 text-white" />
+              </div>
+              <div>
                 <h2 className="text-xl font-bold text-gray-900">
                   New Permission Request
                 </h2>
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <FiX className="w-6 h-6" />
-                </button>
+                <p className="text-gray-600 text-sm">
+                  Submit a request for time off
+                </p>
               </div>
+            </div>
+            <Button
+              onClick={() => setShowForm(!showForm)}
+              size="sm"
+              className={`rounded-xl px-4 py-2 font-medium transition-all duration-300 hover:scale-105 ${
+                schoolInfo?.primaryColor
+                  ? "bg-gray-900 hover:bg-gray-800"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              } text-white shadow-lg hover:shadow-xl`}
+            >
+              {showForm ? (
+                <>
+                  <FiX className="h-4 w-4 mr-1" />
+                  Cancel
+                </>
+              ) : (
+                <>
+                  <FiPlus className="h-4 w-4 mr-1" />
+                  New Request
+                </>
+              )}
+            </Button>
+          </div>
+
+          {showForm && (
+            <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+              {/* Daily Limit Warning */}
+              {todayRequestCount >= 1 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <FiX className="h-4 w-4 text-red-600" />
+                    <div>
+                      <h4 className="font-medium text-red-900 text-sm">
+                        Daily Limit Reached
+                      </h4>
+                      <p className="text-xs text-red-800 mt-1">
+                        You can only submit one request per day.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="date">Date *</Label>
+                  <Label className="text-sm font-medium text-black mb-2 block">
+                    📅 Which day do you need permission? *
+                  </Label>
                   <Input
-                    id="date"
                     type="date"
-                    value={formData.date}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, date: e.target.value }))
-                    }
-                    min={dayjs().format("YYYY-MM-DD")}
                     required
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="w-full"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select the date you need to be absent from work
+                  </p>
                 </div>
 
                 <div>
-                  <Label>Time Slots *</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {["Whole Day", "Morning", "Afternoon", "Evening"].map(
-                      (slot) => (
-                        <label key={slot} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={formData.timeSlots.includes(slot)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                if (slot === "Whole Day") {
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    timeSlots: ["Whole Day"],
-                                  }));
-                                } else {
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    timeSlots: [
-                                      ...prev.timeSlots.filter(
-                                        (s) => s !== "Whole Day"
-                                      ),
-                                      slot,
-                                    ],
-                                  }));
-                                }
-                              } else {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  timeSlots: prev.timeSlots.filter(
-                                    (s) => s !== slot
-                                  ),
-                                }));
-                              }
-                            }}
-                            className="rounded"
-                          />
-                          <span className="text-sm">{slot}</span>
-                        </label>
-                      )
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="reason">Reason *</Label>
-                  <Select
-                    value={formData.reason}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, reason: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a reason" />
+                  <Label className="text-sm font-medium text-black mb-2 block">
+                    🤔 Why do you need permission? *
+                  </Label>
+                  <Select value={reason} onValueChange={setReason}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose your reason..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sick">Sick Leave</SelectItem>
-                      <SelectItem value="personal">
-                        Personal Emergency
-                      </SelectItem>
-                      <SelectItem value="family">Family Matter</SelectItem>
-                      <SelectItem value="religious">
-                        Religious Obligation
-                      </SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      {permissionReasons.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {r}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select the main reason for your absence
+                  </p>
                 </div>
+
+                {/* Time Slots with Instructions */}
+                {date && availableTimeSlots.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium text-black mb-2 block">
+                      Choose Your Absence Time *
+                    </Label>
+
+                    {/* Instructions */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                      <div className="flex items-start gap-2">
+                        <FiInfo className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-xs text-blue-800">
+                          <p className="font-medium mb-1">How to choose:</p>
+                          <p>
+                            • <strong>Full Day Off:</strong> Click "Whole Day"
+                            if you won't come to work at all
+                          </p>
+                          <p>
+                            • <strong>Partial Day:</strong> Select specific
+                            class times if you only need some hours off
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Whole Day Option */}
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-1">
+                        <button
+                          type="button"
+                          onClick={() => handleTimeSlotToggle("Whole Day")}
+                          className={`w-full p-4 rounded-lg border-2 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                            isWholeDaySelected
+                              ? "border-red-500 bg-red-50 text-red-800"
+                              : "border-gray-300 bg-white text-gray-700 hover:bg-red-50 hover:border-red-300"
+                          }`}
+                        >
+                          <FiCalendar className="h-4 w-4" />
+                          <span>🏠 Whole Day Off</span>
+                          {isWholeDaySelected && (
+                            <span className="text-xs">(Selected)</span>
+                          )}
+                        </button>
+                        <p className="text-xs text-gray-500 text-center mt-1 px-2">
+                          I won't come to work at all on this day
+                        </p>
+                      </div>
+
+                      {/* Individual Time Slots */}
+                      {availableTimeSlots.filter((slot) => slot !== "Whole Day")
+                        .length > 0 && (
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FiClock className="h-4 w-4 text-gray-600" />
+                            <span className="text-sm font-medium text-gray-700">
+                              ⏰ Select Specific Class Times
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mb-3">
+                            Choose only the class times you need to miss
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {availableTimeSlots
+                              .filter((slot) => slot !== "Whole Day")
+                              .map((timeSlot) => (
+                                <button
+                                  key={timeSlot}
+                                  type="button"
+                                  onClick={() => handleTimeSlotToggle(timeSlot)}
+                                  disabled={isWholeDaySelected}
+                                  className={`p-3 rounded-lg border-2 text-xs font-medium transition-colors ${
+                                    selectedTimeSlots.includes(timeSlot)
+                                      ? "border-green-500 bg-green-50 text-green-800"
+                                      : isWholeDaySelected
+                                      ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+                                      : "border-gray-300 bg-white text-gray-700 hover:bg-blue-50 hover:border-blue-300"
+                                  }`}
+                                >
+                                  {timeSlot}
+                                  {selectedTimeSlots.includes(timeSlot) && (
+                                    <div className="text-xs mt-1">
+                                      ✓ Selected
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
+                          </div>
+                          {isWholeDaySelected && (
+                            <p className="text-xs text-gray-400 text-center mt-2">
+                              Individual times disabled when "Whole Day" is
+                              selected
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Selection Summary */}
+                    {selectedTimeSlots.length > 0 && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <FiCheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
+                            Your Selection:
+                          </span>
+                        </div>
+                        <p className="text-sm text-green-700">
+                          {isWholeDaySelected
+                            ? "🏠 You will be absent for the entire day"
+                            : `⏰ You will miss these class times: ${selectedTimeSlots.join(
+                                ", "
+                              )}`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div>
-                  <Label htmlFor="details">Details *</Label>
+                  <Label className="text-sm font-medium text-black mb-2 block">
+                    📝 Tell us more details *
+                  </Label>
                   <Textarea
-                    id="details"
-                    value={formData.details}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        details: e.target.value,
-                      }))
-                    }
-                    placeholder="Please provide more details about your request..."
-                    rows={4}
                     required
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value)}
+                    placeholder="Example: I have a doctor appointment at 2 PM, or I am feeling sick and need to rest..."
+                    className="min-h-[80px] resize-none"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Explain your situation so admin can understand and approve
+                    quickly
+                  </p>
                 </div>
 
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowForm(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <FiLoader className="w-4 h-4 mr-2 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      "Submit Request"
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || todayRequestCount >= 1}
+                  className={`w-full py-4 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${
+                    schoolInfo?.primaryColor
+                      ? ""
+                      : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  }`}
+                  style={
+                    schoolInfo?.primaryColor
+                      ? {
+                          background: `linear-gradient(135deg, ${
+                            schoolInfo.primaryColor
+                          }, ${
+                            schoolInfo.secondaryColor || schoolInfo.primaryColor
+                          })`,
+                          boxShadow: `0 4px 12px ${schoolInfo.primaryColor}40`,
+                        }
+                      : {}
+                  }
+                >
+                  {isSubmitting && (
+                    <>
+                      <FiLoader className="animate-spin mr-2 h-4 w-4" />
+                      Submitting...
+                    </>
+                  )}
+                  {todayRequestCount >= 1 && (
+                    <>
+                      <FiX className="h-4 w-4 mr-1" />
+                      Daily Limit Reached
+                    </>
+                  )}
+                  {!isSubmitting && todayRequestCount < 1 && (
+                    <>
+                      <FiPlus className="h-4 w-4 mr-1" />
+                      Submit Request
+                    </>
+                  )}
+                </Button>
               </form>
             </div>
-          </div>
+          )}
         </div>
-      )}
+
+        {/* Permissions History */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div
+                className={`p-3 rounded-2xl shadow-lg ${
+                  schoolInfo?.primaryColor
+                    ? ""
+                    : "bg-gradient-to-r from-purple-500 to-pink-500"
+                }`}
+                style={
+                  schoolInfo?.primaryColor
+                    ? {
+                        background: `linear-gradient(135deg, ${
+                          schoolInfo.primaryColor
+                        }, ${
+                          schoolInfo.secondaryColor || schoolInfo.primaryColor
+                        })`,
+                      }
+                    : {}
+                }
+              >
+                <FiCalendar className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Request History
+                </h2>
+                <p className="text-gray-600 text-sm">
+                  View your permission requests
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 bg-gray-50/80 backdrop-blur-sm rounded-2xl p-2">
+              <Button
+                onClick={goToPreviousMonth}
+                variant="ghost"
+                size="sm"
+                className="p-2 hover:bg-white/80 transition-all duration-200 rounded-xl"
+              >
+                <FiChevronLeft className="w-5 h-5" />
+              </Button>
+              <span className="text-sm font-semibold px-3 py-1 bg-white/60 rounded-xl min-w-[80px] text-center">
+                {selectedMonth.format("MMM YY")}
+              </span>
+              <Button
+                onClick={goToNextMonth}
+                variant="ghost"
+                size="sm"
+                className="p-2 hover:bg-white/80 transition-all duration-200 rounded-xl"
+              >
+                <FiChevronRight className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-white/50 text-center hover:shadow-xl transition-all duration-300 hover:scale-105 group">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <div className="p-2 bg-gray-100 rounded-xl group-hover:bg-gray-200 transition-colors duration-200">
+                  <FiCalendar className="h-4 w-4 text-gray-600" />
+                </div>
+                <span className="text-sm font-semibold text-gray-600">
+                  Total
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-gray-900">
+                {summary.total}
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-white/50 text-center hover:shadow-xl transition-all duration-300 hover:scale-105 group">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <div className="p-2 bg-yellow-100 rounded-xl group-hover:bg-yellow-200 transition-colors duration-200">
+                  <FiClock className="h-4 w-4 text-yellow-600" />
+                </div>
+                <span className="text-sm font-semibold text-yellow-700">
+                  Pending
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-yellow-800">
+                {summary.pending}
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-white/50 text-center hover:shadow-xl transition-all duration-300 hover:scale-105 group">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <div className="p-2 bg-green-100 rounded-xl group-hover:bg-green-200 transition-colors duration-200">
+                  <FiCheckCircle className="h-4 w-4 text-green-600" />
+                </div>
+                <span className="text-sm font-semibold text-green-700">
+                  Approved
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-green-800">
+                {summary.approved}
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-white/50 text-center hover:shadow-xl transition-all duration-300 hover:scale-105 group">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <div className="p-2 bg-red-100 rounded-xl group-hover:bg-red-200 transition-colors duration-200">
+                  <FiX className="h-4 w-4 text-red-600" />
+                </div>
+                <span className="text-sm font-semibold text-red-700">
+                  Rejected
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-red-800">
+                {summary.rejected}
+              </div>
+            </div>
+          </div>
+
+          {error ? (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <FiInfo className="text-red-600 h-4 w-4" />
+                <span className="text-red-700 text-sm">{error}</span>
+              </div>
+            </div>
+          ) : permissions.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <FiCalendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No permissions for this month</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {permissions.map((perm, idx) => (
+                <div
+                  key={idx}
+                  className="border border-gray-200 rounded-lg p-3"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-black text-sm">
+                        {Array.isArray(perm.dates)
+                          ? perm.dates
+                              .map((d: string) => dayjs(d).format("MMM D"))
+                              .join(", ")
+                          : dayjs(perm.date).format("MMM D, YYYY")}
+                      </div>
+                      <div className="text-gray-600 text-sm mt-1">
+                        {perm.reason}
+                      </div>
+                    </div>
+                    <div className="ml-3 flex-shrink-0">
+                      {perm.status === "Approved" ? (
+                        <span className="inline-block px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
+                          Approved
+                        </span>
+                      ) : perm.status === "Rejected" ||
+                        perm.status === "Declined" ? (
+                        <span className="inline-block px-2 py-1 rounded-full bg-red-100 text-red-800 text-xs font-medium">
+                          {perm.status === "Declined" ? "Declined" : "Rejected"}
+                        </span>
+                      ) : (
+                        <span className="inline-block px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {perm.details && (
+                    <div
+                      className="text-gray-500 text-sm truncate"
+                      title={perm.details}
+                    >
+                      {perm.details}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

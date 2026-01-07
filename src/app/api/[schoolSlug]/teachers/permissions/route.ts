@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAdminNotification } from "@/lib/notifications";
-
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -28,10 +27,10 @@ function normalizePhoneNumber(phone: string): string | null {
     // Add + prefix
     return "+" + cleaned;
   } else if (cleaned.startsWith("0")) {
-    // Ethiopian local format (0911234567) → +251911234567
+    // Ethiopian local format (0911234567) â†’ +251911234567
     return "+251" + cleaned.substring(1);
   } else if (cleaned.startsWith("9") && cleaned.length === 9) {
-    // Missing country code and leading 0 (911234567) → +251911234567
+    // Missing country code and leading 0 (911234567) â†’ +251911234567
     return "+251" + cleaned;
   }
 
@@ -55,7 +54,7 @@ async function sendSMS(
     if (!senderName) missing.push("AFROMSG_SENDER_NAME");
 
     console.error(
-      `❌ SMS Configuration Error: Missing environment variables: ${missing.join(
+      `â‌Œ SMS Configuration Error: Missing environment variables: ${missing.join(
         ", "
       )}`
     );
@@ -69,7 +68,7 @@ async function sendSMS(
   const normalizedPhone = normalizePhoneNumber(phone);
   if (!normalizedPhone) {
     console.error(
-      `❌ Invalid phone number format: "${phone}". Expected Ethiopian format (e.g., 0911234567, +251911234567)`
+      `â‌Œ Invalid phone number format: "${phone}". Expected Ethiopian format (e.g., 0911234567, +251911234567)`
     );
     return {
       success: false,
@@ -105,7 +104,7 @@ async function sendSMS(
 
     if (!response.ok) {
       console.error(
-        `❌ SMS API Error for ${normalizedPhone}:`,
+        `â‌Œ SMS API Error for ${normalizedPhone}:`,
         `\n  Status: ${response.status}`,
         `\n  Response: ${JSON.stringify(result, null, 2)}`
       );
@@ -119,7 +118,7 @@ async function sendSMS(
     return { success: true, details: result };
   } catch (error) {
     console.error(
-      `❌ SMS Network Error for ${normalizedPhone}:`,
+      `â‌Œ SMS Network Error for ${normalizedPhone}:`,
       error instanceof Error ? error.message : error
     );
     return {
@@ -129,7 +128,10 @@ async function sendSMS(
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -140,14 +142,16 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
     const user = session.user as { id: string; role: string };
+    const body = await req.json();
+    const { date, timeSlots, reason, details } = body;
     const schoolSlug = params.schoolSlug;
 
-    // Get school ID and verify teacher belongs to this school
+    // Get school ID for filtering
     let schoolId = null;
     try {
       const school = await prisma.school.findUnique({
         where: { slug: schoolSlug },
-        select: { id: true }
+        select: { id: true },
       });
       schoolId = school?.id || null;
     } catch (error) {
@@ -155,23 +159,12 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       schoolId = null;
     }
 
-    // Verify teacher belongs to this school
-    const teacherCheck = await prisma.wpos_wpdatatable_24.findFirst({
-      where: {
-        ustazid: user.id,
-        ...(schoolId ? { schoolId } : {}),
-      },
-    });
-
-    if (!teacherCheck) {
+    if (!schoolId) {
       return NextResponse.json(
-        { error: "Teacher not found in this school" },
-        { status: 403 }
+        { error: "School not found or invalid schoolSlug" },
+        { status: 400 }
       );
     }
-
-    const body = await req.json();
-    const { date, timeSlots, reason, details } = body;
 
     if (!date || !timeSlots || !reason || !details) {
       return NextResponse.json(
@@ -183,28 +176,30 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       );
     }
 
-    // Check for existing requests for the same date
+    // Check for existing requests for the same date and school
     const existingRequest = await prisma.permissionrequest.findFirst({
       where: {
         teacherId: user.id,
         requestedDate: date,
+        schoolId: schoolId,
       },
     });
     if (existingRequest) {
       return NextResponse.json(
         {
           error:
-            "❌ Duplicate Request: You have already submitted a permission request for this date. Please check your existing requests.",
+            "â‌Œ Duplicate Request: You have already submitted a permission request for this date. Please check your existing requests.",
         },
         { status: 400 }
       );
     }
 
-    // Check for multiple permission requests in a single day (limit to 1 per day)
+    // Check for multiple permission requests in a single day (limit to 1 per day) for this school
     const today = new Date().toISOString().split("T")[0];
     const todayRequests = await prisma.permissionrequest.count({
       where: {
         teacherId: user.id,
+        schoolId: schoolId,
         createdAt: {
           gte: new Date(today + "T00:00:00.000Z"),
           lt: new Date(today + "T23:59:59.999Z"),
@@ -216,7 +211,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       return NextResponse.json(
         {
           error:
-            "🚫 Daily Limit Reached: You can only submit one permission request per day. Please wait until tomorrow to submit another request.",
+            "âڑ ï¸ڈ Daily Limit Reached: You can only submit one permission request per day. Please wait until tomorrow to submit another request.",
         },
         { status: 400 }
       );
@@ -231,7 +226,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       return NextResponse.json(
         {
           error:
-            "📅 Invalid Date: You cannot request permission for past dates. Please select a future date.",
+            "ًں“… Invalid Date: You cannot request permission for past dates. Please select a future date.",
         },
         { status: 400 }
       );
@@ -245,7 +240,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       return NextResponse.json(
         {
           error:
-            "📅 Date Too Far: Permission requests can only be made up to 30 days in advance. Please select a nearer date.",
+            "ًں“… Date Too Far: Permission requests can only be made up to 30 days in advance. Please select a nearer date.",
         },
         { status: 400 }
       );
@@ -259,9 +254,9 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
         reasonCategory: reason,
         reasonDetails: details,
         status: "Pending",
+        schoolId: schoolId,
       },
     });
-
     // Get teacher info for notifications
     const teacher = await prisma.wpos_wpdatatable_24.findUnique({
       where: { ustazid: user.id },
@@ -282,6 +277,14 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       },
     });
 
+    adminsWithPhone.forEach((admin, idx) => {
+      const logMsg = `  ${idx + 1}. ${admin.name || "Unnamed"} - Phone: "${
+        admin.phoneno
+      }"`;
+
+      console.error(logMsg);
+    });
+
     // Format time slots for SMS
     const timeSlotText = timeSlots.includes("Whole Day")
       ? "Whole Day"
@@ -292,7 +295,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       day: "numeric",
     });
 
-    const smsMessage = `📢 DarulKubra Alert: ${teacherName} requests permission for ${formattedDate} (${timeSlotText}). Reason: ${reason}. Please review.`;
+    const smsMessage = `ًں”” DarulKubra Alert: ${teacherName} requests permission for ${formattedDate} (${timeSlotText}). Reason: ${reason}. Please review.`;
 
     let smsCount = 0;
     const smsResults: Array<{
@@ -323,7 +326,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
     let notificationCount = 0;
     try {
       const notifications = await createAdminNotification(
-        "📢 New Permission Request",
+        "ًں”” New Permission Request",
         `${teacherName} has requested permission for absence on ${new Date(
           date
         ).toLocaleDateString("en-US", {
@@ -341,16 +344,16 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
 
     // Also check environment variables for debug response
     const envCheck = {
-      api_token: process.env.AFROMSG_API_TOKEN ? "✅ SET" : "❌ MISSING",
-      sender_uid: process.env.AFROMSG_SENDER_UID || "❌ MISSING",
-      sender_name: process.env.AFROMSG_SENDER_NAME || "❌ MISSING",
+      api_token: process.env.AFROMSG_API_TOKEN ? "âœ… SET" : "â‌Œ MISSING",
+      sender_uid: process.env.AFROMSG_SENDER_UID || "â‌Œ MISSING",
+      sender_name: process.env.AFROMSG_SENDER_NAME || "â‌Œ MISSING",
     };
 
     return NextResponse.json(
       {
         success: true,
         message:
-          "✅ Permission request submitted successfully! Admin team has been notified and will review your request soon.",
+          "âœ… Permission request submitted successfully! Admin team has been notified and will review your request soon.",
         permissionRequest,
         notifications: {
           sms_sent: smsCount,
@@ -372,9 +375,9 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
           environment: envCheck,
           warning:
             adminsWithPhone.length === 0
-              ? "🚫 No admins with phone numbers found in database"
+              ? "âڑ ï¸ڈ No admins with phone numbers found in database"
               : smsCount === 0 && adminsWithPhone.length > 0
-              ? "🚫 SMS failed for all admins - check environment variables and server logs"
+              ? "âڑ ï¸ڈ SMS failed for all admins - check environment variables and server logs"
               : null,
         },
       },
@@ -391,7 +394,10 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
   }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -404,12 +410,12 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     const user = session.user as { id: string; role: string };
     const schoolSlug = params.schoolSlug;
 
-    // Get school ID and verify teacher belongs to this school
+    // Get school ID for filtering
     let schoolId = null;
     try {
       const school = await prisma.school.findUnique({
         where: { slug: schoolSlug },
-        select: { id: true }
+        select: { id: true },
       });
       schoolId = school?.id || null;
     } catch (error) {
@@ -417,23 +423,15 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       schoolId = null;
     }
 
-    // Verify teacher belongs to this school
-    const teacherCheck = await prisma.wpos_wpdatatable_24.findFirst({
-      where: {
-        ustazid: user.id,
-        ...(schoolId ? { schoolId } : {}),
-      },
-    });
-
-    if (!teacherCheck) {
+    if (!schoolId) {
       return NextResponse.json(
-        { error: "Teacher not found in this school" },
-        { status: 403 }
+        { error: "School not found or invalid schoolSlug" },
+        { status: 400 }
       );
     }
 
     const permissions = await prisma.permissionrequest.findMany({
-      where: { teacherId: user.id },
+      where: { teacherId: user.id, schoolId: schoolId },
       orderBy: { createdAt: "desc" },
     });
 

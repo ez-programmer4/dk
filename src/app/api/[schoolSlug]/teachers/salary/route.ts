@@ -4,7 +4,6 @@ import { getToken } from "next-auth/jwt";
 import { format } from "date-fns";
 import { createSalaryCalculator } from "@/lib/salary-calculator";
 
-
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -32,11 +31,24 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       );
     }
 
+    // Get school ID for filtering
+    const schoolSlug = params.schoolSlug;
+    let schoolId = null;
+    try {
+      const school = await prisma.school.findUnique({
+        where: { slug: schoolSlug },
+        select: { id: true },
+      });
+      schoolId = school?.id || null;
+    } catch (error) {
+      console.error("Error looking up school:", error);
+      schoolId = null;
+    }
+
     const url = new URL(req.url);
     const from = url.searchParams.get("from");
     const to = url.searchParams.get("to");
     const includeDetails = url.searchParams.get("details") === "true";
-    const schoolSlug = params.schoolSlug;
 
     if (!from || !to) {
       return NextResponse.json(
@@ -49,60 +61,115 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     const toDate = new Date(to);
     const teacherId = session.id as string;
 
-    // Get school ID for filtering
-    let schoolId = null;
-    try {
-      const school = await prisma.school.findUnique({
-        where: { slug: schoolSlug },
-        select: { id: true }
-      });
-      schoolId = school?.id || null;
-    } catch (error) {
-      console.error("Error looking up school:", error);
-      schoolId = null;
-    }
-
-    // Verify teacher belongs to this school
-    const teacherCheck = await prisma.wpos_wpdatatable_24.findFirst({
-      where: {
-        ustazid: teacherId,
-        ...(schoolId ? { schoolId } : {}),
-      },
+    // Verify teacher belongs to the school
+    const teacher = await prisma.wpos_wpdatatable_24.findUnique({
+      where: { ustazid: teacherId },
+      select: { schoolId: true },
     });
 
-    if (!teacherCheck) {
+    if (!teacher || teacher.schoolId !== schoolId) {
       return NextResponse.json(
         { error: "Teacher not found in this school" },
-        { status: 403 }
+        { status: 404 }
       );
     }
 
-    // Get salary data with school filtering
-    const salaryCalculator = await createSalaryCalculator(
-      teacherId,
-      fromDate,
-      toDate,
-      includeDetails,
-      schoolId
+    // Get teacher's salary data using the same logic as admin
+    const res = await fetch(
+      `${
+        process.env.NEXTAUTH_URL
+      }/api/admin/teacher-payments?startDate=${fromDate.toISOString()}&endDate=${toDate.toISOString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.INTERNAL_API_KEY || "internal"}`,
+        },
+      }
     );
 
-    const result = await salaryCalculator.calculateSalary();
+    if (!res.ok) {
+      // Fallback to direct calculation if admin API fails
+      return await calculateTeacherSalaryDirect(
+        teacherId,
+        fromDate,
+        toDate,
+        includeDetails
+      );
+    }
 
-    return NextResponse.json({
-      teacher: {
-        id: teacherId,
-        name: teacherCheck.ustazname,
-      },
-      period: {
-        from: format(fromDate, "yyyy-MM-dd"),
-        to: format(toDate, "yyyy-MM-dd"),
-      },
-      ...result,
-    });
-  } catch (error) {
+    const allTeachers = await res.json();
+    const teacherData = allTeachers.find((t: any) => t.id === teacherId);
+
+    if (!teacherData) {
+      return NextResponse.json(
+        { error: "Teacher salary data not found" },
+        { status: 404 }
+      );
+    }
+
+    // If details requested, get breakdown
+    if (includeDetails) {
+      const breakdownRes = await fetch(
+        `${
+          process.env.NEXTAUTH_URL
+        }/api/admin/teacher-payments?teacherId=${teacherId}&from=${fromDate.toISOString()}&to=${toDate.toISOString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${
+              process.env.INTERNAL_API_KEY || "internal"
+            }`,
+          },
+        }
+      );
+
+      if (breakdownRes.ok) {
+        const breakdown = await breakdownRes.json();
+        return NextResponse.json({
+          ...teacherData,
+          breakdown,
+        });
+      }
+    }
+
+    return NextResponse.json(teacherData);
+  } catch (error: any) {
     console.error("Teacher salary API error:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// Enhanced salary calculation using teacher change history
+async function calculateTeacherSalaryDirect(
+  teacherId: string,
+  fromDate: Date,
+  toDate: Date,
+  includeDetails: boolean
+) {
+  try {
+    // Use the same salary calculator that includes teacher change history
+    const calculator = await createSalaryCalculator();
+
+    if (includeDetails) {
+      const details = await calculator.getTeacherSalaryDetails(
+        teacherId,
+        fromDate,
+        toDate
+      );
+      return NextResponse.json(details);
+    } else {
+      const salary = await calculator.calculateTeacherSalary(
+        teacherId,
+        fromDate,
+        toDate
+      );
+      return NextResponse.json(salary);
+    }
+  } catch (error) {
+    console.error("Direct calculation error:", error);
+    return NextResponse.json(
+      { error: "Failed to calculate salary" },
       { status: 500 }
     );
   }
