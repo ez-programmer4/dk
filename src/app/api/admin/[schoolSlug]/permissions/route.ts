@@ -14,7 +14,17 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
   }
 
   const schoolSlug = params.schoolSlug;
-  const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+  let schoolId = null;
+  try {
+    const school = await prisma.school.findUnique({
+      where: { slug: schoolSlug },
+      select: { id: true },
+    });
+    schoolId = school?.id || null;
+  } catch (error) {
+    console.error("Error looking up school:", error);
+    schoolId = null;
+  }
 
   try {
     const { searchParams } = new URL(req.url);

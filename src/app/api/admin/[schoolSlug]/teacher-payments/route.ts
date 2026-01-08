@@ -36,12 +36,12 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
-async function getSalaryCalculator(): Promise<SalaryCalculator> {
-  const cacheKey = "teacher-payments";
+async function getSalaryCalculator(schoolSlug?: string): Promise<SalaryCalculator> {
+  const cacheKey = `teacher-payments-${schoolSlug || 'global'}`;
 
   let calculator = getCachedCalculator(cacheKey);
   if (!calculator) {
-    calculator = await createSalaryCalculator(schoolId);
+    calculator = await createSalaryCalculator(schoolSlug);
     setCachedCalculator(cacheKey, calculator);
   }
 
@@ -58,9 +58,6 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     if (!checkRateLimit(ip)) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
-
-    const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
 
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
@@ -87,7 +84,22 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       );
     }
 
-    const calculator = await getSalaryCalculator();
+    // Get school ID for filtering
+    const schoolSlug = params.schoolSlug;
+    let schoolId = null;
+    const { prisma } = await import("@/lib/prisma");
+    try {
+      const school = await prisma.school.findUnique({
+        where: { slug: schoolSlug },
+        select: { id: true },
+      });
+      schoolId = school?.id || null;
+    } catch (error) {
+      console.error("Error looking up school:", error);
+      schoolId = null;
+    }
+
+    const calculator = await getSalaryCalculator(params.schoolSlug);
 
     // Smart cache clearing - only clear if explicitly requested
     const shouldClearCache = url.searchParams.get("clearCache") === "true";
@@ -143,9 +155,6 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
-
     const body = await req.json();
     const {
       action,
@@ -173,7 +182,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       }
 
       try {
-        const calculator = await getSalaryCalculator();
+        const calculator = await getSalaryCalculator(params.schoolSlug);
 
         // Calculate date range
         const selectedMonth = month || new Date().getMonth() + 1;
@@ -258,7 +267,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
     let transactionId = null;
 
     if (processPaymentNow && status === "Paid" && totalSalary > 0) {
-      paymentResult = await processPayment(teacherId, totalSalary, period);
+      paymentResult = await processPayment(teacherId, totalSalary, period, school.id);
       if (!paymentResult.success) {
         return NextResponse.json(
           { error: `Payment failed: ${paymentResult.error}` },
@@ -272,7 +281,11 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
     const { prisma } = await import("@/lib/prisma");
     const payment = await prisma.teachersalarypayment.upsert({
       where: {
-        teacherId_period: { teacherId, period },
+        teacherId_period_schoolId: {
+          teacherId,
+          period,
+          schoolId: school.id
+        },
       },
       update: {
         status,
@@ -293,6 +306,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
         latenessDeduction,
         absenceDeduction,
         bonuses,
+        schoolId: school.id,
       },
     });
 
@@ -313,7 +327,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
     });
 
     // Clear cache for this teacher
-    const calculator = await getSalaryCalculator();
+    const calculator = await getSalaryCalculator(params.schoolSlug);
     calculator.clearCache();
 
     return NextResponse.json({
@@ -341,6 +355,7 @@ async function processPayment(
   teacherId: string,
   amount: number,
   period: string,
+  schoolId: string,
   retries = 3
 ): Promise<{
   success: boolean;
@@ -353,7 +368,10 @@ async function processPayment(
       const { prisma } = await import("@/lib/prisma");
 
       const teacher = await prisma.wpos_wpdatatable_24.findUnique({
-        where: { ustazid: teacherId },
+        where: {
+          ustazid: teacherId,
+          ...(schoolId && { schoolId }),
+        },
         select: { ustazname: true, phone: true },
       });
 

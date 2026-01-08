@@ -9,22 +9,18 @@ export const revalidate = 0;
 export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   // Declare variables outside try block so they're accessible in catch
   const schoolSlug = params.schoolSlug;
-  let schoolId = schoolSlug === 'darulkubra' ? null : null; // Default to null for darulkubra
+  let schoolId = null;
 
-  // For non-darulkubra schools, look up the actual school ID
-  if (schoolSlug !== 'darulkubra') {
-    try {
-      const school = await prisma.school.findUnique({
-        where: { slug: schoolSlug },
-        select: { id: true, name: true, slug: true }
-      });
-      schoolId = school?.id || null;
-    } catch (error) {
-      console.error("Error looking up school:", error);
-      schoolId = null;
-    }
-  } else {
-    console.log("API REQUEST - schoolSlug:", schoolSlug, "schoolId: null (darulkubra)");
+  // Look up the school ID for multi-tenancy
+  try {
+    const school = await prisma.school.findUnique({
+      where: { slug: schoolSlug },
+      select: { id: true, name: true, slug: true }
+    });
+    schoolId = school?.id || null;
+  } catch (error) {
+    console.error("Error looking up school:", error);
+    schoolId = null;
   }
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1", 10);

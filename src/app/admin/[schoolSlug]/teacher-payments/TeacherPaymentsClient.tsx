@@ -241,7 +241,7 @@ export default function TeacherPaymentsClient({
   const fetchDebugInfo = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch("`/api/admin/${schoolSlug}/teacher-payments`", {
+      const response = await fetch(`/api/admin/${schoolSlug}/teacher-payments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -277,7 +277,7 @@ export default function TeacherPaymentsClient({
     setLoading(true);
     try {
       // Clear cache via API first
-      const cacheResponse = await fetch("`/api/admin/${schoolSlug}/clear-salary-cache`", {
+      const cacheResponse = await fetch(`/api/admin/${schoolSlug}/clear-salary-cache`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "clear_all" }),
@@ -328,7 +328,7 @@ export default function TeacherPaymentsClient({
     async (include: boolean) => {
       try {
         setLoading(true);
-        const response = await fetch("`/api/admin/${schoolSlug}/settings/include-sundays`", {
+        const response = await fetch(`/api/admin/${schoolSlug}/settings/include-sundays`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ includeSundays: include }),
@@ -584,10 +584,9 @@ export default function TeacherPaymentsClient({
             </Button>
           </div>
         </div>
-      </div>
 
       {/* Month/Year Selector */}
-      <Card className="border border-gray-200 shadow-sm">
+      <Card className="border border-gray-200 shadow-sm">border border-gray-200 shadow-sm">
         <CardHeader className="bg-gray-50">
           <CardTitle className="flex items-center gap-2 text-gray-900">
             <FiCalendar className="w-5 h-5 text-gray-600" />
@@ -1190,5 +1189,7 @@ export default function TeacherPaymentsClient({
         </Card>
       )}
     </div>
+    </div>
+    </div>  
   );
 }

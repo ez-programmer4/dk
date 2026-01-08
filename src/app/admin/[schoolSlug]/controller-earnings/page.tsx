@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import {
@@ -49,8 +49,6 @@ interface AdminEarningsData {
 }
 
 export default function AdminControllerEarningsPage() {
-  const params = useParams();
-  const schoolSlug = params.schoolSlug as string;
   const { data: session, status } = useSession();
   const router = useRouter();
   const [earningsData, setEarningsData] = useState<AdminEarningsData | null>(
@@ -98,7 +96,7 @@ export default function AdminControllerEarningsPage() {
     try {
       setLoading(true);
       const response = await fetch(
-        `/api/admin/${schoolSlug}/controller-earnings?month=${selectedMonth}`
+        `/api/admin/controller-earnings?month=${selectedMonth}`
       );
 
       if (!response.ok) {
@@ -117,7 +115,7 @@ export default function AdminControllerEarningsPage() {
   const fetchEarningsConfig = async () => {
     try {
       setConfigLoading(true);
-      const response = await fetch(`/api/admin/${schoolSlug}/controller-earnings-config`);
+      const response = await fetch("/api/admin/controller-earnings-config");
 
       if (!response.ok) {
         throw new Error("Failed to fetch earnings configuration");
@@ -138,7 +136,7 @@ export default function AdminControllerEarningsPage() {
   const updateEarningsConfig = async (newConfig: EarningsConfig) => {
     try {
       setConfigLoading(true);
-      const response = await fetch(`/api/admin/${schoolSlug}/controller-earnings-config`, {
+      const response = await fetch("/api/admin/controller-earnings-config", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -251,45 +249,22 @@ export default function AdminControllerEarningsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Enhanced Header with School Branding */}
-        <div className="relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-6 sm:p-8 lg:p-10 mb-8">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/30 via-transparent to-blue-50/30 rounded-3xl" />
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5QzkyQUMiIGZpbGwtb3BhY2l0eT0iMC4wMiI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIvPjwvZz48L2c+PC9zdmc+PC9zdmc+')] opacity-30" />
-
-          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-            <div className="flex flex-col gap-3">
-              {/* Status & School Info */}
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-2 text-green-600 font-medium text-sm bg-green-50 px-3 py-1 rounded-full border border-green-200">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                  System Online
-                </span>
-                <span className="text-gray-400">•</span>
-                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md font-medium">
-                  School: {schoolSlug}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl shadow-lg">
-                  <FiDollarSign className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent">
-                    Controller Earnings Analytics
-                  </h1>
-                  <p className="text-lg font-medium text-gray-600">
-                    Overview of all controllers' earnings for {schoolSlug} •{" "}
-                    {new Date(selectedMonth + "-01").toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                    })}
-                  </p>
-                </div>
-              </div>
+        {/* Header */}
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="flex flex-col gap-1 sm:gap-2">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+                Controller Earnings Analytics
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-600">
+                Overview of all controllers' earnings for{" "}
+                {new Date(selectedMonth + "-01").toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                })}
+              </p>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <input

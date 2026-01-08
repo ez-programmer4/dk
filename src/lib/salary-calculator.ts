@@ -156,11 +156,13 @@ export interface TeacherSalaryData {
  */
 export class SalaryCalculator {
   protected config: SalaryCalculationConfig;
+  protected schoolId?: string;
   private cache: Map<string, any> = new Map();
   private static globalCache: Map<string, any> = new Map();
 
-  constructor(config: SalaryCalculationConfig) {
+  constructor(config: SalaryCalculationConfig, schoolId?: string) {
     this.config = config;
+    this.schoolId = schoolId;
   }
 
   /**
@@ -381,6 +383,7 @@ export class SalaryCalculator {
   ): Promise<TeacherSalaryData[]> {
     // Get all teachers from main table
     const mainTableTeachers = await prisma.wpos_wpdatatable_24.findMany({
+      where: this.schoolId ? { schoolId: this.schoolId } : {},
       select: { ustazid: true, ustazname: true },
     });
 
@@ -391,6 +394,7 @@ export class SalaryCalculator {
           gte: fromDate,
           lte: toDate,
         },
+        ...(this.schoolId && { schoolId: this.schoolId }),
       },
       select: {
         ustazid: true,
@@ -493,6 +497,7 @@ export class SalaryCalculator {
       where: {
         teacherId,
         createdAt: { gte: fromDate, lte: toDate },
+        ...(this.schoolId && { schoolId: this.schoolId }),
       },
       orderBy: { createdAt: "asc" },
     });
@@ -524,7 +529,10 @@ export class SalaryCalculator {
   private async getTeacherInfo(teacherId: string) {
     // First try to find teacher in main table
     let teacher = await prisma.wpos_wpdatatable_24.findUnique({
-      where: { ustazid: teacherId },
+      where: {
+        ustazid: teacherId,
+        ...(this.schoolId && { schoolId: this.schoolId }),
+      },
       select: { ustazid: true, ustazname: true },
     });
 
@@ -532,6 +540,10 @@ export class SalaryCalculator {
     if (!teacher) {
       // Check if this teacher has any zoom links
       const zoomLinkCount = await prisma.wpos_zoom_links.count({
+        where: {
+          ustazid: teacherId,
+          ...(this.schoolId && { schoolId: this.schoolId }),
+        },
         where: { ustazid: teacherId },
       });
 
@@ -617,6 +629,7 @@ export class SalaryCalculator {
     const students = await prisma.wpos_wpdatatable_23.findMany({
       where: {
         ustaz: teacherId,
+        ...(this.schoolId && { schoolId: this.schoolId }),
         // No status filter - include all students with zoom links on this date
       },
       select: {
@@ -634,7 +647,10 @@ export class SalaryCalculator {
     if (!packageName) return 0;
 
     const packageSalary = await prisma.packageSalary.findFirst({
-      where: { packageName },
+      where: {
+        packageName,
+        ...(this.schoolId && { schoolId: this.schoolId }),
+      },
       select: { salaryPerStudent: true },
     });
 
@@ -653,6 +669,7 @@ export class SalaryCalculator {
         ustaz_id: teacherId,
         occupied_at: { lte: toDate },
         OR: [{ end_at: null }, { end_at: { gte: fromDate } }],
+        ...(this.schoolId && { schoolId: this.schoolId }),
       },
       include: {
         student: {
@@ -3122,7 +3139,9 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
  * Factory function to create a configured salary calculator
  * Uses centralized configuration for consistency
  */
-export async function createSalaryCalculator(): Promise<SalaryCalculator> {
+export async function createSalaryCalculator(
+  schoolSlug?: string
+): Promise<SalaryCalculator> {
   // Import centralized config loader
   const { getSalaryConfig } = await import("./salary-config");
 
@@ -3136,5 +3155,14 @@ export async function createSalaryCalculator(): Promise<SalaryCalculator> {
     packageDeductions: salaryConfig.packageDeductions,
   };
 
-  return new SalaryCalculator(config);
+  let schoolId: string | undefined;
+  if (schoolSlug) {
+    const school = await prisma.school.findUnique({
+      where: { slug: schoolSlug },
+      select: { id: true },
+    });
+    schoolId = school?.id;
+  }
+
+  return new SalaryCalculator(config, schoolId);
 }
