@@ -18,14 +18,39 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const schoolSlug = params.schoolSlug;
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: session.id as string },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
+    }
 
     // Get registrar learning settings
     const learningSettings = await prisma.registralearningsconfig.findMany({
       where: {
         key: {
           in: ['reading_reward', 'hifz_reward']
-        }
+        },
+        schoolId: school.id
       }
     });
 
@@ -34,7 +59,8 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
       where: {
         key: {
           in: ['include_sundays_in_salary', 'teacher_salary_visible']
-        }
+        },
+        schoolId: school.id
       }
     });
 
@@ -66,7 +92,7 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { schoolSlug: string } }) {
+export async function PUT(request: NextRequest) {
   try {
     const session = await getToken({
       req: request,
@@ -76,8 +102,6 @@ export async function PUT(request: NextRequest, { params }: { params: { schoolSl
     if (!session || session.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const schoolSlug = params.schoolSlug;
 
     const { key, value } = await request.json();
 

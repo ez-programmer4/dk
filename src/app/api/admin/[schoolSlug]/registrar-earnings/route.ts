@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const session = await getToken({
       req: request,
@@ -26,6 +26,45 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // For registral users, verify they belong to this school
+    // For admin users, verify they have access to this school
+    if (session.role === "registral") {
+      const registral = await prisma.wpos_wpdatatable_33.findUnique({
+        where: { username: session.username },
+        select: { schoolId: true },
+      });
+      if (!registral || registral.schoolId !== school.id) {
+        return NextResponse.json(
+          { error: "Unauthorized access to school" },
+          { status: 403 }
+        );
+      }
+    } else if (session.role === "admin") {
+      const admin = await prisma.admin.findUnique({
+        where: { id: session.id as string },
+        select: { schoolId: true },
+      });
+      if (!admin || admin.schoolId !== school.id) {
+        return NextResponse.json(
+          { error: "Unauthorized access to school" },
+          { status: 403 }
+        );
+      }
+    }
+
     const { searchParams } = new URL(request.url);
     const month =
       searchParams.get("month") || new Date().toISOString().slice(0, 7);
@@ -36,6 +75,7 @@ export async function GET(request: NextRequest) {
         key: {
           in: ["reading_reward", "hifz_reward"],
         },
+        schoolId: school.id,
       },
     });
 
@@ -50,9 +90,10 @@ export async function GET(request: NextRequest) {
     // Get all registrars
     const registrarsQuery = `
       SELECT DISTINCT rigistral
-      FROM wpos_wpdatatable_23 
+      FROM wpos_wpdatatable_23
       WHERE rigistral IS NOT NULL
         AND (refer IS NULL OR refer = '')
+        AND schoolId = '${school.id}'
     `;
 
     const registrars = (await prisma.$queryRawUnsafe(registrarsQuery)) as any[];
@@ -65,7 +106,7 @@ export async function GET(request: NextRequest) {
       try {
         // Get successful registrations (started + paid in same month, excluding referrals)
         const successQuery = `
-          SELECT 
+          SELECT
             s.wdt_ID,
             s.subject
           FROM wpos_wpdatatable_23 s
@@ -76,6 +117,8 @@ export async function GET(request: NextRequest) {
             AND s.status IN ('Active', 'Not yet')
             AND m.month = ?
             AND (UPPER(m.payment_status) IN ('PAID','COMPLETE','SUCCESS') OR m.is_free_month = 1)
+            AND s.schoolId = '${school.id}'
+            AND m.schoolId = '${school.id}'
         `;
 
         const successResults = (await prisma.$queryRawUnsafe(
@@ -88,11 +131,12 @@ export async function GET(request: NextRequest) {
         // Get total registrations in month (only Active and Not yet statuses, excluding referrals)
         const totalQuery = `
           SELECT COUNT(*) as count
-          FROM wpos_wpdatatable_23 
+          FROM wpos_wpdatatable_23
           WHERE rigistral = ?
             AND (refer IS NULL OR refer = '')
             AND DATE_FORMAT(registrationdate, '%Y-%m') = ?
             AND status IN ('Active', 'Not yet')
+            AND schoolId = '${school.id}'
         `;
 
         const totalResult = (await prisma.$queryRawUnsafe(
@@ -114,6 +158,8 @@ export async function GET(request: NextRequest) {
             AND (s.refer IS NULL OR s.refer = '')
             AND m.month = ?
             AND (UPPER(m.payment_status) IN ('PAID','COMPLETE','SUCCESS') OR m.is_free_month = 1)
+            AND s.schoolId = '${school.id}'
+            AND m.schoolId = '${school.id}'
         `;
 
         const paidStudentsResult = (await prisma.$queryRawUnsafe(
@@ -246,15 +292,15 @@ export async function PUT(request: NextRequest) {
 
     // Update or create settings using upsert
     await prisma.registralearningsconfig.upsert({
-      where: { key: "reading_reward" },
+      where: { key: "reading_reward", schoolId: school.id },
       update: { value: String(reading_reward) },
-      create: { key: "reading_reward", value: String(reading_reward) },
+      create: { key: "reading_reward", value: String(reading_reward), schoolId: school.id },
     });
 
     await prisma.registralearningsconfig.upsert({
-      where: { key: "hifz_reward" },
+      where: { key: "hifz_reward", schoolId: school.id },
       update: { value: String(hifz_reward) },
-      create: { key: "hifz_reward", value: String(hifz_reward) },
+      create: { key: "hifz_reward", value: String(hifz_reward), schoolId: school.id },
     });
 
     return NextResponse.json({

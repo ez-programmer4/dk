@@ -147,8 +147,32 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const schoolSlug = params.schoolSlug;
-  const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json(
+      { error: "School not found" },
+      { status: 404 }
+    );
+  }
+
+  // Verify admin has access to this school
+  const admin = await prisma.admin.findUnique({
+    where: { id: session.id as string },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json(
+      { error: "Unauthorized access to school" },
+      { status: 403 }
+    );
+  }
+
   const url = new URL(req.url);
   const weekStartStr = url.searchParams.get("weekStart");
   // Always use UTC midnight for weekStart
@@ -167,7 +191,7 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
         gte: weekStart,
         lt: nextWeek,
       },
-      wpos_wpdatatable_24: schoolId ? { schoolId } : { schoolId: null }, // Add school filtering
+      schoolId: school.id,
     },
     include: { wpos_wpdatatable_24: true },
   });
@@ -215,7 +239,8 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
   const teacherRatings = await prisma.teacherRating.groupBy({
     by: ['teacherId'],
     where: {
-      teacherId: { in: teacherIds }
+      teacherId: { in: teacherIds },
+      schoolId: school.id
     },
     _avg: {
       rating: true
@@ -265,6 +290,32 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
   if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json(
+      { error: "School not found" },
+      { status: 404 }
+    );
+  }
+
+  // Verify admin has access to this school
+  const admin = await prisma.admin.findUnique({
+    where: { id: session.id as string },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json(
+      { error: "Unauthorized access to school" },
+      { status: 403 }
+    );
+  }
   const url = new URL(req.url);
   const teacherId = url.searchParams.get("teacherId");
   const weekStartStr = url.searchParams.get("weekStart");
@@ -288,7 +339,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
 
   // Update or create the assessment for this teacher/week
   const updated = await prisma.qualityassessment.updateMany({
-    where: { teacherId, weekStart },
+    where: { teacherId, weekStart, schoolId: school.id },
     data: {
       overallQuality: override,
       managerApproved: true,
@@ -302,7 +353,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
   if (override === "Exceptional" && bonus && bonus > 0) {
     // Find teacher record for SMS and (if possible) notification
     const teacher = await prisma.wpos_wpdatatable_24.findUnique({
-      where: { ustazid: teacherId },
+      where: { ustazid: teacherId, schoolId: school.id },
       select: { phone: true, ustazname: true },
     });
     // Notification: skip if no valid int userId mapping

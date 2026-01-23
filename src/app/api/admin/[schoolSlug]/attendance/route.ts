@@ -10,7 +10,7 @@ export const revalidate = 0;
 
 const prisma = new PrismaClient();
 
-export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
+export async function GET(req: NextRequest) {
   const session = await getToken({
     req: req,
     secret: process.env.NEXTAUTH_SECRET,
@@ -19,7 +19,6 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const schoolSlug = params.schoolSlug;
   const url = new URL(req.url);
   const { searchParams } = url;
   // Use Ethiopian local time for default date since we store times in UTC+3
@@ -50,14 +49,9 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     { daypackages: { contains: "TTS" } },
   ];
 
-  // Add school filtering for multi-tenant
-  const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
-  const schoolConditions = schoolId ? { schoolId } : { schoolId: null };
-
   const where: any = {
     OR: dayPackageOr,
     status: { equals: "active" }, // Only active students
-    ...schoolConditions, // Add school filtering
   };
 
   if (controllerId) {

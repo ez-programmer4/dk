@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { AttendanceAnalytics } from "./components/AttendanceAnalytics";
 import { useSession } from "next-auth/react";
+import { useParams } from "next/navigation";
 import {
   FiBarChart,
   FiUsers,
@@ -20,6 +21,9 @@ interface Controller {
 }
 
 export default function AttendancePage() {
+  const params = useParams();
+  const schoolSlug = params.schoolSlug as string;
+
   const [controllers, setControllers] = useState<Controller[]>([]);
   const [selectedController, setSelectedController] = useState<string>("");
   const [latenessRecords, setLatenessRecords] = useState<any[]>([]);
@@ -55,7 +59,7 @@ export default function AttendancePage() {
     setLatenessLoading(true);
     setLatenessError(null);
     try {
-      const res = await fetch("/api/admin/lateness");
+      const res = await fetch(`/api/admin/${schoolSlug}/lateness`);
       if (!res.ok) throw new Error("Failed to fetch lateness records");
       const data = await res.json();
       setLatenessRecords(data.latenessData || []);

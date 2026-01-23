@@ -1,30 +1,42 @@
 import { NextResponse, NextRequest } from "next/server";
+import { PrismaClient } from "@prisma/client";
 import { getToken } from "next-auth/jwt";
-import { prisma } from "@/lib/prisma";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { schoolSlug: string } }
-) {
+const prisma = new PrismaClient();
+
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Verify the user has access to this school
-  if (session.schoolSlug !== params.schoolSlug) {
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
     return NextResponse.json(
-      { error: "Access denied to this school" },
-      { status: 403 }
+      { error: "School not found" },
+      { status: 404 }
     );
   }
 
-  const schoolId = session.schoolId;
-  if (!schoolId) {
-    return NextResponse.json({ error: "No school access" }, { status: 403 });
+  // Verify admin has access to this school
+  const admin = await prisma.admin.findUnique({
+    where: { id: session.id as string },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json(
+      { error: "Unauthorized access to school" },
+      { status: 403 }
+    );
   }
 
   try {
@@ -40,18 +52,16 @@ export async function GET(
 
     const paymentWhere = {
       paymentdate: hasDateFilter ? dateFilter : undefined,
-      schoolId: schoolId, // Filter by school
+      schoolId: school.id,
     };
     const studentWhere = {
       registrationdate: hasDateFilter ? dateFilter : undefined,
-      schoolId: schoolId, // Filter by school
+      schoolId: school.id,
     };
 
     const [studentCount, payments, pendingPaymentCount] =
       await prisma.$transaction([
-        prisma.wpos_wpdatatable_23.count({
-          where: { schoolId: schoolId },
-        }),
+        prisma.wpos_wpdatatable_23.count(),
         prisma.payment.findMany({
           where: paymentWhere,
           select: { status: true, paidamount: true },
@@ -59,53 +69,29 @@ export async function GET(
         prisma.payment.count({
           where: {
             status: "pending",
-            schoolId: schoolId,
             ...(hasDateFilter && { paymentdate: dateFilter }),
           },
         }),
       ]);
 
-    const adminCount = await prisma.admin.count({
-      where: { schoolId: schoolId },
-    });
-    const controllerCount = await prisma.wpos_wpdatatable_28.count({
-      where: { schoolId: schoolId },
-    });
-    const teacherCount = await prisma.wpos_wpdatatable_24.count({
-      where: { schoolId: schoolId },
-    });
-    const registralCount = await prisma.wpos_wpdatatable_33.count({
-      where: { schoolId: schoolId },
-    });
+    const adminCount = await prisma.admin.count();
+    const controllerCount = await prisma.wpos_wpdatatable_28.count();
+    const teacherCount = await prisma.wpos_wpdatatable_24.count();
+    const registralCount = await prisma.wpos_wpdatatable_33.count();
 
-    const totalRevenue = payments.reduce((sum: number, payment: any) => {
-      if (payment.status === "Approved") {
-        return sum + (payment.paidamount || 0);
-      }
-      return sum;
-    }, 0);
-
-    const pendingPaymentAmount = await prisma.payment.aggregate({
-      where: {
-        status: "pending",
-        schoolId: schoolId,
-        ...(hasDateFilter && { paymentdate: dateFilter }),
+    const revenueByStatus = payments.reduce(
+      (acc, p) => {
+        const amount = p.paidamount?.toNumber?.() ?? 0;
+        if (p.status === "Approved") acc.approved += amount;
+        else if (p.status === "pending") acc.pending += amount;
+        else if (p.status === "rejected") acc.rejected += amount;
+        return acc;
       },
-      _sum: {
-        paidamount: true,
-      },
-    });
+      { approved: 0, pending: 0, rejected: 0 }
+    );
 
-    const paymentCount = payments.length;
-    const rejectedPayments = payments.filter(
-      (p: any) => p.status === "Rejected"
-    ).length;
-    const approvedPayments = payments.filter(
-      (p: any) => p.status === "Approved"
-    ).length;
-    const pendingPayments = payments.filter(
-      (p: any) => p.status === "pending"
-    ).length;
+    // Calculate total pending payment amount
+    const pendingPaymentAmount = revenueByStatus.pending;
 
     return NextResponse.json({
       admins: adminCount,
@@ -113,23 +99,17 @@ export async function GET(
       teachers: teacherCount,
       registrars: registralCount,
       students: studentCount,
-      totalRevenue: {
-        approved: approvedPayments,
-        pending: pendingPayments,
-        rejected: rejectedPayments,
-      },
-      paymentCount,
+      totalRevenue: revenueByStatus,
+      paymentCount: payments.length,
       pendingPaymentCount,
-      pendingPaymentAmount: pendingPaymentAmount._sum.paidamount || 0,
+      pendingPaymentAmount,
     });
   } catch (error) {
-    console.error("Admin stats API error:", error);
     return NextResponse.json(
-      {
-        error: "Internal Server Error",
-        details: error instanceof Error ? error.message : String(error),
-      },
+      { error: "Internal Server Error", details: (error as Error).message },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }

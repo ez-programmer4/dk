@@ -12,10 +12,37 @@ export const revalidate = 0;
 // Timezone: UTC+3 (Africa/Addis_Ababa or Asia/Riyadh)
 const TZ = "Africa/Addis_Ababa";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user || (session.user as { role: string }).role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json(
+      { error: "School not found" },
+      { status: 404 }
+    );
+  }
+
+  // Verify admin has access to this school
+  const user = session.user as { id: string };
+  const admin = await prisma.admin.findUnique({
+    where: { id: user.id },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json(
+      { error: "Unauthorized access to school" },
+      { status: 403 }
+    );
   }
 
   try {

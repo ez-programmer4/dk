@@ -388,7 +388,7 @@ const roleIcons: Record<UserRole, any> = {
   registral: FiSettings,
 };
 
-export default function SchoolUserManagementPage() {
+export default function UserManagementPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
   const [users, setUsers] = useState<User[]>([]);
@@ -437,9 +437,7 @@ export default function SchoolUserManagementPage() {
         search: debouncedSearchQuery,
         role: roleFilter,
       });
-      const res = await fetch(
-        `/api/admin/${schoolSlug}/users?${params.toString()}`
-      );
+      const res = await fetch(`/api/admin/${schoolSlug}/users?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch users");
 
       const data = await res.json();
@@ -471,15 +469,12 @@ export default function SchoolUserManagementPage() {
 
   const fetchControllers = async () => {
     try {
-      const res = await fetch(
-        `/api/admin/${schoolSlug}/users?role=controller&limit=100`
-      );
+      const res = await fetch(`/api/admin/${schoolSlug}/users?role=controller&limit=100`);
       if (!res.ok) throw new Error("Failed to fetch controllers");
       const data = await res.json();
-      setControllers(data.users || []);
+      setControllers(data.users);
     } catch (err: any) {
       console.error("Error fetching controllers:", err);
-      setControllers([]);
     }
   };
 
@@ -492,15 +487,7 @@ export default function SchoolUserManagementPage() {
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
 
-    let generatedUsernameForTeacher = "";
-    let generatedPasswordForTeacher = "";
-
     if ((editingUser ? editingUser.role : newUserRole) === "teacher") {
-      // Auto-generate username and password only for teachers
-      const generatedId = Date.now().toString().slice(-6); // Last 6 digits of timestamp
-      generatedUsernameForTeacher = generatedId;
-      generatedPasswordForTeacher = generatedId + (data.name || '').replace(/\s+/g, '').toLowerCase();
-
       if (
         !teacherControlId ||
         teacherControlId === "" ||
@@ -520,16 +507,13 @@ export default function SchoolUserManagementPage() {
         return;
       }
 
-      // Set auto-generated credentials for teachers
-      data.username = generatedUsernameForTeacher;
-      data.password = generatedPasswordForTeacher;
-      data.plainPassword = generatedPasswordForTeacher;
-
+      // Use the already generated password from state
       data.controlId = teacherControlId;
       data.schedule = teacherSchedule.trim();
       data.phone = teacherPhone.trim();
+      data.password = generatedPassword;
+      data.plainPassword = generatedPassword;
     }
-    // For other roles (admin, controller, registral), use manually entered credentials
 
     const payload = {
       ...data,
@@ -553,10 +537,15 @@ export default function SchoolUserManagementPage() {
 
       const result = await res.json();
 
-      // Show generated credentials only for new teachers
-      if (!editingUser && newUserRole === "teacher") {
-        setGeneratedUsername(generatedUsernameForTeacher);
-        setGeneratedPassword(generatedPasswordForTeacher);
+      // Show generated credentials for new teachers
+      if (
+        !editingUser &&
+        newUserRole === "teacher" &&
+        result.generatedUsername &&
+        result.generatedPassword
+      ) {
+        setGeneratedUsername(result.generatedUsername);
+        setGeneratedPassword(result.generatedPassword);
         setShowCredentials(true);
       } else {
         setIsModalOpen(false);
@@ -1044,7 +1033,7 @@ export default function SchoolUserManagementPage() {
                       <FiUser className="h-5 w-5" />
                       Basic Information
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Full Name *
@@ -1081,27 +1070,9 @@ export default function SchoolUserManagementPage() {
                         )}
                       </div>
 
-                      {/* Controller Code Field */}
-                      {(editingUser ? editingUser.role : newUserRole) ===
-                        "controller" && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Access Code *
-                          </label>
-                          <input
-                            type="text"
-                            name="code"
-                            defaultValue={editingUser?.code || ""}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Enter access code (e.g. C001)"
-                            required
-                          />
-                        </div>
-                      )}
-
                       {(editingUser ? editingUser.role : newUserRole) !==
                         "teacher" && (
-                        <div className="md:col-span-2 lg:col-span-3">
+                        <div className="col-span-2">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Password {editingUser ? "(Optional)" : "*"}
                           </label>
@@ -1132,21 +1103,12 @@ export default function SchoolUserManagementPage() {
                           <h3 className="text-xl font-bold text-gray-900">
                             Controller Assignment
                           </h3>
-                          <p className="text-gray-600 text-sm">
-                            Assign this teacher to a controller for management
-                          </p>
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                               Assigned Controller *
                             </label>
-                            {controllers.length === 0 && (
-                              <p className="text-sm text-amber-600 mb-2">
-                                ⚠️ No controllers available. Please create a
-                                controller first before creating teachers.
-                              </p>
-                            )}
                             <select
                               name="controlId"
                               value={teacherControlId}
@@ -1156,18 +1118,11 @@ export default function SchoolUserManagementPage() {
                               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 transition-all"
                               required
                             >
-                              <option value="">
-                                {controllers.length === 0
-                                  ? "No controllers available - create a controller first"
-                                  : "Select Controller"}
-                              </option>
+                              <option value="">Select Controller</option>
                               {controllers
                                 .filter(
                                   (ctrl) =>
-                                    ctrl &&
-                                    ctrl.role === "controller" &&
-                                    ctrl.code &&
-                                    ctrl.code.trim() !== ""
+                                    ctrl && ctrl.code && ctrl.code !== "0"
                                 )
                                 .map((ctrl) => (
                                   <option key={ctrl.id} value={ctrl.code}>

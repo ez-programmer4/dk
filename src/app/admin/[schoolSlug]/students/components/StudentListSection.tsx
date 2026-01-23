@@ -271,3 +271,9 @@ export const StudentListSection: React.FC<StudentListSectionProps> = ({
     </motion.div>
   );
 };
+
+
+
+
+
+

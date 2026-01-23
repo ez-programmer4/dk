@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // GET: Fetch all pending deposits
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const session = await getToken({
       req: request,
@@ -18,6 +18,32 @@ export async function GET(request: NextRequest) {
 
     if (!session || session.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: session.id as string },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -31,6 +57,7 @@ export async function GET(request: NextRequest) {
       status: "pending",
       studentid: { gt: 0 },
       paidamount: { gte: 0 },
+      schoolId: school.id,
     };
 
     // Add search filter
@@ -145,7 +172,7 @@ export async function PUT(request: NextRequest) {
 
     // Get the payment first
     const existingPayment = await prisma.payment.findUnique({
-      where: { id: paymentId },
+      where: { id: paymentId, schoolId: school.id },
       include: {
         paymentCheckouts: {
           where: { intent: "deposit" },
@@ -173,6 +200,7 @@ export async function PUT(request: NextRequest) {
     const updatedPayment = await prisma.payment.update({
       where: {
         id: paymentId,
+        schoolId: school.id,
       },
       data: {
         status,

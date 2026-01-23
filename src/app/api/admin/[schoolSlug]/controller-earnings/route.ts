@@ -24,8 +24,32 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
       );
     }
 
-    const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
+    // Get school information
+    const { prisma } = await import("@/lib/prisma");
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { message: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: session.id as string },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { message: "Unauthorized access to school" },
+        { status: 403 }
+      );
+    }
 
     const { searchParams } = new URL(request.url);
     const yearMonth = searchParams.get("month") || undefined;
@@ -35,12 +59,11 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
     const controllerId = searchParams.get("controllerId") || undefined;
 
     try {
-      const calculator = new EarningsCalculator(yearMonth);
+      const calculator = new EarningsCalculator(yearMonth, school.id);
       const earnings = await calculator.calculateControllerEarnings({
         yearMonth,
         teamId,
         controllerId,
-        schoolId,
       });
 
       // Calculate summary statistics

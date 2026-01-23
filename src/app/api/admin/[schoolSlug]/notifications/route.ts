@@ -18,6 +18,33 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
     const user = session.user as { id: string; role: string };
+
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: user.id },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
+    }
+
     const url = new URL(req.url);
     const unread = url.searchParams.get("unread");
     const where: any = { userId: user.id };

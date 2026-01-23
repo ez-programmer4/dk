@@ -2,18 +2,16 @@
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 
+
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 /**
- * GET /api/admin/subscription-packages
- * List all subscription packages (admin only)
+ * GET /api/admin/[schoolSlug]/subscription-packages
+ * List all subscription packages for a specific school (admin only)
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { schoolSlug: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const session = await getToken({
       req: request,
@@ -27,12 +25,47 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === "darulkubra" ? null : schoolSlug;
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin/registral has access to this school
+    let hasAccess = false;
+    if (session.role === "admin") {
+      const admin = await prisma.admin.findUnique({
+        where: { id: session.id as string },
+        select: { schoolId: true },
+      });
+      hasAccess = admin?.schoolId === school.id;
+    } else if (session.role === "registral") {
+      const registral = await prisma.wpos_wpdatatable_33.findUnique({
+        where: { username: session.username },
+        select: { schoolId: true },
+      });
+      hasAccess = registral?.schoolId === school.id;
+    }
+
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
+    }
 
     const packages = await prisma.subscription_packages.findMany({
-      where: schoolId ? { schoolId } : { schoolId: null },
-      orderBy: [{ isActive: "desc" }, { duration: "asc" }],
+      orderBy: [
+        { isActive: "desc" },
+        { duration: "asc" },
+      ],
     });
 
     return NextResponse.json({
@@ -55,10 +88,7 @@ export async function GET(
  * POST /api/admin/subscription-packages
  * Create a new subscription package (admin only)
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { schoolSlug: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const session = await getToken({
       req: request,
@@ -72,16 +102,44 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get school information and verify access (even though packages are global)
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin/registral has access to this school
+    let hasAccess = false;
+    if (session.role === "admin") {
+      const admin = await prisma.admin.findUnique({
+        where: { id: session.id as string },
+        select: { schoolId: true },
+      });
+      hasAccess = admin?.schoolId === school.id;
+    } else if (session.role === "registral") {
+      const registral = await prisma.wpos_wpdatatable_33.findUnique({
+        where: { username: session.username },
+        select: { schoolId: true },
+      });
+      hasAccess = registral?.schoolId === school.id;
+    }
+
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
-    const {
-      name,
-      duration,
-      price,
-      currency,
-      description,
-      paymentLink,
-      isActive,
-    } = body;
+    const { name, duration, price, currency, description, paymentLink, isActive } = body;
 
     // Validation
     if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -124,9 +182,6 @@ export async function POST(
       );
     }
 
-    const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === "darulkubra" ? null : schoolSlug;
-
     const newPackage = await prisma.subscription_packages.create({
       data: {
         name: name.trim(),
@@ -136,7 +191,6 @@ export async function POST(
         description: description?.trim() || null,
         paymentLink: paymentLink?.trim() || null,
         isActive: isActive !== undefined ? Boolean(isActive) : true,
-        schoolId,
       },
     });
 
@@ -155,3 +209,6 @@ export async function POST(
     );
   }
 }
+
+
+

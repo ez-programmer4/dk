@@ -1,15 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
+
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { schoolSlug: string } }
-) {
+export async function GET(req: NextRequest) {
   try {
     const session = await getToken({
       req,
@@ -20,29 +18,17 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const schoolSlug = params.schoolSlug;
-    const school = await prisma.school.findUnique({
-      where: { slug: schoolSlug },
-      select: { id: true },
-    });
-
-    if (!school) {
-      return NextResponse.json({ error: "School not found" }, { status: 404 });
-    }
-
-    // Get all unique packages that students are actually using for this school
+    // Get all unique packages that students are actually using
     const studentPackagesUsed = (await prisma.$queryRawUnsafe(`
       SELECT DISTINCT package as name
-      FROM wpos_wpdatatable_23
-      WHERE package IS NOT NULL
-        AND package != ''
+      FROM wpos_wpdatatable_23 
+      WHERE package IS NOT NULL 
+        AND package != '' 
         AND package != 'null'
-        AND schoolId = ?
       ORDER BY package ASC
-    `, school.id)) as { name: string }[];
+    `)) as { name: string }[];
 
     // Get all packages from studentPackage table
-    // Note: studentPackage might be a global table without schoolId
     const studentPackagesFromTable = await prisma.studentPackage.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
@@ -58,16 +44,7 @@ export async function GET(
     studentPackagesUsed.forEach((pkg) => allPackageNames.add(pkg.name));
 
     // Get all configured package deductions
-    // Try school-specific first, fall back to global if schoolId doesn't exist
-    let packageDeductions;
-    try {
-      packageDeductions = await prisma.packageDeduction.findMany({
-        where: { schoolId: school.id }
-      });
-    } catch (error) {
-      // If schoolId field doesn't exist, get all package deductions
-      packageDeductions = await prisma.packageDeduction.findMany();
-    }
+    const packageDeductions = await prisma.packageDeduction.findMany();
 
     // Create a map of configured deductions for quick lookup
     const deductionMap = new Map(
@@ -85,11 +62,10 @@ export async function GET(
         const deductionConfig = deductionMap.get(packageName);
         const studentPackageInfo = studentPackageMap.get(packageName);
 
-        // Count active students using this package for this school
+        // Count active students using this package
         const activeStudentCount = await prisma.wpos_wpdatatable_23.count({
           where: {
             package: packageName,
-            schoolId: school.id,
             status: {
               in: ["Active", "Not yet"],
             },
@@ -127,10 +103,7 @@ export async function GET(
   }
 }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { schoolSlug: string } }
-) {
+export async function POST(req: NextRequest) {
   try {
     const session = await getToken({
       req,
@@ -139,16 +112,6 @@ export async function POST(
 
     if (!session || session.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const schoolSlug = params.schoolSlug;
-    const school = await prisma.school.findUnique({
-      where: { slug: schoolSlug },
-      select: { id: true },
-    });
-
-    if (!school) {
-      return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
     const { packageName, latenessBaseAmount, absenceBaseAmount } =
@@ -166,23 +129,9 @@ export async function POST(
     }
 
     // Check if package already exists
-    // Try school-specific check first, fall back to global check
-    let existingPackage;
-    try {
-      existingPackage = await prisma.packageDeduction.findUnique({
-        where: {
-          packageName_schoolId: {
-            packageName,
-            schoolId: school.id
-          }
-        },
-      });
-    } catch (error) {
-      // If compound unique constraint doesn't exist, check by packageName only
-      existingPackage = await prisma.packageDeduction.findUnique({
-        where: { packageName },
-      });
-    }
+    const existingPackage = await prisma.packageDeduction.findUnique({
+      where: { packageName },
+    });
 
     if (existingPackage) {
       return NextResponse.json(
@@ -191,27 +140,13 @@ export async function POST(
       );
     }
 
-    // Try to create with schoolId first, fall back to without if field doesn't exist
-    let deduction;
-    try {
-      deduction = await prisma.packageDeduction.create({
-        data: {
-          packageName,
-          latenessBaseAmount: Number(latenessBaseAmount),
-          absenceBaseAmount: Number(absenceBaseAmount),
-          schoolId: school.id,
-        },
-      });
-    } catch (error) {
-      // If schoolId field doesn't exist, create without it
-      deduction = await prisma.packageDeduction.create({
-        data: {
-          packageName,
-          latenessBaseAmount: Number(latenessBaseAmount),
-          absenceBaseAmount: Number(absenceBaseAmount),
-        },
-      });
-    }
+    const deduction = await prisma.packageDeduction.create({
+      data: {
+        packageName,
+        latenessBaseAmount: Number(latenessBaseAmount),
+        absenceBaseAmount: Number(absenceBaseAmount),
+      },
+    });
 
     return NextResponse.json(deduction, { status: 201 });
   } catch (error: any) {

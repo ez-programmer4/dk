@@ -9,14 +9,11 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 // GET all payments with filtering
-export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
+export async function GET(req: NextRequest) {
   const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const schoolSlug = params.schoolSlug;
-  const schoolId = schoolSlug === 'darulkubra' ? null : schoolSlug;
 
   try {
     const { searchParams } = new URL(req.url);
@@ -34,15 +31,12 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     const endDateStr = searchParams.get("endDate");
 
     const whereClause: any = {};
-
-    // Add school filtering for multi-tenant
-    const schoolConditions = schoolId ? { schoolId } : { schoolId: null };
-    whereClause.wpos_wpdatatable_23 = schoolConditions;
-
+    
     // For statistics, get ALL payments from database without any filters
     if (statsOnly) {
-      // Keep school filtering even for stats
-      // Don't set anything else - empty object means no additional filters
+      // No filters - get everything for accurate statistics
+      // Use empty whereClause to get all payments
+      // Don't set anything - empty object means no filters
     } else {
       // Build status filter: Gateway payments must be approved, manual can be any status
       if (status) {

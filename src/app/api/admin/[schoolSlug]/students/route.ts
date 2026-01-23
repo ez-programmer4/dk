@@ -8,20 +8,6 @@ export const revalidate = 0;
 
 export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   // Declare variables outside try block so they're accessible in catch
-  const schoolSlug = params.schoolSlug;
-  let schoolId = null;
-
-  // Look up the school ID for multi-tenancy
-  try {
-    const school = await prisma.school.findUnique({
-      where: { slug: schoolSlug },
-      select: { id: true, name: true, slug: true }
-    });
-    schoolId = school?.id || null;
-  } catch (error) {
-    console.error("Error looking up school:", error);
-    schoolId = null;
-  }
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = parseInt(searchParams.get("limit") || "20", 10);
@@ -38,39 +24,47 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
   const startDateTo = searchParams.get("startDateTo") || "";
   const feeMin = searchParams.get("feeMin") || "";
   const feeMax = searchParams.get("feeMax") || "";
-  const registral = searchParams.get("registral") || "";
 
   try {
     const session = await getToken({
       req,
       secret: process.env.NEXTAUTH_SECRET,
     });
-    if (!session || !["admin", "registral"].includes(session.role)) {
+    if (!session || session.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: session.id as string },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
     }
 
     const offset = (page - 1) * limit;
 
     // Build WHERE conditions dynamically
-    const whereConditions: string[] = [];
-    const queryParams: any[] = [];
-
-    // School filtering
-    whereConditions.push(`schoolId ${schoolId ? `= '${schoolId}'` : 'IS NULL'}`);
-
-    // Registral filtering - registral users only see their own students
-    if (session.role === "registral") {
-      const registralName = session.name || session.username || (session as any).user?.name || (session as any).user?.username;
-      if (registralName) {
-        whereConditions.push(`rigistral = ?`);
-        queryParams.push(registralName);
-      }
-    } else if (registral) {
-      // Admin can filter by registral if specified
-      console.log("Admin filtering by registral:", registral, "school:", schoolSlug);
-      whereConditions.push(`rigistral = ?`);
-      queryParams.push(registral);
-    }
+    const whereConditions: string[] = [`schoolId = ?`];
+    const queryParams: any[] = [school.id];
 
     // Search filter (name search)
     if (search) {
@@ -80,7 +74,7 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     }
 
     // Status filter
-    if (status && status !== "all") {
+    if (status) {
       whereConditions.push(`status = ?`);
       queryParams.push(status);
     }
@@ -143,14 +137,6 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     if (feeMax) {
       whereConditions.push(`CAST(classfee AS DECIMAL(10,2)) <= ?`);
       queryParams.push(parseFloat(feeMax));
-    }
-
-    // School filtering for multi-tenant
-    if (schoolId) {
-      whereConditions.push(`schoolId = ?`);
-      queryParams.push(schoolId);
-    } else {
-      whereConditions.push(`(schoolId IS NULL OR schoolId = '')`);
     }
 
     // Build the WHERE clause

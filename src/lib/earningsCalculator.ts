@@ -57,18 +57,23 @@ export class EarningsCalculator {
   private startDate: Date;
   private endDate: Date;
   private config: EarningsConfig | null = null;
+  private schoolId?: string;
 
-  constructor(yearMonth?: string) {
+  constructor(yearMonth?: string, schoolId?: string) {
     this.yearMonth = yearMonth || new Date().toISOString().slice(0, 7);
     this.startDate = startOfMonth(new Date(`${this.yearMonth}-01`));
     this.endDate = endOfMonth(new Date(`${this.yearMonth}-01`));
+    this.schoolId = schoolId;
   }
 
   private async getEarningsConfig(): Promise<EarningsConfig> {
     if (this.config) return this.config;
 
     const config = await prisma.controllerearningsconfig.findFirst({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(this.schoolId && { schoolId: this.schoolId }),
+      },
       orderBy: { effectiveFrom: "desc" },
     });
 
@@ -208,8 +213,10 @@ export class EarningsCalculator {
           
         FROM wpos_wpdatatable_23 a
         LEFT JOIN wpos_wpdatatable_28 uc_names ON a.u_control = uc_names.code
-        WHERE a.u_control IS NOT NULL 
+        WHERE a.u_control IS NOT NULL
           AND TRIM(a.u_control) != ''
+          ${this.schoolId ? `AND a.schoolId = '${this.schoolId}'` : ''}
+          ${this.schoolId ? `AND uc_names.schoolId = '${this.schoolId}'` : ''}
         ${
           params.controllerId
             ? "AND TRIM(LOWER(a.u_control)) = TRIM(LOWER(?))"
@@ -346,6 +353,7 @@ export class EarningsCalculator {
       const students = await prisma.wpos_wpdatatable_23.findMany({
         where: {
           u_control: controllerId,
+          ...(this.schoolId && { schoolId: this.schoolId }),
         },
         select: {
           wdt_ID: true,
@@ -381,6 +389,7 @@ export class EarningsCalculator {
         where: {
           studentid: { in: activePayingStudents.map((s) => s.wdt_ID) },
           month,
+          ...(this.schoolId && { schoolId: this.schoolId }),
           OR: [
             {
               payment_status: {
@@ -439,6 +448,7 @@ export class EarningsCalculator {
       const students = await prisma.wpos_wpdatatable_23.findMany({
         where: {
           u_control: controllerId,
+          ...(this.schoolId && { schoolId: this.schoolId }),
         },
         select: {
           wdt_ID: true,
@@ -475,6 +485,7 @@ export class EarningsCalculator {
         where: {
           studentid: { in: activePayingStudents.map((s) => s.wdt_ID) },
           month: { startsWith: `${currentYear}-` },
+          ...(this.schoolId && { schoolId: this.schoolId }),
           OR: [
             {
               payment_status: {

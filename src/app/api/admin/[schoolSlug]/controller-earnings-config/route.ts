@@ -21,6 +21,30 @@ const ConfigSchema = z.object({
 });
 
 export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
+  // Get school information and verify access
+  const { prisma } = await import("@/lib/prisma");
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json({ error: "School not found" }, { status: 404 });
+  }
+
+  const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!session || session.role !== "admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const admin = await prisma.admin.findUnique({
+    where: { id: session.id as string },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json({ error: "Unauthorized access to school" }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (
@@ -68,7 +92,7 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
+export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (

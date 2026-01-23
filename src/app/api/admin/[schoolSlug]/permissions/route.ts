@@ -13,17 +13,30 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const schoolSlug = params.schoolSlug;
-  let schoolId = null;
-  try {
-    const school = await prisma.school.findUnique({
-      where: { slug: schoolSlug },
-      select: { id: true },
-    });
-    schoolId = school?.id || null;
-  } catch (error) {
-    console.error("Error looking up school:", error);
-    schoolId = null;
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json(
+      { error: "School not found" },
+      { status: 404 }
+    );
+  }
+
+  // Verify admin has access to this school
+  const admin = await prisma.admin.findUnique({
+    where: { id: session.id as string },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json(
+      { error: "Unauthorized access to school" },
+      { status: 403 }
+    );
   }
 
   try {
@@ -33,13 +46,12 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     // Only apply limit if explicitly provided, otherwise return all results
     const limit = limitParam ? parseInt(limitParam) : undefined;
 
-    const whereClause: any = {};
+    const whereClause: any = {
+      schoolId: school.id,
+    };
     if (status) {
       whereClause.status = status;
     }
-
-    // Add school filtering for multi-tenant
-    whereClause.wpos_wpdatatable_24 = schoolId ? { schoolId } : { schoolId: null };
 
     const queryOptions: any = {
       where: whereClause,
