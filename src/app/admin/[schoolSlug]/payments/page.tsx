@@ -846,49 +846,29 @@ export default function PaymentManagementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-7xl space-y-10 px-4 py-10 sm:px-6 lg:px-8">
         <header>
-          <div className="relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl border border-white/50 p-8 shadow-2xl">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/30 via-transparent to-blue-50/30 rounded-3xl" />
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5QzkyQUMiIGZpbGwtb3BhY2l0eT0iMC4wMiI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIvPjwvZz48L2c+PC9zdmc+PC9zdmc+')] opacity-30" />
-
-            <div className="relative flex flex-col gap-6">
+          <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-lg">
+            <div className="flex flex-col gap-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="p-4 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl shadow-lg">
-                    <FiDollarSign className="h-7 w-7 text-white" />
-                  </div>
+                  <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-black text-white shadow-md">
+                    <FiDollarSign className="h-7 w-7" />
+                  </span>
                   <div>
-                    {/* Status & School Info */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="flex items-center gap-2 text-green-600 font-medium text-sm bg-green-50 px-3 py-1 rounded-full border border-green-200">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        System Online
-                      </span>
-                      <span className="text-gray-400">•</span>
-                      <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md font-medium">
-                        School: {schoolSlug}
-                      </span>
-                    </div>
-
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent">
+                    <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
                       Payment Management
                     </h1>
-                    <p className="mt-2 max-w-xl text-gray-600 text-lg font-medium">
-                      Monitor student transactions and financial records for {schoolSlug} institution
+                    <p className="mt-1 max-w-xl text-sm text-gray-600 sm:text-base">
+                      Monitor student transactions, review approvals, and keep
+                      records aligned across every currency.
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center rounded-full border border-gray-200/50 bg-white/80 backdrop-blur-sm px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-600 shadow-sm">
-                    {dateRangeLabel}
-                  </span>
-                  <span className="inline-flex items-center rounded-full border border-emerald-200/50 bg-emerald-50/80 backdrop-blur-sm px-3 py-2 text-xs font-semibold text-emerald-700">
-                    💰 Financial Hub
-                  </span>
-                </div>
+                <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+                  {dateRangeLabel}
+                </span>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -23,7 +23,6 @@ import {
   FiClock,
   FiShield,
   FiStar,
-  FiZap,
 } from "react-icons/fi";
 import {
   BarChart,
@@ -147,7 +146,7 @@ function safeDisplay(val: any): string {
   return "Unknown";
 }
 
-export default function SchoolAdminDashboardPage() {
+export default function AdminDashboardPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
   const [stats, setStats] = useState<Stats | null>(null);
@@ -208,9 +207,7 @@ export default function SchoolAdminDashboardPage() {
         fetch(`/api/admin/${schoolSlug}/attendance?date=${today}`),
         fetch(`/api/admin/${schoolSlug}/settings`),
         fetch(`/api/admin/${schoolSlug}/controller-earnings`),
-        fetch(
-          `/api/admin/${schoolSlug}/ustaz-ratings?from=2024-01-01&to=2024-12-31`
-        ),
+        fetch(`/api/admin/${schoolSlug}/ustaz-ratings?from=2024-01-01&to=2024-12-31`),
         fetch(`/api/admin/${schoolSlug}/quality-review?weekStart=${today}`),
       ]);
 
@@ -240,9 +237,7 @@ export default function SchoolAdminDashboardPage() {
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split("T")[0];
         try {
-          const dayAttRes = await fetch(
-            `/api/admin/${schoolSlug}/attendance?date=${dateStr}`
-          );
+          const dayAttRes = await fetch(`/api/admin/${schoolSlug}/attendance?date=${dateStr}`);
           if (dayAttRes.ok) {
             const dayAttData = await dayAttRes.json();
             const totalLinks = dayAttData.stats?.totalLinks || 0;
@@ -281,9 +276,7 @@ export default function SchoolAdminDashboardPage() {
 
       // Fetch real teacher performance data
       try {
-        const teacherRes = await fetch(
-          `/api/admin/${schoolSlug}/quality-review`
-        );
+        const teacherRes = await fetch(`/api/admin/${schoolSlug}/quality-review`);
         if (teacherRes.ok) {
           const teacherData = await teacherRes.json();
           const topTeachers = Array.isArray(teacherData)
@@ -303,7 +296,7 @@ export default function SchoolAdminDashboardPage() {
         }
       } catch (teacherError) {
         // Ignore teacher performance fetch errors
-      }
+      } 
 
       if (!qualityRes.ok) throw new Error("Failed to fetch quality reviews");
       const qualityData = await qualityRes.json();
@@ -322,7 +315,7 @@ export default function SchoolAdminDashboardPage() {
     } finally {
       setLoadingWidgets(false);
     }
-  }, [schoolSlug]);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -443,89 +436,44 @@ export default function SchoolAdminDashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen bg-gray-50">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Enhanced Header Section with Branding */}
-        <section className="relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-50/30 via-transparent to-indigo-50/30 rounded-3xl" />
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5QzkyQUMiIGZpbGwtb3BhY2l0eT0iMC4wMiI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIvPjwvZz48L2c+PC9zdmc+PC9zdmc+')] opacity-30" />
-
-          <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+        {/* Header Section */}
+        <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex-1">
-              {/* Status & Branding Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg">
-                    <FiCheckCircle className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-2 text-green-600 font-semibold text-sm bg-green-50 px-3 py-1 rounded-full border border-green-200">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        System Online
-                      </span>
-                      <span className="text-gray-400">•</span>
-                      <span className="text-sm text-gray-500 font-medium">
-                        Updated {format(new Date(), "MMM dd, HH:mm")}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md font-medium">
-                        School: {schoolSlug}
-                      </span>
-                      <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md font-medium">
-                        Multi-tenant v2.1.0
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="flex items-center gap-3">
-                  <button className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 hover:scale-105">
-                    <FiBell className="h-5 w-5" />
-                  </button>
-                  <button className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 hover:scale-105">
-                    <FiSettings className="h-5 w-5" />
-                  </button>
-                </div>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="flex items-center gap-2 text-green-600 font-medium text-sm">
+                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  System Online
+                </span>
+                <span className="text-gray-400">•</span>
+                <span className="text-sm text-gray-500">
+                  Last updated: {format(new Date(), "MMM dd, HH:mm")}
+                </span>
               </div>
 
-              {/* Title & Description */}
-              <div className="mb-8">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent mb-3">
-                  Admin Dashboard
-                </h1>
-                <p className="text-gray-600 text-lg font-medium">
-                  Monitor school performance, manage operations, and track key
-                  metrics for {schoolSlug}
-                </p>
-              </div>
+              <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+                Admin Dashboard
+              </h1>
+              <p className="text-gray-600 text-sm">
+                Monitor system performance and manage operations
+              </p>
 
-              {/* Enhanced Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 {statsBar.map((stat, idx) => (
-                  <div
-                    key={idx}
-                    className="group bg-gradient-to-br from-white to-gray-50/50 p-6 rounded-2xl border border-gray-200/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-105 hover:-translate-y-1"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl text-white shadow-lg group-hover:shadow-xl transition-all duration-300">
+                  <div key={idx} className="bg-gray-50 p-4 rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-600 rounded text-white">
                         {stat.icon}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-2xl font-bold text-gray-900 mb-1">
+                      <div>
+                        <div className="text-xl font-semibold text-gray-900">
                           {stat.value}
                         </div>
-                        <div className="text-sm text-gray-600 font-medium truncate">
+                        <div className="text-sm text-gray-600">
                           {stat.label}
-                        </div>
-                        <div className="mt-2 flex items-center gap-1">
-                          <div className="w-1 h-1 bg-green-500 rounded-full"></div>
-                          <span className="text-xs text-green-600 font-medium">
-                            Active
-                          </span>
                         </div>
                       </div>
                     </div>
@@ -534,82 +482,73 @@ export default function SchoolAdminDashboardPage() {
               </div>
             </div>
 
-            {/* Enhanced Action Panel */}
-            <div className="space-y-6">
-              {/* Date Range Selector */}
-              <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <FiCalendar className="h-5 w-5 text-blue-600" />
-                  Date Range
-                </h3>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start h-12 bg-white/80 border-gray-200 hover:bg-white hover:border-blue-300 transition-all duration-200"
-                    >
-                      <FiCalendar className="mr-3 h-4 w-4 text-blue-600" />
-                      {date?.from ? (
-                        date.to ? (
-                          <span className="font-medium">
-                            {format(date.from, "MMM dd")} -{" "}
-                            {format(date.to, "MMM dd")}
-                          </span>
-                        ) : (
-                          <span className="font-medium">
-                            {format(date.from, "MMM dd, yyyy")}
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-gray-500">Select date range</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={date?.from}
-                      selected={date}
-                      onSelect={setDate}
-                      numberOfMonths={2}
-                    />
-                  </PopoverContent>
-                </Popover>
-
-                <div className="flex flex-col gap-2">
-                  <Button size="sm" className="w-full lg:w-64">
-                    <FiUserPlus className="mr-2 h-4 w-4" />
-                    Add User
-                  </Button>
+            {/* Action Panel */}
+            <div className="flex flex-col gap-4">
+              <Popover>
+                <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="w-full lg:w-64 relative"
+                    className="w-full lg:w-64 justify-start"
                   >
-                    <FiClipboard className="mr-2 h-4 w-4" />
-                    Permissions
-                    {pendingPermissions > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        {pendingPermissions}
-                      </span>
+                    <FiCalendar className="mr-2 h-4 w-4" />
+                    {date?.from ? (
+                      date.to ? (
+                        <>
+                          {format(date.from, "MMM dd")} -{" "}
+                          {format(date.to, "MMM dd")}
+                        </>
+                      ) : (
+                        format(date.from, "MMM dd, y")
+                      )
+                    ) : (
+                      "Select date range"
                     )}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full lg:w-64 relative"
-                  >
-                    <FiDollarSign className="mr-2 h-4 w-4" />
-                    Payments
-                    {stats?.pendingPaymentCount &&
-                      stats.pendingPaymentCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                          {stats.pendingPaymentCount}
-                        </span>
-                      )}
-                  </Button>
-                </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={date?.from}
+                    selected={date}
+                    onSelect={setDate}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <div className="flex flex-col gap-2">
+                <Button size="sm" className="w-full lg:w-64">
+                  <FiUserPlus className="mr-2 h-4 w-4" />
+                  Add User
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full lg:w-64 relative"
+                >
+                  <FiClipboard className="mr-2 h-4 w-4" />
+                  Permissions
+                  {pendingPermissions > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {pendingPermissions}
+                    </span>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full lg:w-64 relative"
+                >
+                  <FiDollarSign className="mr-2 h-4 w-4" />
+                  Payments
+                  {stats?.pendingPaymentCount &&
+                    stats.pendingPaymentCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {stats.pendingPaymentCount}
+                      </span>
+                    )}
+                </Button>
               </div>
             </div>
           </div>
@@ -1411,244 +1350,6 @@ export default function SchoolAdminDashboardPage() {
             </div>
           </div>
         </footer>
-
-        {/* Enhanced Dashboard Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Recent Activities */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Quick Actions */}
-            <section className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-8">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-6 flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
-                  <FiZap className="h-6 w-6 text-white" />
-                </div>
-                Quick Actions
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <button className="group p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl border border-blue-200/50 hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl mb-3 group-hover:scale-110 transition-transform">
-                    <FiUserPlus className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-700">
-                    Add User
-                  </div>
-                </button>
-                <button className="group p-4 bg-gradient-to-br from-green-50 to-green-100/50 rounded-2xl border border-green-200/50 hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl mb-3 group-hover:scale-110 transition-transform">
-                    <FiClipboard className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="text-sm font-semibold text-gray-900 group-hover:text-green-700">
-                    New Session
-                  </div>
-                </button>
-                <button className="group p-4 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-2xl border border-purple-200/50 hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl mb-3 group-hover:scale-110 transition-transform">
-                    <FiTrendingUp className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="text-sm font-semibold text-gray-900 group-hover:text-purple-700">
-                    View Reports
-                  </div>
-                </button>
-                <button className="group p-4 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-2xl border border-orange-200/50 hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl mb-3 group-hover:scale-110 transition-transform">
-                    <FiSettings className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="text-sm font-semibold text-gray-900 group-hover:text-orange-700">
-                    Settings
-                  </div>
-                </button>
-              </div>
-            </section>
-
-            {/* Recent Activities */}
-            <section className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-8">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-6 flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
-                  <FiClock className="h-6 w-6 text-white" />
-                </div>
-                Recent Activities
-              </h2>
-              <div className="space-y-4">
-                {recentPermissions.slice(0, 3).map((permission, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-2xl border border-blue-200/30"
-                  >
-                    <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
-                      <FiShield className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-900">
-                        Permission Request
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Pending approval •{" "}
-                        {permission.createdAt
-                          ? format(new Date(permission.createdAt), "MMM dd")
-                          : "Recent"}
-                      </div>
-                    </div>
-                    <div className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
-                      Pending
-                    </div>
-                  </div>
-                ))}
-                {recentPayments.slice(0, 2).map((payment, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 rounded-2xl border border-green-200/30"
-                  >
-                    <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
-                      <FiDollarSign className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-900">
-                        Payment Processed
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {payment.studentname || "Student"} •{" "}
-                        {payment.paymentdate
-                          ? format(new Date(payment.paymentdate), "MMM dd")
-                          : "Recent"}
-                      </div>
-                    </div>
-                    <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-                      Completed
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          {/* Performance Metrics */}
-          <div className="space-y-6">
-            {/* System Health */}
-            <section className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-6">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-6 flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
-                  <FiTrendingUp className="h-5 w-5 text-white" />
-                </div>
-                System Health
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100/50 rounded-2xl border border-green-200/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="font-medium text-gray-900">Database</span>
-                  </div>
-                  <span className="text-sm font-semibold text-green-700">
-                    Healthy
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-2xl border border-blue-200/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                    <span className="font-medium text-gray-900">
-                      API Services
-                    </span>
-                  </div>
-                  <span className="text-sm font-semibold text-blue-700">
-                    Operational
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-purple-100/50 rounded-2xl border border-purple-200/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
-                    <span className="font-medium text-gray-900">Storage</span>
-                  </div>
-                  <span className="text-sm font-semibold text-purple-700">
-                    Available
-                  </span>
-                </div>
-              </div>
-            </section>
-
-            {/* Top Performers */}
-            <section className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-6">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-6 flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl">
-                  <FiStar className="h-5 w-5 text-white" />
-                </div>
-                Top Performers
-              </h3>
-              <div className="space-y-4">
-                {realTeacherLeaderboard.slice(0, 3).map((teacher, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200/30"
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full text-white font-bold text-sm">
-                      {idx + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-900 truncate">
-                        {teacher.name || `Teacher ${idx + 1}`}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Score: {teacher.score}%
-                      </div>
-                    </div>
-                    <div className="p-1 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg">
-                      <FiStar className="h-3 w-3 text-white" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* School Branding Info */}
-            <section className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-6">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-6 flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl">
-                  <FiShield className="h-5 w-5 text-white" />
-                </div>
-                School Info
-              </h3>
-              <div className="space-y-4">
-                <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50/50 rounded-2xl border border-indigo-200/30">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-1.5 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg">
-                      <FiUsers className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="font-semibold text-gray-900">
-                      Active Students
-                    </span>
-                  </div>
-                  <div className="text-2xl font-bold text-indigo-700 ml-8">
-                    1,247
-                  </div>
-                </div>
-                <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50/50 rounded-2xl border border-purple-200/30">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-1.5 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
-                      <FiUserCheck className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="font-semibold text-gray-900">
-                      Teachers
-                    </span>
-                  </div>
-                  <div className="text-2xl font-bold text-purple-700 ml-8">
-                    89
-                  </div>
-                </div>
-                <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50/50 rounded-2xl border border-emerald-200/30">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
-                      <FiCheckCircle className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="font-semibold text-gray-900">
-                      Completion Rate
-                    </span>
-                  </div>
-                  <div className="text-2xl font-bold text-emerald-700 ml-8">
-                    94.2%
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-        </div>
 
         <style jsx global>{`
           @keyframes slide-in {

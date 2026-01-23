@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   FiDollarSign,
   FiUsers,
@@ -35,9 +35,9 @@ interface Settings {
 }
 
 export default function RegistrarEarningsPage() {
-  const { data: session } = useSession();
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+  const { data: session } = useSession();
   const [earnings, setEarnings] = useState<RegistrarEarning[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);

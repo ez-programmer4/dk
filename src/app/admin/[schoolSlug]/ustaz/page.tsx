@@ -51,7 +51,7 @@ export default function UstazRatingsPage() {
   useEffect(() => {
     async function fetchUstazData() {
       try {
-        const ustazRes = await fetch("/api/teachers");
+        const ustazRes = await fetch(`/api/admin/${schoolSlug}/teachers`);
         if (!ustazRes.ok) throw new Error("Failed to fetch teachers.");
         const ustazList = await ustazRes.json();
 

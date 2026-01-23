@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import {
   FiPlus,
   FiEdit,
@@ -12,8 +13,11 @@ import {
 } from "react-icons/fi";
 import { toast } from "@/components/ui/use-toast";
 
-export default function AdminQualityConfigPage({ schoolSlug }: { schoolSlug: string }) {
-  const apiUrl = `/api/admin/${schoolSlug}/quality-descriptions`;
+// apiUrl will be constructed dynamically using schoolSlug
+
+export default function AdminQualityConfigPage() {
+  const params = useParams();
+  const schoolSlug = params.schoolSlug as string;
   const [positive, setPositive] = useState<any[]>([]);
   const [negative, setNegative] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,8 +37,8 @@ export default function AdminQualityConfigPage({ schoolSlug }: { schoolSlug: str
     setError(null);
     try {
       const [pos, neg] = await Promise.all([
-        fetch(apiUrl + "?type=positive").then((r) => r.json()),
-        fetch(apiUrl + "?type=negative").then((r) => r.json()),
+        fetch(`/api/admin/${schoolSlug}/quality-descriptions?type=positive`).then((r) => r.json()),
+        fetch(`/api/admin/${schoolSlug}/quality-descriptions?type=negative`).then((r) => r.json()),
       ]);
       setPositive(pos);
       setNegative(neg);
@@ -53,7 +57,7 @@ export default function AdminQualityConfigPage({ schoolSlug }: { schoolSlug: str
     if (!addValue.trim()) return;
     setAddLoading(true);
     try {
-      const res = await fetch(apiUrl, {
+      const res = await fetch(`/api/admin/${schoolSlug}/quality-descriptions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, description: addValue }),
@@ -79,7 +83,7 @@ export default function AdminQualityConfigPage({ schoolSlug }: { schoolSlug: str
     if (!editValue.trim() || !editId || !editType) return;
     setEditLoading(true);
     try {
-      const res = await fetch(apiUrl, {
+      const res = await fetch(`/api/admin/${schoolSlug}/quality-descriptions`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -110,7 +114,7 @@ export default function AdminQualityConfigPage({ schoolSlug }: { schoolSlug: str
     setDeleteId(id);
     setDeleteLoading(true);
     try {
-      const res = await fetch(apiUrl + `?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/${schoolSlug}/quality-descriptions?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       fetchData();
       toast({ title: "Deleted!", description: `Category deleted.` });

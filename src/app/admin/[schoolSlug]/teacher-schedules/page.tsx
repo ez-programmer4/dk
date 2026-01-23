@@ -1,10 +1,8 @@
 "use client";
-
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { motion } from "framer-motion";
 import {
   FiCalendar,
   FiUsers,
@@ -13,7 +11,6 @@ import {
   FiRefreshCw,
   FiLink,
   FiCheckCircle,
-  FiArrowLeft,
 } from "react-icons/fi";
 
 interface AttendanceRecord {
@@ -47,11 +44,9 @@ interface Teacher {
   controllerId: string;
 }
 
-export default function TeacherSchedulesPage() {
+export default function AdminAttendanceList() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const params = useParams();
-  const schoolSlug = params.schoolSlug as string;
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [controllers, setControllers] = useState<Controller[]>([]);
@@ -211,19 +206,15 @@ export default function TeacherSchedulesPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-8 shadow-sm">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
-              <p className="text-gray-900 font-semibold">
-                Loading teacher schedules...
-              </p>
-              <p className="text-gray-600 text-sm mt-1">
-                Please wait while we fetch the data
-              </p>
-            </div>
-          </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-black mb-6"></div>
+          <p className="text-black font-medium text-lg">
+            Loading attendance data...
+          </p>
+          <p className="text-gray-500 text-sm mt-2">
+            Please wait while we fetch the data
+          </p>
         </div>
       </div>
     );
@@ -234,70 +225,81 @@ export default function TeacherSchedulesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-      {/* Header */}
-      <div className="bg-white/70 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <button
-                onClick={() => router.push(`/admin/${schoolSlug}`)}
-                className="mr-4 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <FiArrowLeft className="h-5 w-5" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Teacher Schedules
-                </h1>
-                <p className="text-sm text-gray-600">
-                  Monitor daily attendance and zoom link activity
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        {/* Header + Stats */}
+        <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 p-6 sm:p-8 lg:p-10">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-8 mb-8">
+            <div className="flex items-center gap-6">
+              <div className="p-4 bg-black rounded-2xl shadow-lg">
+                <FiCalendar className="h-8 w-8 text-white" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black">
+                    Daily Attendance
+                  </h1>
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-green-100 rounded-full border border-green-200">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-xs font-semibold text-green-700">
+                      LIVE
+                    </span>
+                  </div>
+                </div>
+                <p className="text-gray-600 text-base sm:text-lg lg:text-xl">
+                  Real-time monitoring of student attendance and zoom link
+                  activity
                 </p>
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <FiClock className="h-4 w-4" />
+                    <span>Updated {new Date().toLocaleTimeString()}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span>Admin Dashboard</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
-          {/* Filters */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6 shadow-sm"
-          >
+          {/* Controls */}
+          <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <div className="p-2 bg-black rounded-lg">
                 <FiFilter className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">
-                Filters & Controls
+              <h3 className="text-lg font-bold text-black">
+                Filter & Controls
               </h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <FiCalendar className="h-4 w-4 text-blue-500" />
+                <label className="flex items-center gap-2 text-sm font-bold text-black mb-3">
+                  <div className="p-1 bg-blue-100 rounded">
+                    <FiCalendar className="h-3 w-3 text-blue-600" />
+                  </div>
                   Select Date
                 </label>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm"
                 />
               </div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <FiUsers className="h-4 w-4 text-green-500" />
-                  Controller
+                <label className="flex items-center gap-2 text-sm font-bold text-black mb-3">
+                  <div className="p-1 bg-emerald-100 rounded">
+                    <FiUsers className="h-3 w-3 text-emerald-600" />
+                  </div>
+                  Controller Filter
                 </label>
                 <select
                   value={selectedController}
                   onChange={(e) => setSelectedController(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm"
                 >
                   <option value="">All Controllers</option>
                   {controllers.map((controller) => (
@@ -308,15 +310,17 @@ export default function TeacherSchedulesPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <FiUsers className="h-4 w-4 text-purple-500" />
-                  Teacher
+                <label className="flex items-center gap-2 text-sm font-bold text-black mb-3">
+                  <div className="p-1 bg-purple-100 rounded">
+                    <FiUsers className="h-3 w-3 text-purple-600" />
+                  </div>
+                  Teacher Filter
                 </label>
                 <select
                   value={selectedTeacher}
                   onChange={(e) => setSelectedTeacher(e.target.value)}
                   disabled={!selectedController}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="">
                     {selectedController
@@ -331,16 +335,18 @@ export default function TeacherSchedulesPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <FiCheckCircle className="h-4 w-4 text-orange-500" />
-                  Status
+                <label className="flex items-center gap-2 text-sm font-bold text-black mb-3">
+                  <div className="p-1 bg-violet-100 rounded">
+                    <FiCheckCircle className="h-3 w-3 text-violet-600" />
+                  </div>
+                  Status Filter
                 </label>
                 <select
                   value={attendanceFilter}
                   onChange={(e) => {
                     setAttendanceFilter(e.target.value);
                   }}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm"
                 >
                   <option value="">All Status</option>
                   <option value="Present">✅ Present</option>
@@ -349,8 +355,10 @@ export default function TeacherSchedulesPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <FiUsers className="h-4 w-4 text-teal-500" />
+                <label className="flex items-center gap-2 text-sm font-bold text-black mb-3">
+                  <div className="p-1 bg-teal-100 rounded">
+                    <FiUsers className="h-3 w-3 text-teal-600" />
+                  </div>
                   Student Status
                 </label>
                 <select
@@ -358,7 +366,7 @@ export default function TeacherSchedulesPage() {
                   onChange={(e) => {
                     setStudentStatusFilter(e.target.value);
                   }}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm"
                 >
                   <option value="">All Students</option>
                   <option value="Active">🟢 Active</option>
@@ -366,233 +374,255 @@ export default function TeacherSchedulesPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <FiRefreshCw className="h-4 w-4 text-pink-500" />
-                  Actions
+                <label className="flex items-center gap-2 text-sm font-bold text-black mb-3">
+                  <div className="p-1 bg-amber-100 rounded">
+                    <FiRefreshCw className="h-3 w-3 text-amber-600" />
+                  </div>
+                  Quick Actions
                 </label>
                 <button
                   onClick={fetchAttendanceData}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 bg-black hover:bg-gray-800 text-white rounded-xl font-bold flex items-center justify-center gap-2"
                 >
                   <FiRefreshCw className="h-4 w-4" />
-                  Refresh
+                  <span>Refresh Data</span>
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
+        </div>
 
-          {/* Attendance Data Table */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-sm overflow-hidden"
-          >
-            <div className="p-6 border-b border-gray-200/50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <FiCalendar className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                      Daily Attendance & Zoom Links
-                    </h2>
-                    <p className="text-sm text-gray-600">
+        {/* Attendance List */}
+        <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden">
+          <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-black rounded-xl">
+                  <FiUsers className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-black">
+                    Student Attendance & Zoom Links
+                  </h2>
+                  <div className="flex items-center gap-4 mt-2">
+                    <p className="text-gray-600 font-semibold">
                       {new Date(selectedDate).toLocaleDateString("en-US", {
                         weekday: "long",
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                      })}{" "}
-                      • {attendanceData.length} students
+                      })}
                     </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-3 py-1 bg-green-100 rounded-full border border-green-200">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-xs font-semibold text-green-700">
-                      Real-time
+                    <div className="h-1 w-1 bg-gray-400 rounded-full"></div>
+                    <span className="text-gray-500 font-medium">
+                      {attendanceData.length} students
                     </span>
                   </div>
-                  <span className="text-xs text-gray-500">
-                    Updated: {new Date().toLocaleTimeString()}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 sm:ml-auto">
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-100 rounded-full border border-green-200">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-xs font-bold text-green-700">
+                    REAL-TIME
                   </span>
                 </div>
+                <div className="text-xs text-gray-500">
+                  Last updated: {new Date().toLocaleTimeString()}
+                </div>
               </div>
             </div>
+          </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50/50">
-                  <tr className="border-b border-gray-200/50">
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      <div className="flex items-center gap-2">
-                        <FiUsers className="h-4 w-4" />
-                        Student
-                      </div>
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      <div className="flex items-center gap-2">
-                        <FiUsers className="h-4 w-4" />
-                        Teacher
-                      </div>
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      <div className="flex items-center gap-2">
-                        <FiClock className="h-4 w-4" />
-                        Scheduled
-                      </div>
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      <div className="flex items-center gap-2">
-                        <FiLink className="h-4 w-4" />
-                        Zoom Link
-                      </div>
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      <div className="flex items-center gap-2">
-                        <FiCheckCircle className="h-4 w-4" />
-                        Attendance
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white/50 divide-y divide-gray-200/30">
-                  {attendanceData.map((record) => (
-                    <tr
-                      key={record.student_id}
-                      className="hover:bg-gray-50/50 transition-colors duration-200"
-                    >
-                      <td className="py-4 px-6">
-                        <div>
-                          <div className="font-bold text-black">
-                            {record.studentName}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            ID: {record.student_id}
-                          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr className="border-b border-gray-200">
+                  <th className="py-5 px-6 text-left font-bold text-black uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <FiUsers className="h-4 w-4" />
+                      Student
+                    </div>
+                  </th>
+                  <th className="py-5 px-6 text-left font-bold text-black uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <FiUsers className="h-4 w-4" />
+                      Teacher
+                    </div>
+                  </th>
+                  <th className="py-5 px-6 text-left font-bold text-black uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <FiClock className="h-4 w-4" />
+                      Scheduled
+                    </div>
+                  </th>
+                  <th className="py-5 px-6 text-left font-bold text-black uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <FiLink className="h-4 w-4" />
+                      Zoom Link
+                    </div>
+                  </th>
+                  <th className="py-5 px-6 text-left font-bold text-black uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <FiCheckCircle className="h-4 w-4" />
+                      Attendance
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {attendanceData.map((record) => (
+                  <tr
+                    key={record.student_id}
+                    className="border-b border-gray-100 hover:bg-gray-50"
+                  >
+                    <td className="py-4 px-6">
+                      <div>
+                        <div className="font-bold text-black">
+                          {record.studentName}
                         </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-gray-700">{record.ustazName}</div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-gray-700">
-                          {record.scheduledAt
-                            ? formatTime(record.scheduledAt)
-                            : "Not scheduled"}
+                        <div className="text-sm text-gray-500">
+                          ID: {record.student_id}
                         </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        {record.links.length > 0 ? (
-                          <div className="space-y-1">
-                            {record.links.map((link) => (
-                              <div key={link.id} className="text-sm">
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`px-2 py-1 rounded text-xs font-medium ${
-                                      link.sent_time
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-gray-100 text-gray-800"
-                                    }`}
-                                  >
-                                    {link.sent_time ? "Sent" : "Not sent"}
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="text-gray-700">{record.ustazName}</div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="text-gray-700">
+                        {record.scheduledAt
+                          ? formatTime(record.scheduledAt)
+                          : "Not scheduled"}
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      {record.links.length > 0 ? (
+                        <div className="space-y-1">
+                          {record.links.map((link) => (
+                            <div key={link.id} className="text-sm">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`px-2 py-1 rounded text-xs font-medium ${
+                                    link.sent_time
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  }`}
+                                >
+                                  {link.sent_time ? "Sent" : "Not sent"}
+                                </span>
+                                {link.clicked_at && (
+                                  <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                    Clicked
                                   </span>
-                                  {link.clicked_at && (
-                                    <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                      Clicked
-                                    </span>
-                                  )}
-                                </div>
-                                {link.sent_time && (
-                                  <div className="text-xs text-gray-500">
-                                    Sent: {formatTime(link.sent_time)}
-                                    {link.clicked_at &&
-                                      ` | Clicked: ${formatTime(
-                                        link.clicked_at
-                                      )}`}
-                                  </div>
                                 )}
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 text-sm">
-                            No links
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-6">
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-medium ${getAttendanceStatusColor(
-                            record.attendance_status
-                          )}`}
-                        >
-                          {record.attendance_status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                              {link.sent_time && (
+                                <div className="text-xs text-gray-500">
+                                  Sent: {formatTime(link.sent_time)}
+                                  {link.clicked_at &&
+                                    ` | Clicked: ${formatTime(
+                                      link.clicked_at
+                                    )}`}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 text-sm">No links</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-6">
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${getAttendanceStatusColor(
+                          record.attendance_status
+                        )}`}
+                      >
+                        {record.attendance_status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-            {attendanceData.length === 0 && !loading && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FiCalendar className="h-8 w-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No Attendance Data
-                </h3>
-                <p className="text-gray-600">
-                  No students found for the selected date and filters.
-                </p>
+          {attendanceData.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <div className="p-8 bg-gray-100 rounded-full w-fit mx-auto mb-8">
+                <FiUsers className="h-16 w-16 text-gray-500" />
               </div>
-            )}
-          </motion.div>
+              <h3 className="text-3xl font-bold text-black mb-4">
+                No Attendance Data
+              </h3>
+              <p className="text-gray-600 text-xl">
+                No students found for the selected date and filters.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.4 }}
-            className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6 shadow-sm"
-          >
+          <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Page {currentPage} of {totalPages} • {totalRecords} total
+              <div className="text-sm font-medium text-gray-700 bg-gray-50 px-4 py-2 rounded-lg">
+                Showing{" "}
+                <span className="font-bold text-black">
+                  {(currentPage - 1) * 20 + 1}
+                </span>{" "}
+                to{" "}
+                <span className="font-bold text-black">
+                  {Math.min(currentPage * 20, totalRecords)}
+                </span>{" "}
+                of <span className="font-bold text-black">{totalRecords}</span>{" "}
                 students
               </div>
               <div className="flex items-center gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                <button
+                  onClick={() => {
+                    setCurrentPage(Math.max(1, currentPage - 1));
+                  }}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-6 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   Previous
-                </motion.button>
+                </button>
 
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() =>
-                    setCurrentPage(Math.min(totalPages, currentPage + 1))
-                  }
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum =
+                      Math.max(1, Math.min(totalPages - 4, currentPage - 2)) +
+                      i;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                          currentPage === pageNum
+                            ? "bg-black text-white"
+                            : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setCurrentPage(Math.min(totalPages, currentPage + 1));
+                  }}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-6 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   Next
-                </motion.button>
+                </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
     </div>

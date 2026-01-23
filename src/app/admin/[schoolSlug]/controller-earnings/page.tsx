@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import {
@@ -49,6 +50,8 @@ interface AdminEarningsData {
 }
 
 export default function AdminControllerEarningsPage() {
+  const params = useParams();
+  const schoolSlug = params.schoolSlug as string;
   const { data: session, status } = useSession();
   const router = useRouter();
   const [earningsData, setEarningsData] = useState<AdminEarningsData | null>(
@@ -96,7 +99,7 @@ export default function AdminControllerEarningsPage() {
     try {
       setLoading(true);
       const response = await fetch(
-        `/api/admin/controller-earnings?month=${selectedMonth}`
+        `/api/admin/${schoolSlug}/controller-earnings?month=${selectedMonth}`
       );
 
       if (!response.ok) {
@@ -115,7 +118,7 @@ export default function AdminControllerEarningsPage() {
   const fetchEarningsConfig = async () => {
     try {
       setConfigLoading(true);
-      const response = await fetch("/api/admin/controller-earnings-config");
+      const response = await fetch(`/api/admin/${schoolSlug}/controller-earnings-config`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch earnings configuration");
@@ -136,7 +139,7 @@ export default function AdminControllerEarningsPage() {
   const updateEarningsConfig = async (newConfig: EarningsConfig) => {
     try {
       setConfigLoading(true);
-      const response = await fetch("/api/admin/controller-earnings-config", {
+      const response = await fetch(`/api/admin/${schoolSlug}/controller-earnings-config`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -100,7 +100,7 @@ export default function SubscriptionPackagesPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("`/api/admin/${schoolSlug}/subscription-packages`");
+      const response = await fetch(`/api/admin/${schoolSlug}/subscription-packages`);
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         const data = await response.json();
@@ -123,7 +123,7 @@ export default function SubscriptionPackagesPage() {
     setLoadingConfigs(true);
     setErrorConfigs(null);
     try {
-      const response = await fetch("`/api/admin/${schoolSlug}/subscription-package-configs`");
+      const response = await fetch(`/api/admin/${schoolSlug}/subscription-package-configs`);
       const data = await response.json();
       if (data.success) {
         setConfigs(data.configs || []);
@@ -139,7 +139,7 @@ export default function SubscriptionPackagesPage() {
 
   const loadAllPackagesForConfigs = useCallback(async () => {
     try {
-      const response = await fetch("`/api/admin/${schoolSlug}/subscription-packages`");
+      const response = await fetch(`/api/admin/${schoolSlug}/subscription-packages`);
       const data = await response.json();
       if (data.success && data.packages) {
         setAllPackages(
@@ -219,7 +219,7 @@ export default function SubscriptionPackagesPage() {
     }
 
     try {
-      const url = "`/api/admin/${schoolSlug}/subscription-package-configs`";
+      const url = `/api/admin/${schoolSlug}/subscription-package-configs`;
       const method = editingConfig ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -287,8 +287,8 @@ export default function SubscriptionPackagesPage() {
 
     try {
       const url = editingPackage
-        ? `/api/admin/${schoolSlug}/subscription-packages/${editingPackage.id}`
-        : `/api/admin/${schoolSlug}/subscription-packages`;
+        ? `/api/admin/subscription-packages/${editingPackage.id}`
+        : "/api/admin/subscription-packages";
       const method = editingPackage ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -325,7 +325,7 @@ export default function SubscriptionPackagesPage() {
 
     setError(null);
     try {
-      const response = await fetch(`/api/admin/${schoolSlug}/subscription-packages/${id}`, {
+      const response = await fetch(`/api/admin/subscription-packages/${id}`, {
         method: "DELETE",
       });
 
@@ -349,7 +349,7 @@ export default function SubscriptionPackagesPage() {
     setError(null);
     try {
       const response = await fetch(
-        ``/api/admin/${schoolSlug}/subscription-packages`/${pkg.id}`,
+        `/api/admin/subscription-packages/${pkg.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -377,41 +377,23 @@ export default function SubscriptionPackagesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-        {/* Enhanced Header with School Branding */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-6 sm:p-8 text-white shadow-2xl">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5QzkyQUMiIGZpbGwtb3BhY2l0eT0iMC4wMiI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIvPjwvZz48L2c+PC9zdmc+PC9zdmc+')] opacity-20" />
-
-          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div>
-              {/* Status & School Info */}
-              <div className="flex items-center gap-3 mb-4">
-                <span className="flex items-center gap-2 text-green-300 font-medium text-sm bg-green-500/20 backdrop-blur-sm px-3 py-1 rounded-full border border-green-400/30">
-                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                  System Online
-                </span>
-                <span className="text-white/60">•</span>
-                <span className="text-xs text-blue-300 bg-blue-500/20 backdrop-blur-sm px-2 py-1 rounded-md font-medium">
-                  School: {schoolSlug}
-                </span>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
+                <FiPackage className="w-6 h-6" />
               </div>
-
-              <div className="flex items-center gap-4 mb-3">
-                <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl shadow-lg">
-                  <FiPackage className="w-8 h-8" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent">
-                    Subscription Packages
-                  </h1>
-                  <p className="text-indigo-100 text-lg font-medium">
-                    Manage subscription packages and configurations for {schoolSlug}
-                  </p>
-                </div>
-              </div>
+              <h1 className="text-3xl sm:text-4xl font-bold">
+                Subscription Packages
+              </h1>
             </div>
+            <p className="text-indigo-100 text-sm sm:text-base ml-12">
+              Manage subscription packages and configurations
+            </p>
+          </div>
           <div className="flex items-center gap-3 ml-auto">
             <button
               onClick={activeTab === "packages" ? loadPackages : loadConfigs}
@@ -851,7 +833,7 @@ export default function SubscriptionPackagesPage() {
                                   }
                                   try {
                                     const response = await fetch(
-                                      ``/api/admin/${schoolSlug}/subscription-package-configs`?id=${config.id}`,
+                                      `/api/admin/subscription-package-configs?id=${config.id}`,
                                       { method: "DELETE" }
                                     );
                                     const data = await response.json();
