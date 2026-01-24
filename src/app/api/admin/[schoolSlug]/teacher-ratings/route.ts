@@ -15,10 +15,36 @@ const RatingSchema = z.object({
 
 const BulkRatingSchema = z.array(RatingSchema);
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json(
+      { error: "School not found" },
+      { status: 404 }
+    );
+  }
+
+  // Verify admin has access to this school
+  const admin = await prisma.admin.findUnique({
+    where: { id: session.id as string },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json(
+      { error: "Unauthorized access to school" },
+      { status: 403 }
+    );
   }
 
   const url = new URL(req.url);
@@ -28,7 +54,7 @@ export async function GET(req: NextRequest) {
     if (teacherId) {
       // Get ratings for specific teacher
       const ratings = await prisma.teacherRating.findMany({
-        where: { teacherId },
+        where: { teacherId, schoolId: school.id },
         orderBy: { id: "desc" },
       });
 
@@ -46,13 +72,15 @@ export async function GET(req: NextRequest) {
       // Get average ratings for all teachers
       const averageRatings = await prisma.teacherRating.groupBy({
         by: ['teacherId'],
+        where: { schoolId: school.id },
         _avg: { rating: true },
         _count: { rating: true },
       });
 
       const teacherNames = await prisma.wpos_wpdatatable_24.findMany({
         where: {
-          ustazid: { in: averageRatings.map(r => r.teacherId) }
+          ustazid: { in: averageRatings.map(r => r.teacherId) },
+          schoolId: school.id
         },
         select: { ustazid: true, ustazname: true }
       });
@@ -79,10 +107,36 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json(
+      { error: "School not found" },
+      { status: 404 }
+    );
+  }
+
+  // Verify admin has access to this school
+  const admin = await prisma.admin.findUnique({
+    where: { id: session.id as string },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json(
+      { error: "Unauthorized access to school" },
+      { status: 403 }
+    );
   }
 
   try {
@@ -100,7 +154,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const ratings = parse.data;
+      const ratings = parse.data.map(rating => ({
+        ...rating,
+        schoolId: school.id
+      }));
       const created = await prisma.teacherRating.createMany({
         data: ratings,
       });
@@ -122,7 +179,7 @@ export async function POST(req: NextRequest) {
       const { teacherId, rating } = parse.data;
       
       const created = await prisma.teacherRating.create({
-        data: { teacherId, rating },
+        data: { teacherId, rating, schoolId: school.id },
       });
 
       return NextResponse.json({
@@ -154,13 +211,13 @@ export async function DELETE(req: NextRequest) {
     if (ratingId) {
       // Delete specific rating
       await prisma.teacherRating.delete({
-        where: { id: ratingId },
+        where: { id: ratingId, schoolId: school.id },
       });
       return NextResponse.json({ success: true, message: "Rating deleted" });
     } else if (teacherId) {
       // Delete all ratings for teacher
       const deleted = await prisma.teacherRating.deleteMany({
-        where: { teacherId },
+        where: { teacherId, schoolId: school.id },
       });
       return NextResponse.json({
         success: true,

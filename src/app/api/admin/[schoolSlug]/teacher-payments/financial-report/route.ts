@@ -9,11 +9,47 @@ import { parseISO } from "date-fns";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token || (token.role !== "admin" && token.role !== "teacher")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify user has access to this school
+    let hasAccess = false;
+    if (token.role === "admin") {
+      const admin = await prisma.admin.findUnique({
+        where: { id: token.id as string },
+        select: { schoolId: true },
+      });
+      hasAccess = admin?.schoolId === school.id;
+    } else if (token.role === "teacher") {
+      const teacher = await prisma.wpos_wpdatatable_24.findUnique({
+        where: { ustazid: token.username },
+        select: { schoolId: true },
+      });
+      hasAccess = teacher?.schoolId === school.id;
+    }
+
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
     }
 
     const url = new URL(req.url);

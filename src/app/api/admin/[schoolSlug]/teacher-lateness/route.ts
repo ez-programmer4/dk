@@ -18,13 +18,39 @@ function calculateMinutesLate(timeSlot: string, joinTime: Date): number {
   return Math.max(0, Math.floor(lateMs / (1000 * 60)));
 }
 
-export async function GET(request: Request) {
+export async function GET(request: Request, { params }: { params: { schoolSlug: string } }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: session.user.id },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
       );
     }
 
@@ -51,6 +77,7 @@ export async function GET(request: Request) {
           gte: startDate,
           lte: endDate,
         },
+        schoolId: school.id,
       },
       include: {
         student: true,
@@ -66,6 +93,8 @@ export async function GET(request: Request) {
           gte: startDate,
           lte: endDate,
         },
+        schoolId: school.id,
+      },
       },
       select: {
         sent_time: true,

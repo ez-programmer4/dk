@@ -50,8 +50,16 @@ async function getSalaryCalculator(): Promise<SalaryCalculator> {
 
 export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
-    const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const ip =
+      req.headers.get("x-forwarded-for") ||
+      req.headers.get("x-real-ip") ||
+      "unknown";
 
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
+    const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!session || session.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -81,15 +89,6 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
         { error: "Unauthorized access to school" },
         { status: 403 }
       );
-    }
-
-    const ip =
-      req.headers.get("x-forwarded-for") ||
-      req.headers.get("x-real-ip") ||
-      "unknown";
-
-    if (!checkRateLimit(ip)) {
-      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
     const url = new URL(req.url);

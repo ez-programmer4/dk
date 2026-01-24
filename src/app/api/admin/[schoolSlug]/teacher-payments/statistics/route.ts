@@ -20,6 +20,33 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get school information
+    const { prisma } = await import("@/lib/prisma");
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: session.id as string },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
+    }
+
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");
@@ -41,21 +68,6 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
         { error: "Invalid date range. Use UTC ISO format (YYYY-MM-DD)." },
         { status: 400 }
       );
-    }
-
-    // Get school ID for filtering
-    const schoolSlug = params.schoolSlug;
-    let schoolId = null;
-    const { prisma } = await import("@/lib/prisma");
-    try {
-      const school = await prisma.school.findUnique({
-        where: { slug: schoolSlug },
-        select: { id: true },
-      });
-      schoolId = school?.id || null;
-    } catch (error) {
-      console.error("Error looking up school:", error);
-      schoolId = null;
     }
 
     const calculator = await createSalaryCalculator();

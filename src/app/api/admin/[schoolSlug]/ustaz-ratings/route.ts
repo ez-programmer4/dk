@@ -7,10 +7,29 @@ import { getToken } from "next-auth/jwt";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Get school information and verify access
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json({ error: "School not found" }, { status: 404 });
+  }
+
+  const admin = await prisma.admin.findUnique({
+    where: { id: session.id as string },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json({ error: "Unauthorized access to school" }, { status: 403 });
   }
 
   try {
