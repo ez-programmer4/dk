@@ -15,7 +15,7 @@ const ConfigSchema = z.object({
   effectiveMonths: z.string().optional(),
 });
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const user = await getSessionUser(req);
     if (user.role !== "admin") {
@@ -24,7 +24,34 @@ export async function GET(req: NextRequest) {
         { status: 403 }
       );
     }
+
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: user.id },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
+    }
     const configs = await prisma.deductionbonusconfig.findMany({
+      where: { schoolId: school.id },
       orderBy: { updatedAt: "desc" },
     });
     return NextResponse.json(configs);
@@ -65,6 +92,7 @@ export async function POST(req: NextRequest) {
         value,
         effectiveMonths,
         adminId: user.id,
+        schoolId: school.id,
         updatedAt: new Date(),
       },
     });

@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const session = await getToken({
       req,
@@ -16,6 +16,32 @@ export async function GET(req: NextRequest) {
 
     if (!session || session.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: session.id as string },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
     }
 
     // Get all unique packages that students are actually using
@@ -44,7 +70,9 @@ export async function GET(req: NextRequest) {
     studentPackagesUsed.forEach((pkg) => allPackageNames.add(pkg.name));
 
     // Get all configured package deductions
-    const packageDeductions = await prisma.packageDeduction.findMany();
+    const packageDeductions = await prisma.packageDeduction.findMany({
+      where: { schoolId: school.id }
+    });
 
     // Create a map of configured deductions for quick lookup
     const deductionMap = new Map(
@@ -69,6 +97,7 @@ export async function GET(req: NextRequest) {
             status: {
               in: ["Active", "Not yet"],
             },
+            schoolId: school.id,
           },
         });
 
@@ -130,7 +159,7 @@ export async function POST(req: NextRequest) {
 
     // Check if package already exists
     const existingPackage = await prisma.packageDeduction.findUnique({
-      where: { packageName },
+      where: { packageName, schoolId: school.id },
     });
 
     if (existingPackage) {
@@ -145,6 +174,7 @@ export async function POST(req: NextRequest) {
         packageName,
         latenessBaseAmount: Number(latenessBaseAmount),
         absenceBaseAmount: Number(absenceBaseAmount),
+        schoolId: school.id,
       },
     });
 

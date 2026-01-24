@@ -7,10 +7,36 @@ import { getToken } from "next-auth/jwt";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json(
+      { error: "School not found" },
+      { status: 404 }
+    );
+  }
+
+  // Verify admin has access to this school
+  const admin = await prisma.admin.findUnique({
+    where: { id: session.id as string },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json(
+      { error: "Unauthorized access to school" },
+      { status: 403 }
+    );
   }
 
   const url = new URL(req.url);
@@ -31,7 +57,9 @@ export async function GET(req: NextRequest) {
   const teacherFilter = searchParams.get("teacherId") || ""; // may be id or name
 
   // Get package-specific deduction configurations
-  const packageDeductions = await prisma.packageDeduction.findMany();
+  const packageDeductions = await prisma.packageDeduction.findMany({
+    where: { schoolId: school.id }
+  });
   const packageDeductionMap: Record<string, number> = {};
   packageDeductions.forEach((pkg) => {
     packageDeductionMap[pkg.packageName] = Number(pkg.latenessBaseAmount);
@@ -40,6 +68,7 @@ export async function GET(req: NextRequest) {
 
   // Fetch lateness deduction config from DB - no fallback tiers
   const latenessConfigs = await prisma.latenessdeductionconfig.findMany({
+    where: { schoolId: school.id },
     orderBy: [{ tier: "asc" }, { startMinute: "asc" }],
   });
 
@@ -63,6 +92,7 @@ export async function GET(req: NextRequest) {
     const students = await prisma.wpos_wpdatatable_23.findMany({
       where: {
         status: { in: ["active", "not yet"] },
+        schoolId: school.id,
       },
       include: {
         teacher: true,

@@ -7,24 +7,37 @@ import { getToken } from "next-auth/jwt";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { schoolSlug: string } }
-) {
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token || token.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const schoolSlug = params.schoolSlug;
+    // Get school information
     const school = await prisma.school.findUnique({
-      where: { slug: schoolSlug },
-      select: { id: true },
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
     });
 
     if (!school) {
-      return NextResponse.json({ error: "School not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: token.id as string },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
     }
 
     const configs = await prisma.latenessdeductionconfig.findMany({
@@ -40,29 +53,42 @@ export async function GET(
   }
 }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { schoolSlug: string } }
-) {
+export async function POST(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token || token.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const schoolSlug = params.schoolSlug;
+    // Get school information
     const school = await prisma.school.findUnique({
-      where: { slug: schoolSlug },
-      select: { id: true },
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
     });
 
     if (!school) {
-      return NextResponse.json({ error: "School not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: token.id as string },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();
     const { isUnlimited, ...configData } = body;
-
+    
     const config = await prisma.latenessdeductionconfig.create({
       data: {
         ...configData,
@@ -79,39 +105,15 @@ export async function POST(
   }
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { schoolSlug: string } }
-) {
+export async function PUT(req: NextRequest) {
   try {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token || token.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const schoolSlug = params.schoolSlug;
-    const school = await prisma.school.findUnique({
-      where: { slug: schoolSlug },
-      select: { id: true },
-    });
-
-    if (!school) {
-      return NextResponse.json({ error: "School not found" }, { status: 404 });
-    }
-
     const body = await req.json();
     if (!body.id)
       return NextResponse.json({ error: "ID required" }, { status: 400 });
-
-    // Check if the config belongs to this school
-    const existingConfig = await prisma.latenessdeductionconfig.findUnique({
-      where: { id: body.id },
-    });
-
-    if (!existingConfig || existingConfig.schoolId !== school.id) {
-      return NextResponse.json({ error: "Config not found or unauthorized" }, { status: 404 });
-    }
-
     const { isUnlimited, ...configData } = body;
     const config = await prisma.latenessdeductionconfig.update({
       where: { id: body.id },
@@ -129,40 +131,16 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { schoolSlug: string } }
-) {
+export async function DELETE(req: NextRequest) {
   try {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token || token.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const schoolSlug = params.schoolSlug;
-    const school = await prisma.school.findUnique({
-      where: { slug: schoolSlug },
-      select: { id: true },
-    });
-
-    if (!school) {
-      return NextResponse.json({ error: "School not found" }, { status: 404 });
-    }
-
     const url = new URL(req.url);
     const id = url.searchParams.get("id");
     if (!id)
       return NextResponse.json({ error: "ID required" }, { status: 400 });
-
-    // Check if the config belongs to this school
-    const existingConfig = await prisma.latenessdeductionconfig.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!existingConfig || existingConfig.schoolId !== school.id) {
-      return NextResponse.json({ error: "Config not found or unauthorized" }, { status: 404 });
-    }
-
     await prisma.latenessdeductionconfig.delete({ where: { id: Number(id) } });
     return NextResponse.json({ success: true });
   } catch (error: any) {

@@ -6,11 +6,48 @@ import { getToken } from "next-auth/jwt";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-    if (!token || token.role !== "registral") {
+    if (!token || (token.role !== "registral" && token.role !== "admin")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get school information
+    const { prisma } = await import("@/lib/prisma");
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify user has access to this school
+    let hasAccess = false;
+    if (token.role === "admin") {
+      const admin = await prisma.admin.findUnique({
+        where: { id: token.id as string },
+        select: { schoolId: true },
+      });
+      hasAccess = admin?.schoolId === school.id;
+    } else if (token.role === "registral") {
+      const registral = await prisma.wpos_wpdatatable_33.findUnique({
+        where: { username: token.username },
+        select: { schoolId: true },
+      });
+      hasAccess = registral?.schoolId === school.id;
+    }
+
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();

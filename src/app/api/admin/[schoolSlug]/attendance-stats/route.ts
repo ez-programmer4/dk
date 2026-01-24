@@ -8,7 +8,7 @@ import { authOptions } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const session = await getServerSession(authOptions);
     if (
@@ -16,6 +16,33 @@ export async function GET(req: NextRequest) {
       (session.user as { id: string; role: string }).role !== "admin"
     ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const user = session.user as { id: string };
+    const admin = await prisma.admin.findUnique({
+      where: { id: user.id },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
     }
 
     const url = new URL(req.url);
@@ -39,6 +66,7 @@ export async function GET(req: NextRequest) {
           gte: fromDate,
           lte: toDate,
         },
+        schoolId: school.id,
       },
       _count: {
         wdt_ID: true,
@@ -53,6 +81,7 @@ export async function GET(req: NextRequest) {
           gte: fromDate,
           lte: toDate,
         },
+        schoolId: school.id,
       },
       _count: {
         wdt_ID: true,
@@ -67,6 +96,7 @@ export async function GET(req: NextRequest) {
           gte: fromDate,
           lte: toDate,
         },
+        schoolId: school.id,
       },
       _count: {
         wdt_ID: true,
@@ -82,6 +112,7 @@ export async function GET(req: NextRequest) {
         ustazid: {
           in: teacherIds,
         },
+        schoolId: school.id,
       },
       select: {
         ustazid: true,

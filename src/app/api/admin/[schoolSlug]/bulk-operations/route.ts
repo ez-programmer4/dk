@@ -8,7 +8,7 @@ import { to24Hour, validateTime } from "@/utils/timeUtils";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const session = await getToken({
       req: request,
@@ -17,6 +17,32 @@ export async function POST(request: NextRequest) {
 
     if (!session || session.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: session.id as string },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to school" },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -57,7 +83,9 @@ async function clearTimeSlots(data: {
 
     if (all) {
       // Clear all occupied time slots
-      const result = await prisma.wpos_ustaz_occupied_times.deleteMany({});
+      const result = await prisma.wpos_ustaz_occupied_times.deleteMany({
+        where: { schoolId: school.id }
+      });
 
       return NextResponse.json({
         message: `Cleared ${result.count} time slots`,
@@ -66,7 +94,7 @@ async function clearTimeSlots(data: {
     }
 
     // Clear specific time slots
-    const whereClause: any = {};
+    const whereClause: any = { schoolId: school.id };
 
     if (teacherId) whereClause.ustaz_id = teacherId;
     if (timeSlot) whereClause.time_slot = timeSlot;
@@ -99,7 +127,7 @@ async function bulkAssign(data: {
 
     // Validate teacher exists
     const teacher = await prisma.wpos_wpdatatable_24.findUnique({
-      where: { ustazid: teacherId },
+      where: { ustazid: teacherId, schoolId: school.id },
     });
 
     if (!teacher) {
@@ -130,6 +158,7 @@ async function bulkAssign(data: {
               ustaz_id: teacherId,
               time_slot: timeSlot,
               daypackage: dayPackage,
+              schoolId: school.id,
             },
           });
 
@@ -151,6 +180,7 @@ async function bulkAssign(data: {
               daypackage: dayPackage,
               student_id: studentId,
               occupied_at: new Date(),
+              schoolId: school.id,
             },
           });
 
@@ -199,6 +229,7 @@ async function bulkClearStudentSlots(data: {
 
     const whereClause: any = {
       student_id: { in: studentIds },
+      schoolId: school.id,
     };
 
     if (dayPackage) {
@@ -244,7 +275,7 @@ export async function GET(request: NextRequest) {
 
     // Get teacher's occupied time slots
     const occupiedSlots = await prisma.wpos_ustaz_occupied_times.findMany({
-      where: { ustaz_id: teacherId },
+      where: { ustaz_id: teacherId, schoolId: school.id },
       include: {
         student: {
           select: {
