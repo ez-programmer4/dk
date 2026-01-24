@@ -33,6 +33,15 @@ export default withAuth(
       const userRole = token.role;
       const schoolSlug = token.schoolSlug;
 
+      // Redirect users without school access to school selector
+      if ((userRole === 'admin' || userRole === 'teacher' || userRole === 'controller' || userRole === 'registral') && !schoolSlug) {
+        // Only redirect if not already on school selector or login
+        if (!pathname.startsWith('/school-selector') && !pathname.startsWith('/login')) {
+          const schoolSelectorUrl = new URL('/school-selector', req.url);
+          return NextResponse.redirect(schoolSelectorUrl);
+        }
+      }
+
       // Redirect teachers to their school dashboard
       if (userRole === 'teacher' && schoolSlug && pathname === '/teachers') {
         const teacherUrl = new URL(`/teachers/${schoolSlug}/dashboard`, req.url);
@@ -49,6 +58,12 @@ export default withAuth(
       if (userRole === 'registral' && schoolSlug && pathname === '/registral') {
         const registralUrl = new URL(`/registral/${schoolSlug}/earnings`, req.url);
         return NextResponse.redirect(registralUrl);
+      }
+
+      // Redirect admins to their school dashboard
+      if (userRole === 'admin' && schoolSlug && pathname === '/admin') {
+        const adminUrl = new URL(`/admin/${schoolSlug}`, req.url);
+        return NextResponse.redirect(adminUrl);
       }
     }
 
@@ -71,7 +86,9 @@ export default withAuth(
           pathname.startsWith('/dashboard') ||
           pathname.startsWith('/teachers/login') ||
           pathname.startsWith('/parent/login') ||
-          pathname.startsWith('/controller/login')
+          pathname.startsWith('/controller/login') ||
+          pathname.startsWith('/school-selector') ||
+          pathname.startsWith('/super-admin/login')
         ) {
           return true;
         }
@@ -83,22 +100,47 @@ export default withAuth(
 
         // School-specific admin routes
         if (pathname.startsWith('/admin/') && !pathname.startsWith('/admin/login')) {
-          return token?.role === 'admin' && !!token?.schoolId;
+          // Super admins have global access to all admin routes
+          if (token?.role === 'superAdmin') {
+            return true;
+          }
+
+          const hasAccess = token?.role === 'admin' && !!token?.schoolId;
+          // If admin but no school access, allow access to school selector
+          if (token?.role === 'admin' && !token?.schoolId && !pathname.startsWith('/school-selector')) {
+            return false; // Will redirect to school selector
+          }
+          return hasAccess;
         }
 
         // Teacher routes
         if (pathname.startsWith('/teachers/')) {
-          return token?.role === 'teacher' && !!token?.schoolId;
+          const hasAccess = token?.role === 'teacher' && !!token?.schoolId;
+          // If teacher but no school access, allow access to school selector
+          if (token?.role === 'teacher' && !token?.schoolId && !pathname.startsWith('/school-selector')) {
+            return false; // Will redirect to school selector
+          }
+          return hasAccess;
         }
 
         // Controller routes
         if (pathname.startsWith('/controller/')) {
-          return token?.role === 'controller' && !!token?.schoolId;
+          const hasAccess = token?.role === 'controller' && !!token?.schoolId;
+          // If controller but no school access, allow access to school selector
+          if (token?.role === 'controller' && !token?.schoolId && !pathname.startsWith('/school-selector')) {
+            return false; // Will redirect to school selector
+          }
+          return hasAccess;
         }
 
         // Registral routes
         if (pathname.startsWith('/registral/')) {
-          return token?.role === 'registral' && !!token?.schoolId;
+          const hasAccess = token?.role === 'registral' && !!token?.schoolId;
+          // If registral but no school access, allow access to school selector
+          if (token?.role === 'registral' && !token?.schoolId && !pathname.startsWith('/school-selector')) {
+            return false; // Will redirect to school selector
+          }
+          return hasAccess;
         }
 
         // Parent routes

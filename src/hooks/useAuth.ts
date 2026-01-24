@@ -52,16 +52,36 @@ export function useAuth(options: UseAuthOptions = {}) {
             redirectUrl = '/super-admin/dashboard';
             break;
           case 'admin':
-            redirectUrl = schoolSlug ? `/admin/${schoolSlug}` : '/login';
+            if (schoolSlug) {
+              redirectUrl = `/admin/${schoolSlug}`;
+            } else {
+              // No school assigned, redirect to school selector
+              redirectUrl = '/school-selector';
+            }
             break;
           case 'teacher':
-            redirectUrl = schoolSlug ? `/teachers/${schoolSlug}/dashboard` : '/teachers/login';
+            if (schoolSlug) {
+              redirectUrl = `/teachers/${schoolSlug}/dashboard`;
+            } else {
+              // No school assigned, redirect to school selector
+              redirectUrl = '/school-selector';
+            }
             break;
           case 'controller':
-            redirectUrl = schoolSlug ? `/controller/${schoolSlug}/dashboard` : '/login';
+            if (schoolSlug) {
+              redirectUrl = `/controller/${schoolSlug}/dashboard`;
+            } else {
+              // No school assigned, redirect to school selector
+              redirectUrl = '/school-selector';
+            }
             break;
           case 'registral':
-            redirectUrl = schoolSlug ? `/registral/${schoolSlug}/dashboard` : '/login';
+            if (schoolSlug) {
+              redirectUrl = `/registral/${schoolSlug}/dashboard`;
+            } else {
+              // No school assigned, redirect to school selector
+              redirectUrl = '/school-selector';
+            }
             break;
           case 'parent':
             redirectUrl = '/parent/dashboard';

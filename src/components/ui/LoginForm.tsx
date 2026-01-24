@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Label } from "./label";
@@ -86,19 +87,12 @@ export function LoginForm({
         setError(res.error);
         setIsSubmitting(false);
       } else {
-        // Redirect based on role if no callbackUrl is provided
+        // Don't redirect immediately - let useAuth hook handle the redirection
+        // based on the authenticated user's school information
         if (!callbackUrl) {
-          if (role === "teacher") {
-            router.push("/teachers/dashboard");
-          } else if (role === "controller") {
-            router.push("/controller");
-          } else if (role === "registral") {
-            router.push("/dashboard");
-          } else if (role === "admin") {
-            router.push("/admin");
-          } else if (role === "superAdmin") {
-            router.push("/super-admin/dashboard");
-          }
+          // The useAuth hook will handle the redirection in the login page
+          // based on the user's role and school assignment
+          window.location.reload(); // Force a reload to trigger the auth hook
         } else {
           router.push(callbackUrl);
         }
@@ -228,6 +222,16 @@ export function LoginForm({
             "Sign in"
           )}
         </Button>
+      </div>
+
+      {/* Super Admin Link */}
+      <div className="text-center pt-4 border-t border-gray-100">
+        <Link
+          href="/super-admin/login"
+          className="text-sm text-blue-600 hover:text-blue-800 underline transition-colors"
+        >
+          Platform Administration →
+        </Link>
       </div>
     </form>
   );
