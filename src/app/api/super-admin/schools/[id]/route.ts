@@ -27,16 +27,11 @@ export async function GET(
             students: true,
           },
         },
-        plan: {
+        createdBy: {
           select: {
             id: true,
             name: true,
-            basePrice: true,
-            perStudentPrice: true,
-            currency: true,
-            maxStudents: true,
-            maxTeachers: true,
-            features: true,
+            email: true,
           },
         },
       },
@@ -79,7 +74,13 @@ export async function PUT(
       phone,
       address,
       status,
-      maxStudents,
+      logoUrl,
+      primaryColor,
+      secondaryColor,
+      timezone,
+      defaultCurrency,
+      defaultLanguage,
+      features,
     } = body;
 
     // Check if school exists
@@ -100,7 +101,13 @@ export async function PUT(
         phone,
         address,
         status,
-        maxStudents,
+        logoUrl,
+        primaryColor,
+        secondaryColor,
+        timezone,
+        defaultCurrency,
+        defaultLanguage,
+        features,
       },
       include: {
         _count: {
@@ -108,6 +115,13 @@ export async function PUT(
             admins: true,
             teachers: true,
             students: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
           },
         },
       },
@@ -126,7 +140,9 @@ export async function PUT(
               name: existingSchool.name !== name ? { from: existingSchool.name, to: name } : undefined,
               email: existingSchool.email !== email ? { from: existingSchool.email, to: email } : undefined,
               status: existingSchool.status !== status ? { from: existingSchool.status, to: status } : undefined,
-              maxStudents: existingSchool.maxStudents !== maxStudents ? { from: existingSchool.maxStudents, to: maxStudents } : undefined,
+              logoUrl: existingSchool.logoUrl !== logoUrl ? { from: existingSchool.logoUrl, to: logoUrl } : undefined,
+              primaryColor: existingSchool.primaryColor !== primaryColor ? { from: existingSchool.primaryColor, to: primaryColor } : undefined,
+              secondaryColor: existingSchool.secondaryColor !== secondaryColor ? { from: existingSchool.secondaryColor, to: secondaryColor } : undefined,
             },
           },
           ipAddress: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip"),

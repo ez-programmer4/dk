@@ -32,10 +32,6 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
   if (!admin || admin.schoolId !== school.id) {
     return NextResponse.json({ error: "Unauthorized access to school" }, { status: 403 });
   }
-  const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const url = new URL(req.url);
   const teacherId = url.searchParams.get("teacherId");

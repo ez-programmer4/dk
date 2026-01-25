@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
         { status: 403 }
       );
     }
-  try {
+
     // Get all student packages
     const studentPackages = await prisma.studentPackage.findMany({
       where: { isActive: true },

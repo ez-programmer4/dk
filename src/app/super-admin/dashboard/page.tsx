@@ -7,11 +7,9 @@ import {
   Building2,
   Users,
   DollarSign,
-  TrendingUp,
   Calendar,
   Shield,
   Settings,
-  BarChart3,
   Plus,
   Eye,
   UserCheck,
@@ -207,35 +205,6 @@ export default function SuperAdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <BarChart3 className="w-5 h-5 mr-2" />
-                Analytics
-              </CardTitle>
-              <CardDescription>View platform analytics</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/super-admin/analytics">View Analytics</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <TrendingUp className="w-5 h-5 mr-2" />
-                Usage Tracking
-              </CardTitle>
-              <CardDescription>Monitor school usage and limits</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/super-admin/usage">View Usage</Link>
-              </Button>
-            </CardContent>
-          </Card>
 
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader>

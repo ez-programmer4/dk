@@ -95,7 +95,6 @@ export async function GET(request: Request, { params }: { params: { schoolSlug: 
         },
         schoolId: school.id,
       },
-      },
       select: {
         sent_time: true,
         studentid: true,

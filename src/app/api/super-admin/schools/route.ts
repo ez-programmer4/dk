@@ -2,11 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import {
-  onboardNewSchool,
-  validateOnboardingData,
-  type OnboardingData,
-} from "@/lib/school-onboarding";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -19,6 +14,15 @@ export async function GET(req: NextRequest) {
 
     if (!session || session.user.role !== "superAdmin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify that the SuperAdmin exists in the database
+    const superAdmin = await prisma.superAdmin.findUnique({
+      where: { id: session.user.id }
+    });
+
+    if (!superAdmin) {
+      return NextResponse.json({ error: "SuperAdmin not found" }, { status: 404 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -53,9 +57,6 @@ export async function GET(req: NextRequest) {
           email: true,
           phone: true,
           status: true,
-          subscriptionTier: true,
-          maxStudents: true,
-          currentStudentCount: true,
           createdAt: true,
           _count: {
             select: {
@@ -117,6 +118,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Verify that the SuperAdmin exists in the database
+    const superAdmin = await prisma.superAdmin.findUnique({
+      where: { id: session.user.id }
+    });
+
+    if (!superAdmin) {
+      return NextResponse.json({ error: "SuperAdmin not found" }, { status: 404 });
+    }
+
     const body = await req.json();
     const {
       name,
@@ -124,47 +134,102 @@ export async function POST(req: NextRequest) {
       email,
       phone,
       address,
+      logoUrl,
+      primaryColor,
+      secondaryColor,
+      timezone,
+      defaultCurrency,
+      defaultLanguage,
+      features,
       adminName,
       adminUsername,
       adminPassword,
       adminEmail,
       adminPhone,
-      subscriptionTier = "trial",
-      maxStudents = 50,
-      planId,
-      telegramBotToken,
     } = body;
 
-    // Prepare onboarding data
-    const onboardingData: OnboardingData = {
-      name,
-      slug,
-      email,
-      phone,
-      address,
-      adminName: adminName || name + " Admin",
-      adminUsername: adminUsername || `admin_${slug}`,
-      adminPassword: adminPassword || `Admin${slug}123!`,
-      adminEmail: adminEmail || email,
-      adminPhone: adminPhone || phone,
-      subscriptionTier,
-      maxStudents,
-      planId,
-      telegramBotToken,
-    };
-
-    // Validate onboarding data
-    const validation = validateOnboardingData(onboardingData);
-    if (!validation.valid) {
+    // Basic validation
+    if (!name || !slug || !email) {
       return NextResponse.json(
-        { error: "Validation failed", errors: validation.errors },
+        { error: "Name, slug, and email are required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if slug is unique
+    const existingSchool = await prisma.school.findUnique({
+      where: { slug }
+    });
+
+    if (existingSchool) {
+      return NextResponse.json(
+        { error: "School slug already exists" },
         { status: 400 }
       );
     }
 
     try {
-      // Use onboarding service to create school with admin and default settings
-      const result = await onboardNewSchool(onboardingData, session.user.id);
+      // Create school
+      const school = await prisma.school.create({
+        data: {
+          name,
+          slug,
+          email,
+          phone,
+          address,
+          logoUrl,
+          primaryColor,
+          secondaryColor,
+          timezone,
+          defaultCurrency,
+          defaultLanguage,
+          features,
+          createdById: session.user.id,
+        }
+      });
+
+      // Create admin user for the school
+      const hashedPassword = await import("bcryptjs").then(({ hash }) =>
+        hash(adminPassword || `Admin${slug}123!`, 12)
+      );
+
+      // Generate unique admin name and username to avoid conflicts
+      const baseAdminName = adminName || `${name} Admin`;
+      const baseUsername = adminUsername || `admin_${slug}`;
+
+      let finalAdminName = baseAdminName;
+      let finalUsername = baseUsername;
+      let counter = 1;
+
+      // Check for existing admin with same name/username and make unique
+      while (true) {
+        const existingAdmin = await prisma.admin.findFirst({
+          where: {
+            OR: [
+              { name: finalAdminName },
+              { username: finalUsername }
+            ]
+          }
+        });
+
+        if (!existingAdmin) break;
+
+        counter++;
+        finalAdminName = `${baseAdminName} ${counter}`;
+        finalUsername = `${baseUsername}_${counter}`;
+      }
+
+      await prisma.admin.create({
+        data: {
+          name: finalAdminName,
+          username: finalUsername,
+          passcode: hashedPassword,
+          email: adminEmail || email,
+          phoneno: adminPhone || phone,
+          schoolId: school.id,
+          chat_id: `admin_${slug}_${Date.now()}`, // Generate unique chat_id for admin
+        }
+      });
 
       // Create audit log
       try {
@@ -173,12 +238,10 @@ export async function POST(req: NextRequest) {
             superAdminId: session.user.id,
             action: "create_school",
             resourceType: "school",
-            resourceId: result.school.id,
+            resourceId: school.id,
             details: {
               schoolName: name,
               schoolSlug: slug,
-              subscriptionTier,
-              maxStudents,
               adminCreated: true,
             },
             ipAddress:
@@ -194,9 +257,8 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        school: result.school,
-        admin: result.admin,
-        message: "School created successfully with default settings",
+        school,
+        message: "School created successfully",
       });
     } catch (error: any) {
       console.error("Onboarding error:", error);

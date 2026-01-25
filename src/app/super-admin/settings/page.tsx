@@ -90,8 +90,14 @@ export default function SuperAdminSettings() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
 
+  // Bot token state
+  const [botToken, setBotToken] = useState("");
+  const [botTokenLoading, setBotTokenLoading] = useState(false);
+  const [botTokenSaving, setBotTokenSaving] = useState(false);
+
   useEffect(() => {
     fetchSettings();
+    fetchBotToken();
   }, []);
 
   const fetchSettings = async () => {
@@ -110,6 +116,48 @@ export default function SuperAdminSettings() {
       setSettings(getDefaultSettings());
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBotToken = async () => {
+    try {
+      setBotTokenLoading(true);
+      const response = await fetch("/api/super-admin/bot-token");
+      const data = await response.json();
+      if (data.success) {
+        setBotToken(data.botToken || "");
+      }
+    } catch (error) {
+      console.error("Failed to fetch bot token:", error);
+    } finally {
+      setBotTokenLoading(false);
+    }
+  };
+
+  const saveBotToken = async () => {
+    setBotTokenSaving(true);
+    try {
+      const response = await fetch("/api/super-admin/bot-token", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ botToken }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        console.log("Bot token saved successfully");
+        // Refresh to get the updated token
+        fetchBotToken();
+      } else {
+        alert(data.error || "Failed to save bot token");
+      }
+    } catch (error) {
+      console.error("Failed to save bot token:", error);
+      alert("Failed to save bot token");
+    } finally {
+      setBotTokenSaving(false);
     }
   };
 
@@ -768,6 +816,45 @@ export default function SuperAdminSettings() {
                       />
                     </div>
 
+                    {/* Global Bot Token Configuration */}
+                    {settings.features.telegramBot && (
+                      <div className="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <Label className="text-base font-medium mb-2 block">Global Bot Token</Label>
+                        <p className="text-sm text-gray-600 mb-3">
+                          Configure the Telegram bot token used by all schools for notifications and mini-apps.
+                        </p>
+                        <div className="flex gap-2">
+                          <Input
+                            type="password"
+                            value={botToken}
+                            onChange={(e) => setBotToken(e.target.value)}
+                            placeholder="bot123456789:ABCdefGHIjklMNOpqrsTUVwxyz..."
+                            className="flex-1"
+                          />
+                          <Button
+                            onClick={saveBotToken}
+                            disabled={botTokenSaving}
+                            className="px-4"
+                          >
+                            {botTokenSaving ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-4 h-4 mr-2" />
+                                Save
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Get your bot token from @BotFather on Telegram. Format: bot&lt;token&gt; or &lt;token&gt;:&lt;secret&gt;
+                        </p>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label className="text-base">Custom Branding</Label>
@@ -966,6 +1053,8 @@ export default function SuperAdminSettings() {
     </div>
   );
 }
+
+
 
 
 

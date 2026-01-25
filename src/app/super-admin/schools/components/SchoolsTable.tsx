@@ -25,17 +25,13 @@ interface School {
   slug: string;
   email: string;
   status: 'active' | 'inactive' | 'suspended';
-  subscriptionTier: string;
-  maxStudents: number;
   currentStudentCount: number;
   createdAt: string;
-  planId?: string;
   _count: {
     admins: number;
     teachers: number;
     students: number;
   };
-  revenue: number;
   primaryColor?: string;
   secondaryColor?: string;
 }
@@ -46,7 +42,6 @@ interface SchoolsTableProps {
   onViewSchool: (school: School) => void;
   onEditSchool: (school: School) => void;
   onDeleteSchool: (school: School) => void;
-  onChangePlan: (school: School) => void;
 }
 
 export function SchoolsTable({
@@ -274,13 +269,6 @@ export function SchoolsTable({
                         >
                           <Edit className="w-5 h-5 text-purple-600" />
                           <span className="font-medium">Edit School</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => onChangePlan(school)}
-                          className="flex items-center space-x-3 py-3 px-4 rounded-xl hover:bg-emerald-50 transition-colors"
-                        >
-                          <span className="w-5 h-5 text-emerald-600">📋</span>
-                          <span className="font-medium">Change Plan</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => onDeleteSchool(school)}

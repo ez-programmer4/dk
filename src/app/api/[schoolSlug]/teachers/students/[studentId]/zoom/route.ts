@@ -318,8 +318,8 @@ export async function POST(
       });
     } else     if (!skipNotification) {
       // Send Telegram notification (only for manual links)
-      // Use already fetched school data for Telegram bot token
-      const botToken = school?.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
+      // Use global Telegram bot token for centralized bot
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
       console.log("Telegram notification setup:", {
         botToken: botToken ? "PRESENT" : "MISSING",
@@ -329,20 +329,52 @@ export async function POST(
         skipNotification
       });
 
-      if (!botToken) {
-        notificationError = "Telegram bot token not configured for this school";
-        console.log("❌ Telegram notification failed: No bot token");
-      } else if (!student.chatId) {
-        notificationError = "Student has no Telegram chat ID";
-        console.log("❌ Telegram notification failed: No chat ID");
-      } else {
+      // Send Telegram notification using centralized bot manager
+      if (student.chatId) {
         try {
-          const message = `📚 **${schoolSlug.charAt(0).toUpperCase() + schoolSlug.slice(1)} Online Class Invitation**
+          const { getBotManager } = await import('@/lib/telegram/bot-manager');
+          const botManager = getBotManager();
 
-🎓 Assalamu Alaikum ${student.name ?? "dear student"},
+          if (botManager) {
+            const classInfo = `Date: ${localTime.toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })} | Time: ${localTime.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })}`;
 
-📅 **Class Details:**
-• **Date:** ${localTime.toLocaleDateString("en-US", {
+            const success = await botManager.sendZoomLinkToStudent(
+              studentId,
+              finalURL,
+              teacher.ustazname || 'Your Teacher',
+              classInfo
+            );
+
+            if (success) {
+              notificationSent = true;
+              console.log("✅ Zoom link sent via centralized bot");
+            } else {
+              notificationError = "Failed to send via bot manager";
+              console.log("❌ Bot manager failed to send zoom link");
+            }
+          } else {
+            notificationError = "Bot manager not available";
+            console.log("❌ Bot manager not initialized");
+          }
+        } catch (err) {
+          notificationError = "Failed to send via bot manager";
+          console.error("❌ Bot manager error:", err);
+        }
+
+        // Fallback to direct Telegram API if bot manager fails
+        if (!notificationSent && student.chatId && botToken) {
+          try {
+            const message = `📅 Class Details:
+• Date: ${localTime.toLocaleDateString("en-US", {
             weekday: "long",
             year: "numeric",
             month: "long",
@@ -428,9 +460,10 @@ Click the button below to join your online class session.
               responseData.description || "Telegram API error";
             console.log("❌ Telegram notification failed:", notificationError);
           }
-        } catch (err) {
-          notificationError =
-            err instanceof Error ? err.message : "Unknown error";
+          } catch (err) {
+            notificationError = "Failed to send via Telegram API";
+            console.error("❌ Telegram API error:", err);
+          }
         }
       }
     }

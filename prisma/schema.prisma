@@ -22,19 +22,8 @@ model School {
     primaryColor   String? @db.VarChar(7) // Hex color
     secondaryColor String? @db.VarChar(7)
 
-    // Subscription & Billing
-    subscriptionTier     String  @default("trial") // trial, basic, premium, enterprise
-    maxStudents          Int     @default(50)
-    currentStudentCount  Int     @default(0)
-    billingCycle         String  @default("monthly") // monthly, annual
-    stripeCustomerId     String? @unique @db.VarChar(255)
-    stripeSubscriptionId String? @db.VarChar(255)
-    planId               String?
-
     // Status
-    status             String    @default("active") // active, suspended, cancelled
-    trialEndsAt        DateTime?
-    subscriptionEndsAt DateTime?
+    status String @default("active") // active, inactive, suspended
 
     // Configuration
     timezone        String @default("Africa/Addis_Ababa") @db.VarChar(50)
@@ -52,17 +41,14 @@ model School {
     createdById String? // Super admin who created
 
     // Relations
-    createdBy           SuperAdmin?           @relation("SuperAdminCreatedSchools", fields: [createdById], references: [id])
-    students            wpos_wpdatatable_23[]
-    teachers            wpos_wpdatatable_24[]
-    controllers         wpos_wpdatatable_28[]
-    registrals          wpos_wpdatatable_33[]
-    admins              admin[]
-    settings            SchoolSetting[]
-    payments            SchoolPayment[]
-    plan                SubscriptionPlan?     @relation("SchoolPlan", fields: [planId], references: [id])
-    planChangeHistories plan_change_history[]
-    permissionrequests  permissionrequest[]
+    createdBy   SuperAdmin?           @relation("SuperAdminCreatedSchools", fields: [createdById], references: [id])
+    students    wpos_wpdatatable_23[]
+    teachers    wpos_wpdatatable_24[]
+    controllers wpos_wpdatatable_28[]
+    registrals  wpos_wpdatatable_33[]
+    admins      admin[]
+    settings    SchoolSetting[]
+    payments    SchoolPayment[]
 
     @@map("schools")
 }
@@ -77,11 +63,15 @@ model SuperAdmin {
     isActive  Boolean   @default(true)
     lastLogin DateTime?
 
+    // Global bot token for all schools
+    telegramBotToken String? @db.VarChar(255)
+
     // Audit fields
     createdAt DateTime @default(now())
 
     // Relations - SuperAdmin can manage schools
-    createdSchools School[] @relation("SuperAdminCreatedSchools")
+    createdSchools School[]             @relation("SuperAdminCreatedSchools")
+    auditLogs      SuperAdminAuditLog[] @relation("SuperAdminAuditLogs")
 
     @@map("super_admins")
 }
@@ -327,6 +317,24 @@ model admin {
     school                   School?                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
     @@index([schoolId], map: "idx_admins_school_id")
+}
+
+model SuperAdminAuditLog {
+    id           String   @id @default(cuid())
+    superAdminId String
+    action       String   @db.VarChar(100)
+    resourceType String   @db.VarChar(50)
+    resourceId   String   @db.VarChar(100)
+    details      Json?
+    ipAddress    String?  @db.VarChar(45)
+    userAgent    String?  @db.Text
+    createdAt    DateTime @default(now())
+
+    superAdmin SuperAdmin @relation("SuperAdminAuditLogs", fields: [superAdminId], references: [id], onDelete: Cascade)
+
+    @@index([superAdminId], map: "idx_superadmin_audit_superadmin_id")
+    @@index([resourceType], map: "idx_superadmin_audit_resource_type")
+    @@index([createdAt], map: "idx_superadmin_audit_created_at")
 }
 
 model months_table {
@@ -706,15 +714,12 @@ model permissionrequest {
     createdAt                 DateTime             @default(now())
     adminId                   String?
     wpos_wpdatatable_28Wdt_ID Int?
-    schoolId                  String?
     absencerecord             absencerecord[]
     admin                     admin?               @relation(fields: [adminId], references: [id], map: "PermissionRequest_admin_fkey")
     wpos_wpdatatable_24       wpos_wpdatatable_24  @relation(fields: [teacherId], references: [ustazid], map: "PermissionRequest_teacherId_fkey")
     wpos_wpdatatable_28       wpos_wpdatatable_28? @relation(fields: [wpos_wpdatatable_28Wdt_ID], references: [wdt_ID], map: "PermissionRequest_wpos_wpdatatable_28Wdt_ID_fkey")
-    school                    School?              @relation(fields: [schoolId], references: [id], map: "PermissionRequest_school_fkey")
 
     @@index([adminId], map: "PermissionRequest_admin_fkey")
-    @@index([schoolId], map: "PermissionRequest_school_fkey")
     @@index([teacherId], map: "PermissionRequest_teacherId_fkey")
     @@index([wpos_wpdatatable_28Wdt_ID], map: "PermissionRequest_wpos_wpdatatable_28Wdt_ID_fkey")
     @@map("PermissionRequest")
@@ -870,37 +875,6 @@ model StudentSubject {
     isActive  Boolean  @default(true)
     createdAt DateTime @default(now())
     updatedAt DateTime @default(now())
-}
-
-model SubscriptionPlan {
-    id              String   @id @default(cuid())
-    name            String   @db.VarChar(100)
-    slug            String   @unique @db.VarChar(100)
-    description     String?  @db.Text
-    basePrice       Decimal  @db.Decimal(10, 2) // Legacy field for backward compatibility
-    perStudentPrice Decimal  @db.Decimal(10, 2) // Legacy field for backward compatibility
-    pricingTiers    Json? // Dynamic pricing tiers: [{minStudents, maxStudents, basePrice, perStudentPrice}]
-    currency        String   @db.VarChar(10)
-    maxStudents     Int?
-    maxTeachers     Int?
-    maxStorage      Int?
-    features        Json?
-    billingCycles   Json?
-    trialDays       Int      @default(0)
-    isActive        Boolean  @default(true)
-    isPublic        Boolean  @default(true)
-    createdAt       DateTime @default(now())
-    updatedAt       DateTime @default(now())
-
-    // Relations
-    schools        School[]              @relation("SchoolPlan")
-    oldPlanHistory plan_change_history[] @relation("OldPlanHistory")
-    newPlanHistory plan_change_history[] @relation("NewPlanHistory")
-
-    @@index([isActive])
-    @@index([isPublic])
-    @@index([slug])
-    @@map("subscription_plans")
 }
 
 model PackageDeduction {
@@ -1098,27 +1072,6 @@ model subscription_package_config {
     @@index([isActive])
     @@index([name])
     @@map("subscription_package_config")
-}
-
-model plan_change_history {
-    id          String   @id @default(cuid())
-    schoolId    String
-    oldPlanId   String?
-    newPlanId   String
-    changedBy   String
-    effectiveAt DateTime
-    notes       String?
-    createdAt   DateTime @default(now())
-
-    school  School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-    oldPlan SubscriptionPlan? @relation("OldPlanHistory", fields: [oldPlanId], references: [id])
-    newPlan SubscriptionPlan  @relation("NewPlanHistory", fields: [newPlanId], references: [id])
-
-    @@index([schoolId])
-    @@index([oldPlanId])
-    @@index([newPlanId])
-    @@index([changedBy])
-    @@map("plan_change_history")
 }
 
 model tax_transactions {
