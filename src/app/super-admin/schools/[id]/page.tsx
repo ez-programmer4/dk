@@ -42,6 +42,7 @@ import {
   BookOpen,
   Crown,
   FileText,
+  Receipt,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SchoolEditPanel } from "./components/SchoolEditPanel";
+import { BillingDashboard } from "./components/BillingDashboard";
 
 interface School {
   id: string;
@@ -580,10 +582,14 @@ export default function SchoolDetailPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="overview" className="space-y-8">
-          <TabsList className="grid w-full grid-cols-5 bg-slate-100/80 p-1 rounded-2xl backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-6 bg-slate-100/80 p-1 rounded-2xl backdrop-blur-sm">
             <TabsTrigger value="overview" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200">
               <Eye className="w-4 h-4 mr-2" />
               Overview
+            </TabsTrigger>
+            <TabsTrigger value="billing" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200">
+              <Receipt className="w-4 h-4 mr-2" />
+              Billing
             </TabsTrigger>
             <TabsTrigger value="analytics" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200">
               <BarChart3 className="w-4 h-4 mr-2" />
@@ -965,6 +971,11 @@ export default function SchoolDetailPage() {
                 </CardContent>
               </Card>
             </motion.div>
+          </TabsContent>
+
+          {/* Billing Tab */}
+          <TabsContent value="billing" className="space-y-8">
+            <BillingDashboard schoolId={params.id} />
           </TabsContent>
 
           {/* Analytics Tab */}

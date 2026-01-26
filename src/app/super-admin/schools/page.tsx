@@ -15,7 +15,8 @@ import {
   Plus,
   Zap,
   RefreshCw,
-  Shield
+  Shield,
+  Receipt
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { SchoolsFilters } from "./components/SchoolsFilters";
 import { SchoolsTable } from "./components/SchoolsTable";
 import { SchoolCreationPanel } from "./components/SchoolCreationPanel";
+import { PricingManagement } from "./components/PricingManagement";
 
 interface School {
   id: string;
@@ -464,10 +466,14 @@ export default function SuperAdminSchools() {
       {/* Main Content */}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         <Tabs defaultValue="schools" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="schools" className="flex items-center space-x-2">
               <Building2 className="w-4 h-4" />
               <span>Schools</span>
+            </TabsTrigger>
+            <TabsTrigger value="pricing" className="flex items-center space-x-2">
+              <Receipt className="w-4 h-4" />
+              <span>Pricing</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center space-x-2">
               <BarChart3 className="w-4 h-4" />
@@ -661,6 +667,10 @@ export default function SuperAdminSchools() {
                 onDeleteSchool={handleDeleteSchool}
               />
             )}
+          </TabsContent>
+
+          <TabsContent value="pricing" className="space-y-6">
+            <PricingManagement />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">

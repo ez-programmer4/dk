@@ -41,14 +41,15 @@ model School {
     createdById String? // Super admin who created
 
     // Relations
-    createdBy   SuperAdmin?           @relation("SuperAdminCreatedSchools", fields: [createdById], references: [id])
-    students    wpos_wpdatatable_23[]
-    teachers    wpos_wpdatatable_24[]
-    controllers wpos_wpdatatable_28[]
-    registrals  wpos_wpdatatable_33[]
-    admins      admin[]
-    settings    SchoolSetting[]
-    payments    SchoolPayment[]
+    createdBy    SuperAdmin?         @relation("SuperAdminCreatedSchools", fields: [createdById], references: [id])
+    subscription SchoolSubscription? @relation("SchoolSubscription")
+    students     wpos_wpdatatable_23[]
+    teachers     wpos_wpdatatable_24[]
+    controllers  wpos_wpdatatable_28[]
+    registrals   wpos_wpdatatable_33[]
+    admins       admin[]
+    settings     SchoolSetting[]
+    payments     SchoolPayment[]
 
     @@map("schools")
 }
@@ -70,10 +71,114 @@ model SuperAdmin {
     createdAt DateTime @default(now())
 
     // Relations - SuperAdmin can manage schools
-    createdSchools School[]             @relation("SuperAdminCreatedSchools")
-    auditLogs      SuperAdminAuditLog[] @relation("SuperAdminAuditLogs")
+    createdSchools    School[]             @relation("SuperAdminCreatedSchools")
+    auditLogs         SuperAdminAuditLog[] @relation("SuperAdminAuditLogs")
+    createdPricingPlans PricingPlan[]       @relation("SuperAdminCreatedPricingPlans")
 
     @@map("super_admins")
+}
+
+model PricingPlan {
+    id          String   @id @default(cuid())
+    name        String   @db.VarChar(100)
+    description String?  @db.Text
+    slug        String   @unique @db.VarChar(100)
+
+    // Pricing structure
+    baseSalaryPerStudent Decimal @db.Decimal(10, 2) // Base fee per active student
+    currency             String  @default("ETB") @db.VarChar(10)
+
+    // Status
+    isActive    Boolean  @default(true)
+    isDefault   Boolean  @default(false) // Default plan for new schools
+
+    // Metadata
+    createdAt   DateTime @default(now())
+    createdById String?
+    updatedAt   DateTime @updatedAt
+
+    // Relations
+    createdBy    SuperAdmin?      @relation("SuperAdminCreatedPricingPlans", fields: [createdById], references: [id])
+    planFeatures PlanFeature[]
+    subscriptions SchoolSubscription[]
+
+    @@map("pricing_plans")
+}
+
+model Feature {
+    id          String   @id @default(cuid())
+    name        String   @db.VarChar(100)
+    description String?  @db.Text
+    code        String   @unique @db.VarChar(50) // e.g., "teacher_payment", "zoom_integration"
+
+    // Feature properties
+    isCore      Boolean  @default(false) // Core features are always included
+    isActive    Boolean  @default(true)
+
+    // Metadata
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    // Relations
+    planFeatures PlanFeature[]
+
+    @@map("features")
+}
+
+model PlanFeature {
+    id        String @id @default(cuid())
+    planId    String
+    featureId String
+
+    // Pricing for this feature in this plan
+    price     Decimal  @db.Decimal(10, 2) // Additional cost for this feature
+    isEnabled Boolean  @default(true)     // Whether this feature is enabled in this plan
+
+    // Metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    plan    PricingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+    feature Feature     @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+    @@unique([planId, featureId])
+    @@map("plan_features")
+}
+
+model SchoolSubscription {
+    id        String   @id @default(cuid())
+    schoolId  String
+    planId    String
+
+    // Subscription details
+    status           String   @default("active") // active, cancelled, suspended, expired
+    currentPeriodStart DateTime?
+    currentPeriodEnd   DateTime?
+
+    // Billing information
+    billingCycle     String   @default("monthly") // monthly, yearly
+    nextBillingDate  DateTime?
+    lastBilledAt     DateTime?
+
+    // Usage tracking
+    activeStudentCount Int @default(0) // Current active students
+    lastCalculatedAt   DateTime?
+
+    // Feature toggles (overrides plan defaults)
+    enabledFeatures   Json? // { teacher_payment: true, zoom_integration: false }
+
+    // Metadata
+    createdAt         DateTime @default(now())
+    updatedAt         DateTime @updatedAt
+    cancelledAt       DateTime?
+
+    // Relations
+    school School      @relation("SchoolSubscription", fields: [schoolId], references: [id], onDelete: Cascade)
+    plan   PricingPlan @relation(fields: [planId], references: [id])
+
+    @@unique([schoolId]) // One subscription per school
+    @@map("school_subscriptions")
 }
 
 model SchoolSetting {

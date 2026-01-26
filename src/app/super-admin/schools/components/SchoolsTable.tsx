@@ -34,6 +34,21 @@ interface School {
   };
   primaryColor?: string;
   secondaryColor?: string;
+  subscription?: {
+    id: string;
+    status: string;
+    plan: {
+      name: string;
+      baseSalaryPerStudent: number;
+      currency: string;
+    };
+    activeStudentCount: number;
+    currentBilling?: {
+      totalFee: number;
+      currency: string;
+    };
+    nextBillingDate: string;
+  };
 }
 
 interface SchoolsTableProps {
@@ -171,6 +186,15 @@ export function SchoolsTable({
                 </div>
               </TableHead>
               <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
+                Plan
+              </TableHead>
+              <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
+                Monthly Cost
+              </TableHead>
+              <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
+                Billing Status
+              </TableHead>
+              <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
                 Status
               </TableHead>
               <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
@@ -181,7 +205,7 @@ export function SchoolsTable({
           <TableBody>
             {sortedSchools.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12">
+                <TableCell colSpan={9} className="text-center py-12">
                   <div className="flex flex-col items-center space-y-4">
                     <Building2 className="w-16 h-16 text-gray-300" />
                     <p className="text-gray-500 text-lg font-medium">No schools found</p>
@@ -233,6 +257,43 @@ export function SchoolsTable({
                     <div className="text-gray-600 font-medium">
                       {formatDate(school.createdAt)}
                     </div>
+                  </TableCell>
+                  <TableCell className="py-6 px-8">
+                    {school.subscription ? (
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {school.subscription.plan.name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {school.subscription.plan.currency} {school.subscription.plan.baseSalaryPerStudent}/student
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">No plan</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-6 px-8">
+                    {school.subscription?.currentBilling ? (
+                      <div className="font-semibold text-green-600">
+                        {school.subscription.currentBilling.currency} {school.subscription.currentBilling.totalFee.toFixed(2)}
+                      </div>
+                    ) : school.subscription ? (
+                      <span className="text-gray-400">Calculating...</span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-6 px-8">
+                    {school.subscription ? (
+                      <Badge
+                        variant={school.subscription.status === 'active' ? 'default' : 'secondary'}
+                        className="font-medium"
+                      >
+                        {school.subscription.status === 'active' ? 'Active' : 'Inactive'}
+                      </Badge>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-6 px-8">
                     <Badge

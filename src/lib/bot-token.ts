@@ -30,3 +30,4 @@ export function isValidBotToken(token: string): boolean {
     /^\d{8,10}:[a-zA-Z0-9_-]{35}$/.test(token)
   );
 }
+

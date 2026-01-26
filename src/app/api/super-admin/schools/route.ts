@@ -58,6 +58,24 @@ export async function GET(req: NextRequest) {
           phone: true,
           status: true,
           createdAt: true,
+          primaryColor: true,
+          secondaryColor: true,
+          subscription: {
+            select: {
+              id: true,
+              status: true,
+              billingCycle: true,
+              activeStudentCount: true,
+              nextBillingDate: true,
+              plan: {
+                select: {
+                  name: true,
+                  baseSalaryPerStudent: true,
+                  currency: true,
+                },
+              },
+            },
+          },
           _count: {
             select: {
               admins: true,
@@ -73,7 +91,7 @@ export async function GET(req: NextRequest) {
       prisma.school.count({ where: whereClause }),
     ]);
 
-    // Calculate total revenue for each school
+    // Calculate total revenue and billing for each school
     const schoolsWithRevenue = await Promise.all(
       schools.map(async (school) => {
         const revenue = await prisma.$queryRaw<{ paidamount: number | null }[]>`
@@ -83,9 +101,41 @@ export async function GET(req: NextRequest) {
           WHERE s.schoolId = ${school.id} AND p.status IN ('Approved', 'completed')
         `;
 
+        // Calculate current billing if subscription exists
+        let currentBilling = null;
+        if (school.subscription && school.subscription.status === 'active') {
+          try {
+            const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/super-admin/billing/calculate`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                // Note: This internal API call would need proper authentication in production
+              },
+              body: JSON.stringify({ schoolId: school.id }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.calculation) {
+                currentBilling = {
+                  totalFee: data.calculation.totalFee,
+                  currency: data.calculation.currency,
+                };
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to calculate billing for school ${school.id}:`, error);
+          }
+        }
+
         return {
           ...school,
+          currentStudentCount: school._count.students,
           revenue: revenue?.[0]?.paidamount || 0,
+          subscription: school.subscription ? {
+            ...school.subscription,
+            currentBilling,
+          } : null,
         };
       })
     );
@@ -134,6 +184,8 @@ export async function POST(req: NextRequest) {
       email,
       phone,
       address,
+      pricingPlanId,
+      enabledFeatures,
       logoUrl,
       primaryColor,
       secondaryColor,
@@ -144,7 +196,6 @@ export async function POST(req: NextRequest) {
       adminName,
       adminUsername,
       adminPassword,
-      adminEmail,
       adminPhone,
     } = body;
 
@@ -152,6 +203,31 @@ export async function POST(req: NextRequest) {
     if (!name || !slug || !email) {
       return NextResponse.json(
         { error: "Name, slug, and email are required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate pricing plan
+    if (!pricingPlanId) {
+      return NextResponse.json(
+        { error: "Pricing plan is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if pricing plan exists and is active
+    const pricingPlan = await prisma.pricingPlan.findUnique({
+      where: { id: pricingPlanId },
+      include: {
+        planFeatures: {
+          include: { feature: true }
+        }
+      }
+    });
+
+    if (!pricingPlan || !pricingPlan.isActive) {
+      return NextResponse.json(
+        { error: "Invalid or inactive pricing plan" },
         { status: 400 }
       );
     }
@@ -224,11 +300,22 @@ export async function POST(req: NextRequest) {
           name: finalAdminName,
           username: finalUsername,
           passcode: hashedPassword,
-          email: adminEmail || email,
           phoneno: adminPhone || phone,
           schoolId: school.id,
           chat_id: `admin_${slug}_${Date.now()}`, // Generate unique chat_id for admin
         }
+      });
+
+      // Create subscription for the school
+      const subscription = await prisma.schoolSubscription.create({
+        data: {
+          schoolId: school.id,
+          planId: pricingPlanId,
+          enabledFeatures: enabledFeatures || {},
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        },
       });
 
       // Create audit log
@@ -243,6 +330,9 @@ export async function POST(req: NextRequest) {
               schoolName: name,
               schoolSlug: slug,
               adminCreated: true,
+              pricingPlanId: pricingPlanId,
+              pricingPlanName: pricingPlan.name,
+              subscriptionCreated: true,
             },
             ipAddress:
               req.headers.get("x-forwarded-for") ||

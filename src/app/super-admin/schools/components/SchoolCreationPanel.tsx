@@ -16,6 +16,8 @@ import {
   Save,
   Eye,
   EyeOff,
+  Receipt,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+interface PricingPlan {
+  id: string;
+  name: string;
+  description?: string;
+  slug: string;
+  baseSalaryPerStudent: number;
+  currency: string;
+  isActive: boolean;
+  isDefault: boolean;
+  planFeatures: Array<{
+    id: string;
+    price: number;
+    isEnabled: boolean;
+    feature: {
+      id: string;
+      name: string;
+      description?: string;
+      code: string;
+      isCore: boolean;
+    };
+  }>;
+}
+
 interface SchoolCreationPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -40,24 +65,19 @@ interface SchoolCreationPanelProps {
 }
 
 interface NewSchool {
-  // Basic Information
   name: string;
   slug: string;
   email: string;
   phone: string;
   address: string;
-
-  // Branding
+  pricingPlanId: string;
+  enabledFeatures: Record<string, boolean>;
   logoUrl: string;
   primaryColor: string;
   secondaryColor: string;
-
-  // Configuration
   timezone: string;
   defaultCurrency: string;
   defaultLanguage: string;
-
-  // Features
   features: {
     zoom: boolean;
     analytics: boolean;
@@ -70,35 +90,27 @@ interface NewSchool {
     mobileApp: boolean;
     multiLanguage: boolean;
   };
-
-  // Admin Details
   adminName: string;
   adminUsername: string;
-  adminEmail: string;
   adminPhone: string;
   adminPassword: string;
   adminConfirmPassword: string;
 }
 
 const initialSchoolState: NewSchool = {
-  // Basic Information
   name: "",
   slug: "",
   email: "",
   phone: "",
   address: "",
-
-  // Branding
+  pricingPlanId: "",
+  enabledFeatures: {},
   logoUrl: "",
   primaryColor: "#3B82F6",
   secondaryColor: "#1F2937",
-
-  // Configuration
   timezone: "Africa/Addis_Ababa",
   defaultCurrency: "ETB",
   defaultLanguage: "en",
-
-  // Features
   features: {
     zoom: true,
     analytics: true,
@@ -111,11 +123,8 @@ const initialSchoolState: NewSchool = {
     mobileApp: false,
     multiLanguage: false,
   },
-
-  // Admin Details
   adminName: "",
   adminUsername: "",
-  adminEmail: "",
   adminPhone: "",
   adminPassword: "",
   adminConfirmPassword: "",
@@ -123,26 +132,17 @@ const initialSchoolState: NewSchool = {
 
 const timezones = [
   { value: "Africa/Addis_Ababa", label: "East Africa Time (UTC+3)" },
-  { value: "Africa/Cairo", label: "Egypt Standard Time (UTC+2)" },
-  { value: "Africa/Lagos", label: "West Africa Time (UTC+1)" },
-  { value: "UTC", label: "Coordinated Universal Time (UTC+0)" },
-  { value: "Europe/London", label: "Greenwich Mean Time (UTC+0/+1)" },
-  { value: "America/New_York", label: "Eastern Time (UTC-5/-4)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (UTC-8/-7)" },
-  { value: "Asia/Dubai", label: "Gulf Standard Time (UTC+4)" },
-  { value: "Asia/Kolkata", label: "India Standard Time (UTC+5:30)" },
-  { value: "Asia/Shanghai", label: "China Standard Time (UTC+8)" },
+  { value: "UTC", label: "UTC" },
+  { value: "America/New_York", label: "Eastern Time (UTC-5)" },
+  { value: "Europe/London", label: "GMT (UTC+0)" },
+  { value: "Asia/Dubai", label: "Gulf Time (UTC+4)" },
 ];
 
 const currencies = [
-  { value: "ETB", label: "Ethiopian Birr (ETB)" },
-  { value: "USD", label: "US Dollar (USD)" },
-  { value: "EUR", label: "Euro (EUR)" },
-  { value: "GBP", label: "British Pound (GBP)" },
-  { value: "AED", label: "UAE Dirham (AED)" },
-  { value: "SAR", label: "Saudi Riyal (SAR)" },
-  { value: "INR", label: "Indian Rupee (INR)" },
-  { value: "CNY", label: "Chinese Yuan (CNY)" },
+  { value: "ETB", label: "ETB - Ethiopian Birr" },
+  { value: "USD", label: "USD - US Dollar" },
+  { value: "EUR", label: "EUR - Euro" },
+  { value: "GBP", label: "GBP - British Pound" },
 ];
 
 const languages = [
@@ -150,18 +150,9 @@ const languages = [
   { value: "am", label: "አማርኛ (Amharic)" },
   { value: "ar", label: "العربية (Arabic)" },
   { value: "ti", label: "ትግርኛ (Tigrinya)" },
-  { value: "om", label: "Oromo" },
-  { value: "so", label: "Somali" },
-  { value: "fr", label: "Français (French)" },
-  { value: "es", label: "Español (Spanish)" },
-  { value: "de", label: "Deutsch (German)" },
 ];
 
-export function SchoolCreationPanel({
-  isOpen,
-  onClose,
-  onSuccess,
-}: SchoolCreationPanelProps) {
+export function SchoolCreationPanel({ isOpen, onClose, onSuccess }: SchoolCreationPanelProps) {
   const [newSchool, setNewSchool] = useState<NewSchool>(initialSchoolState);
   const [activeTab, setActiveTab] = useState("basic");
   const [loading, setLoading] = useState(false);
@@ -169,12 +160,58 @@ export function SchoolCreationPanel({
   const [slugChecking, setSlugChecking] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
+
+  useEffect(() => {
+    fetchPricingPlans();
+  }, []);
+
+  const fetchPricingPlans = async () => {
+    setLoadingPlans(true);
+    try {
+      const response = await fetch("/api/super-admin/pricing/plans");
+      const data = await response.json();
+      if (data.success) {
+        setPricingPlans(data.plans);
+        const defaultPlan = data.plans.find((plan: PricingPlan) => plan.isDefault);
+        if (defaultPlan) {
+          handlePlanSelection(defaultPlan);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch pricing plans:", error);
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
+  const handlePlanSelection = (plan: PricingPlan) => {
+    setSelectedPlan(plan);
+    setNewSchool(prev => ({
+      ...prev,
+      pricingPlanId: plan.id,
+      enabledFeatures: {},
+    }));
+  };
+
+  const handlePricingFeatureToggle = (featureCode: string, enabled: boolean) => {
+    setNewSchool(prev => ({
+      ...prev,
+      enabledFeatures: {
+        ...prev.enabledFeatures,
+        [featureCode]: enabled,
+      },
+    }));
+  };
 
   const handleNameChange = (name: string) => {
     const slug = name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
     setNewSchool({ ...newSchool, name, slug });
     checkSlugAvailability(slug);
   };
@@ -196,26 +233,18 @@ export function SchoolCreationPanel({
     }
   };
 
-  const handleFeatureToggle = (feature: keyof NewSchool['features'], value: boolean) => {
-    setNewSchool({
-      ...newSchool,
-      features: {
-        ...newSchool.features,
-        [feature]: value,
-      },
-    });
-  };
-
   const validateCurrentTab = (tab: string): boolean => {
     switch (tab) {
       case "basic":
         return !!(newSchool.name && newSchool.slug && newSchool.email && slugAvailable !== false);
+      case "pricing":
+        return !!newSchool.pricingPlanId;
       case "branding":
-        return true; // Optional fields
+        return true;
       case "configuration":
-        return true; // Has defaults
+        return true;
       case "features":
-        return true; // Has defaults
+        return true;
       case "admin":
         return !!(
           newSchool.adminName &&
@@ -228,11 +257,12 @@ export function SchoolCreationPanel({
     }
   };
 
+  const isTabValid = (tab: string) => validateCurrentTab(tab);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate all tabs
-    const tabs = ["basic", "branding", "configuration", "features", "admin"];
+    const tabs = ["basic", "pricing", "branding", "configuration", "features", "admin"];
     for (const tab of tabs) {
       if (!validateCurrentTab(tab)) {
         setActiveTab(tab);
@@ -266,13 +296,10 @@ export function SchoolCreationPanel({
     }
   };
 
-  const isTabValid = (tab: string) => validateCurrentTab(tab);
-
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -281,7 +308,6 @@ export function SchoolCreationPanel({
             onClick={onClose}
           />
 
-          {/* Side Panel */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -290,7 +316,6 @@ export function SchoolCreationPanel({
             className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl z-50 overflow-y-auto"
           >
             <div className="flex flex-col h-full">
-              {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-indigo-100 rounded-lg">
@@ -311,11 +336,10 @@ export function SchoolCreationPanel({
                 </Button>
               </div>
 
-              {/* Content */}
               <div className="flex-1 p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-5">
+                    <TabsList className="grid w-full grid-cols-6">
                       <TabsTrigger
                         value="basic"
                         className={`flex items-center space-x-2 ${isTabValid("basic") ? "text-green-600" : ""}`}
@@ -329,6 +353,13 @@ export function SchoolCreationPanel({
                       >
                         <Palette className="w-4 h-4" />
                         <span className="hidden sm:inline">Branding</span>
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="pricing"
+                        className={`flex items-center space-x-2 ${isTabValid("pricing") ? "text-green-600" : ""}`}
+                      >
+                        <Receipt className="w-4 h-4" />
+                        <span className="hidden sm:inline">Pricing</span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="configuration"
@@ -353,7 +384,6 @@ export function SchoolCreationPanel({
                       </TabsTrigger>
                     </TabsList>
 
-                    {/* Basic Information Tab */}
                     <TabsContent value="basic" className="space-y-6 mt-6">
                       <Card>
                         <CardHeader>
@@ -448,7 +478,6 @@ export function SchoolCreationPanel({
                       </Card>
                     </TabsContent>
 
-                    {/* Branding Tab */}
                     <TabsContent value="branding" className="space-y-6 mt-6">
                       <Card>
                         <CardHeader>
@@ -521,7 +550,146 @@ export function SchoolCreationPanel({
                       </Card>
                     </TabsContent>
 
-                    {/* Configuration Tab */}
+                    <TabsContent value="pricing" className="space-y-6 mt-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Receipt className="w-5 h-5 text-green-600" />
+                            <span>Pricing Plan Selection</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div className="space-y-4">
+                            <Label>Select Pricing Plan</Label>
+                            {loadingPlans ? (
+                              <div className="text-center py-8">
+                                <Calculator className="w-8 h-8 animate-spin mx-auto text-gray-400 mb-4" />
+                                <p className="text-gray-600">Loading pricing plans...</p>
+                              </div>
+                            ) : pricingPlans.length === 0 ? (
+                              <div className="text-center py-8">
+                                <Receipt className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                  No Pricing Plans Available
+                                </h3>
+                                <p className="text-gray-600">
+                                  Please create pricing plans first in the Pricing management section.
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {pricingPlans
+                                  .filter(plan => plan.isActive)
+                                  .map((plan) => (
+                                    <div
+                                      key={plan.id}
+                                      className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                        selectedPlan?.id === plan.id
+                                          ? "border-green-500 bg-green-50"
+                                          : "border-gray-200 hover:border-gray-300"
+                                      }`}
+                                      onClick={() => handlePlanSelection(plan)}
+                                    >
+                                      {plan.isDefault && (
+                                        <Badge className="absolute -top-2 -right-2 bg-yellow-500 text-white">
+                                          Default
+                                        </Badge>
+                                      )}
+                                      <div className="flex items-start justify-between mb-2">
+                                        <h4 className="font-semibold text-lg">{plan.name}</h4>
+                                        {selectedPlan?.id === plan.id && (
+                                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                        )}
+                                      </div>
+                                      {plan.description && (
+                                        <p className="text-sm text-gray-600 mb-3">{plan.description}</p>
+                                      )}
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm text-gray-600">Base Price:</span>
+                                          <span className="font-semibold">
+                                            {plan.currency} {plan.baseSalaryPerStudent} / student
+                                          </span>
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          {plan.planFeatures.length} features included
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {selectedPlan && (
+                            <div className="space-y-4">
+                              <Label>Plan Details & Feature Configuration</Label>
+                              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                <h4 className="font-medium mb-2">
+                                  {selectedPlan.name} Plan
+                                </h4>
+                                <div className="space-y-2 mb-4">
+                                  <div className="flex justify-between text-sm">
+                                    <span>Base Price per Student:</span>
+                                    <span className="font-semibold">
+                                      {selectedPlan.currency} {selectedPlan.baseSalaryPerStudent}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-gray-600">
+                                    Total cost will be calculated based on active student count
+                                  </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                  <h5 className="text-sm font-medium">Features:</h5>
+                                  {selectedPlan.planFeatures.map((planFeature) => (
+                                    <div
+                                      key={planFeature.id}
+                                      className="flex items-center justify-between py-2 px-3 bg-white rounded border"
+                                    >
+                                      <div>
+                                        <div className="text-sm font-medium">
+                                          {planFeature.feature.name}
+                                        </div>
+                                        {planFeature.feature.description && (
+                                          <div className="text-xs text-gray-600">
+                                            {planFeature.feature.description}
+                                          </div>
+                                        )}
+                                        {planFeature.price > 0 && (
+                                          <div className="text-xs text-green-600 font-medium">
+                                            +{selectedPlan.currency} {planFeature.price}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        {planFeature.feature.isCore && (
+                                          <Badge variant="outline" className="text-xs">
+                                            Core
+                                          </Badge>
+                                        )}
+                                        <Switch
+                                          checked={
+                                            newSchool.enabledFeatures[planFeature.feature.code] !== undefined
+                                              ? newSchool.enabledFeatures[planFeature.feature.code]
+                                              : planFeature.isEnabled
+                                          }
+                                          onCheckedChange={(checked) =>
+                                            handlePricingFeatureToggle(planFeature.feature.code, checked)
+                                          }
+                                          disabled={planFeature.feature.isCore}
+                                        />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
                     <TabsContent value="configuration" className="space-y-6 mt-6">
                       <Card>
                         <CardHeader>
@@ -593,7 +761,6 @@ export function SchoolCreationPanel({
                       </Card>
                     </TabsContent>
 
-                    {/* Features Tab */}
                     <TabsContent value="features" className="space-y-6 mt-6">
                       <Card>
                         <CardHeader>
@@ -616,7 +783,12 @@ export function SchoolCreationPanel({
                                 </div>
                                 <Switch
                                   checked={enabled}
-                                  onCheckedChange={(checked) => handleFeatureToggle(feature as keyof NewSchool['features'], checked)}
+                                  onCheckedChange={(checked) => 
+                                    setNewSchool({
+                                      ...newSchool,
+                                      features: { ...newSchool.features, [feature]: checked }
+                                    })
+                                  }
                                 />
                               </div>
                             ))}
@@ -625,7 +797,6 @@ export function SchoolCreationPanel({
                       </Card>
                     </TabsContent>
 
-                    {/* Admin Tab */}
                     <TabsContent value="admin" className="space-y-6 mt-6">
                       <Card>
                         <CardHeader>
@@ -648,19 +819,6 @@ export function SchoolCreationPanel({
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor="adminEmail">Email Address</Label>
-                              <Input
-                                id="adminEmail"
-                                type="email"
-                                value={newSchool.adminEmail}
-                                onChange={(e) => setNewSchool({ ...newSchool, adminEmail: e.target.value })}
-                                placeholder="admin@school.com"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
                               <Label htmlFor="adminUsername">Username *</Label>
                               <Input
                                 id="adminUsername"
@@ -670,16 +828,16 @@ export function SchoolCreationPanel({
                                 required
                               />
                             </div>
+                          </div>
 
-                            <div className="space-y-2">
-                              <Label htmlFor="adminPhone">Phone Number</Label>
-                              <Input
-                                id="adminPhone"
-                                value={newSchool.adminPhone}
-                                onChange={(e) => setNewSchool({ ...newSchool, adminPhone: e.target.value })}
-                                placeholder="+251..."
-                              />
-                            </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="adminPhone">Phone Number</Label>
+                            <Input
+                              id="adminPhone"
+                              value={newSchool.adminPhone}
+                              onChange={(e) => setNewSchool({ ...newSchool, adminPhone: e.target.value })}
+                              placeholder="+251..."
+                            />
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -740,7 +898,6 @@ export function SchoolCreationPanel({
                 </form>
               </div>
 
-              {/* Footer */}
               <div className="border-t border-gray-200 p-6 bg-gray-50">
                 <div className="flex justify-end space-x-3">
                   <Button

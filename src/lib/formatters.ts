@@ -19,3 +19,4 @@ export function formatNumber(num: number, decimals: number = 0): string {
 export function formatPercentage(value: number, decimals: number = 1): string {
   return `${formatNumber(value, decimals)}%`;
 }
+

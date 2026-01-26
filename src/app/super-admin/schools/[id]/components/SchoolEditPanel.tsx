@@ -594,3 +594,4 @@ export function SchoolEditPanel({ isOpen, onClose, school, onSuccess }: SchoolEd
     </AnimatePresence>
   );
 }
+
