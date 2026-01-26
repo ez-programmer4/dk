@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { MoreHorizontal, Eye, Edit, Trash2, Users, Calendar, Building2 } from "lucide-react";
@@ -24,7 +25,9 @@ interface School {
   name: string;
   slug: string;
   email: string;
-  status: 'active' | 'inactive' | 'suspended';
+  status: 'trial' | 'active' | 'inactive' | 'suspended' | 'expired' | 'cancelled';
+  statusReason?: string;
+  statusChangedAt?: string;
   currentStudentCount: number;
   createdAt: string;
   _count: {
@@ -32,22 +35,21 @@ interface School {
     teachers: number;
     students: number;
   };
-  primaryColor?: string;
-  secondaryColor?: string;
   subscription?: {
-    id: string;
     status: string;
+    currentPeriodEnd: string;
+    activeStudentCount: number;
     plan: {
       name: string;
       baseSalaryPerStudent: number;
       currency: string;
     };
-    activeStudentCount: number;
     currentBilling?: {
-      totalFee: number;
+      totalMonthlyCost: number;
+      baseFee: number;
+      featureFees: { name: string; price: number }[];
       currency: string;
     };
-    nextBillingDate: string;
   };
 }
 
@@ -65,7 +67,6 @@ export function SchoolsTable({
   onViewSchool,
   onEditSchool,
   onDeleteSchool,
-  onChangePlan,
 }: SchoolsTableProps) {
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -74,10 +75,16 @@ export function SchoolsTable({
     switch (status) {
       case 'active':
         return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'trial':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'inactive':
         return 'bg-gray-100 text-gray-800 border-gray-200';
       case 'suspended':
         return 'bg-red-100 text-red-800 border-red-200';
+      case 'expired':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'cancelled':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -158,44 +165,26 @@ export function SchoolsTable({
               </TableHead>
               <TableHead
                 className="font-bold text-gray-800 text-lg py-6 px-8 cursor-pointer hover:text-indigo-700 transition-colors"
-                onClick={() => handleSort('slug')}
+                onClick={() => handleSort('status')}
               >
                 <div className="flex items-center space-x-3">
-                  <span>Slug</span>
-                  {sortField === 'slug' && (
+                  <span>Status</span>
+                  {sortField === 'status' && (
                     <span className="text-indigo-600">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                   )}
                 </div>
               </TableHead>
               <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
                 <div className="flex items-center space-x-3">
-                  <Users className="w-5 h-5 text-purple-600" />
+                  <Users className="w-5 h-5 text-indigo-600" />
                   <span>Students</span>
                 </div>
               </TableHead>
-              <TableHead
-                className="font-bold text-gray-800 text-lg py-6 px-8 cursor-pointer hover:text-indigo-700 transition-colors"
-                onClick={() => handleSort('createdAt')}
-              >
+              <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
                 <div className="flex items-center space-x-3">
-                  <Calendar className="w-5 h-5 text-emerald-600" />
+                  <Calendar className="w-5 h-5 text-indigo-600" />
                   <span>Created</span>
-                  {sortField === 'createdAt' && (
-                    <span className="text-indigo-600">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
                 </div>
-              </TableHead>
-              <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
-                Plan
-              </TableHead>
-              <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
-                Monthly Cost
-              </TableHead>
-              <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
-                Billing Status
-              </TableHead>
-              <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
-                Status
               </TableHead>
               <TableHead className="font-bold text-gray-800 text-lg py-6 px-8">
                 Actions
@@ -205,7 +194,7 @@ export function SchoolsTable({
           <TableBody>
             {sortedSchools.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12">
+                <TableCell colSpan={5} className="text-center py-12">
                   <div className="flex flex-col items-center space-y-4">
                     <Building2 className="w-16 h-16 text-gray-300" />
                     <p className="text-gray-500 text-lg font-medium">No schools found</p>
@@ -226,7 +215,7 @@ export function SchoolsTable({
                     <div className="flex items-center space-x-4">
                       <div
                         className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg"
-                        style={{ backgroundColor: school.primaryColor || '#3B82F6' }}
+                        style={{ backgroundColor: '#3B82F6' }}
                       >
                         {school.name.charAt(0).toUpperCase()}
                       </div>
@@ -237,80 +226,43 @@ export function SchoolsTable({
                         <div className="text-gray-500 text-sm font-medium">
                           {school.email}
                         </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-6 px-8">
-                    <div className="font-mono text-sm bg-gray-100 px-3 py-1 rounded-lg text-gray-700">
-                      {school.slug}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-6 px-8">
-                    <div className="flex items-center space-x-2">
-                      <Users className="w-5 h-5 text-gray-400" />
-                      <span className="font-semibold text-gray-700">
-                        {school._count.students || 0}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-6 px-8">
-                    <div className="text-gray-600 font-medium">
-                      {formatDate(school.createdAt)}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-6 px-8">
-                    {school.subscription ? (
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {school.subscription.plan.name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {school.subscription.plan.currency} {school.subscription.plan.baseSalaryPerStudent}/student
+                        <div className="text-gray-400 text-xs">
+                          {school.slug}
                         </div>
                       </div>
-                    ) : (
-                      <span className="text-gray-400">No plan</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="py-6 px-8">
-                    {school.subscription?.currentBilling ? (
-                      <div className="font-semibold text-green-600">
-                        {school.subscription.currentBilling.currency} {school.subscription.currentBilling.totalFee.toFixed(2)}
-                      </div>
-                    ) : school.subscription ? (
-                      <span className="text-gray-400">Calculating...</span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="py-6 px-8">
-                    {school.subscription ? (
-                      <Badge
-                        variant={school.subscription.status === 'active' ? 'default' : 'secondary'}
-                        className="font-medium"
-                      >
-                        {school.subscription.status === 'active' ? 'Active' : 'Inactive'}
-                      </Badge>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
+                    </div>
                   </TableCell>
                   <TableCell className="py-6 px-8">
                     <Badge
-                      variant="outline"
                       className={`${getStatusColor(school.status)} border-2 font-semibold px-4 py-2 rounded-xl`}
                     >
                       {school.status.charAt(0).toUpperCase() + school.status.slice(1)}
                     </Badge>
                   </TableCell>
                   <TableCell className="py-6 px-8">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-gray-900">
+                        {school.currentStudentCount}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {school._count?.students || 0} total
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-6 px-8">
+                    <div className="text-gray-700 font-medium">
+                      {formatDate(school.createdAt)}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-6 px-8">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
-                          className="h-10 w-10 p-0 hover:bg-indigo-50 hover:border-indigo-200 border border-transparent transition-all duration-200 rounded-xl"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-indigo-100"
                         >
-                          <MoreHorizontal className="h-5 w-5 text-gray-500" />
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import {
   Plus,
   Edit,
@@ -17,6 +16,7 @@ import {
   RefreshCw,
   Receipt,
   Target,
+  X
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PricingPlan {
@@ -71,8 +71,10 @@ export function PricingManagement() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("plans");
 
+  // Side panel state
+  const [activePanel, setActivePanel] = useState<string | null>(null);
+
   // Plan creation state
-  const [showCreatePlan, setShowCreatePlan] = useState(false);
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [newPlan, setNewPlan] = useState({
     name: "",
@@ -86,7 +88,6 @@ export function PricingManagement() {
 
   // Plan editing state
   const [editingPlan, setEditingPlan] = useState<PricingPlan | null>(null);
-  const [showEditPlan, setShowEditPlan] = useState(false);
   const [updatingPlan, setUpdatingPlan] = useState(false);
   const [editPlan, setEditPlan] = useState({
     name: "",
@@ -99,7 +100,6 @@ export function PricingManagement() {
   });
 
   // Feature creation state
-  const [showCreateFeature, setShowCreateFeature] = useState(false);
   const [creatingFeature, setCreatingFeature] = useState(false);
   const [newFeature, setNewFeature] = useState({
     name: "",
@@ -165,13 +165,14 @@ export function PricingManagement() {
 
       const data = await response.json();
       if (data.success) {
-        setShowCreatePlan(false);
+        setActivePanel(null);
         setNewPlan({
           name: "",
           description: "",
           slug: "",
           baseSalaryPerStudent: "",
           currency: "ETB",
+          isDefault: false,
           features: [],
         });
         fetchPlans();
@@ -204,7 +205,7 @@ export function PricingManagement() {
 
       const data = await response.json();
       if (data.success) {
-        setShowCreateFeature(false);
+        setActivePanel(null);
         setNewFeature({
           name: "",
           description: "",
@@ -239,7 +240,7 @@ export function PricingManagement() {
         isEnabled: pf.isEnabled,
       })),
     });
-    setShowEditPlan(true);
+    setActivePanel('edit-plan');
   };
 
   const handleUpdatePlan = async () => {
@@ -272,7 +273,7 @@ export function PricingManagement() {
 
       const data = await response.json();
       if (data.success) {
-        setShowEditPlan(false);
+        setActivePanel(null);
         setEditingPlan(null);
         fetchPlans();
       } else {
@@ -398,169 +399,13 @@ export function PricingManagement() {
                 Manage pricing plans for schools
               </p>
             </div>
-            <Dialog open={showCreatePlan} onOpenChange={setShowCreatePlan}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center space-x-2">
-                  <Plus className="w-4 h-4" />
-                  <span>Create Plan</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Create Pricing Plan</DialogTitle>
-                  <DialogDescription>
-                    Create a new pricing plan for schools
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="plan-name">Plan Name *</Label>
-                      <Input
-                        id="plan-name"
-                        value={newPlan.name}
-                        onChange={(e) => handleNameChange(e.target.value)}
-                        placeholder="e.g., Basic Plan"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="plan-slug">Slug *</Label>
-                      <Input
-                        id="plan-slug"
-                        value={newPlan.slug}
-                        onChange={(e) => setNewPlan(prev => ({ ...prev, slug: e.target.value }))}
-                        placeholder="basic-plan"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="plan-description">Description</Label>
-                    <Textarea
-                      id="plan-description"
-                      value={newPlan.description}
-                      onChange={(e) => setNewPlan(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Describe this pricing plan"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="base-salary">Base Salary per Student *</Label>
-                      <Input
-                        id="base-salary"
-                        type="number"
-                        step="0.01"
-                        value={newPlan.baseSalaryPerStudent}
-                        onChange={(e) => setNewPlan(prev => ({ ...prev, baseSalaryPerStudent: e.target.value }))}
-                        placeholder="50.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="currency">Currency</Label>
-                      <Select
-                        value={newPlan.currency}
-                        onValueChange={(value) => setNewPlan(prev => ({ ...prev, currency: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ETB">ETB (Ethiopian Birr)</SelectItem>
-                          <SelectItem value="USD">USD (US Dollar)</SelectItem>
-                          <SelectItem value="EUR">EUR (Euro)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label>Features</Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addFeatureToPlan}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Feature
-                      </Button>
-                    </div>
-
-                    {newPlan.features.map((planFeature, index) => (
-                      <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg">
-                        <div className="flex-1">
-                          <Select
-                            value={planFeature.id}
-                            onValueChange={(value) => updateFeatureInPlan(index, 'id', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select feature" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {features.map((feature) => (
-                                <SelectItem key={feature.id} value={feature.id}>
-                                  {feature.name} ({feature.code})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="w-24">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={planFeature.price}
-                            onChange={(e) => updateFeatureInPlan(index, 'price', e.target.value)}
-                          />
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            checked={planFeature.isEnabled}
-                            onCheckedChange={(checked) => updateFeatureInPlan(index, 'isEnabled', checked)}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeFeatureFromPlan(index)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowCreatePlan(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleCreatePlan}
-                      disabled={creatingPlan}
-                    >
-                      {creatingPlan ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          Create Plan
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button
+              className="flex items-center space-x-2"
+              onClick={() => setActivePanel('create-plan')}
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Plan</span>
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -671,90 +516,13 @@ export function PricingManagement() {
                 Manage available features for pricing plans
               </p>
             </div>
-            <Dialog open={showCreateFeature} onOpenChange={setShowCreateFeature}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center space-x-2">
-                  <Plus className="w-4 h-4" />
-                  <span>Create Feature</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Create Feature</DialogTitle>
-                  <DialogDescription>
-                    Create a new feature for pricing plans
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="feature-name">Feature Name *</Label>
-                    <Input
-                      id="feature-name"
-                      value={newFeature.name}
-                      onChange={(e) => setNewFeature(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="e.g., Teacher Payment"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="feature-code">Code *</Label>
-                    <Input
-                      id="feature-code"
-                      value={newFeature.code}
-                      onChange={(e) => setNewFeature(prev => ({ ...prev, code: e.target.value }))}
-                      placeholder="teacher_payment"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Unique identifier, use snake_case
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="feature-description">Description</Label>
-                    <Textarea
-                      id="feature-description"
-                      value={newFeature.description}
-                      onChange={(e) => setNewFeature(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Describe this feature"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="is-core"
-                      checked={newFeature.isCore}
-                      onCheckedChange={(checked) => setNewFeature(prev => ({ ...prev, isCore: checked }))}
-                    />
-                    <Label htmlFor="is-core">Core Feature</Label>
-                  </div>
-
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowCreateFeature(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleCreateFeature}
-                      disabled={creatingFeature}
-                    >
-                      {creatingFeature ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          Create Feature
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button
+              className="flex items-center space-x-2"
+              onClick={() => setActivePanel('create-feature')}
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Feature</span>
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -810,6 +578,477 @@ export function PricingManagement() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Side Panels */}
+      <AnimatePresence>
+        {/* Create Plan Side Panel */}
+        {activePanel === 'create-plan' && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => setActivePanel(null)}
+            />
+
+            {/* Side Panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl z-50 overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+                <h2 className="text-xl font-semibold text-gray-900">Create Pricing Plan</h2>
+                <Button variant="ghost" size="sm" onClick={() => setActivePanel(null)}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="plan-name">Plan Name *</Label>
+                      <Input
+                        id="plan-name"
+                        value={newPlan.name}
+                        onChange={(e) => handleNameChange(e.target.value)}
+                        placeholder="e.g., Basic Plan"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="plan-slug">Slug *</Label>
+                      <Input
+                        id="plan-slug"
+                        value={newPlan.slug}
+                        onChange={(e) => setNewPlan(prev => ({ ...prev, slug: e.target.value }))}
+                        placeholder="basic-plan"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="plan-description">Description</Label>
+                    <Textarea
+                      id="plan-description"
+                      value={newPlan.description}
+                      onChange={(e) => setNewPlan(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Describe this pricing plan"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="base-salary">Base Salary per Student *</Label>
+                      <Input
+                        id="base-salary"
+                        type="number"
+                        step="0.01"
+                        value={newPlan.baseSalaryPerStudent}
+                        onChange={(e) => setNewPlan(prev => ({ ...prev, baseSalaryPerStudent: e.target.value }))}
+                        placeholder="50.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currency">Currency</Label>
+                      <Select
+                        value={newPlan.currency}
+                        onValueChange={(value) => setNewPlan(prev => ({ ...prev, currency: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ETB">ETB (Ethiopian Birr)</SelectItem>
+                          <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                          <SelectItem value="EUR">EUR (Euro)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label>Features</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addFeatureToPlan(newPlan, setNewPlan)}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Feature
+                      </Button>
+                    </div>
+
+                    {newPlan.features.map((planFeature, index) => (
+                      <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <Select
+                            value={planFeature.id}
+                            onValueChange={(value) => updateFeatureInPlan(index, 'id', value, newPlan, setNewPlan)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select feature" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {features.map((feature) => (
+                                <SelectItem key={feature.id} value={feature.id}>
+                                  {feature.name} ({feature.code})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="w-24">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={planFeature.price}
+                            onChange={(e) => updateFeatureInPlan(index, 'price', e.target.value, newPlan, setNewPlan)}
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={planFeature.isEnabled}
+                            onCheckedChange={(checked) => updateFeatureInPlan(index, 'isEnabled', checked, newPlan, setNewPlan)}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeFeatureFromPlan(index, newPlan, setNewPlan)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-end space-x-2 pt-6 border-t">
+                    <Button variant="outline" onClick={() => setActivePanel(null)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCreatePlan} disabled={creatingPlan}>
+                      {creatingPlan ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Create Plan
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+
+        {/* Create Feature Side Panel */}
+        {activePanel === 'create-feature' && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => setActivePanel(null)}
+            />
+
+            {/* Side Panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+                <h2 className="text-xl font-semibold text-gray-900">Create Feature</h2>
+                <Button variant="ghost" size="sm" onClick={() => setActivePanel(null)}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="feature-name">Feature Name *</Label>
+                    <Input
+                      id="feature-name"
+                      value={newFeature.name}
+                      onChange={(e) => setNewFeature(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Teacher Payment"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="feature-code">Code *</Label>
+                    <Input
+                      id="feature-code"
+                      value={newFeature.code}
+                      onChange={(e) => setNewFeature(prev => ({ ...prev, code: e.target.value }))}
+                      placeholder="teacher_payment"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Unique identifier, use snake_case
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="feature-description">Description</Label>
+                    <Textarea
+                      id="feature-description"
+                      value={newFeature.description}
+                      onChange={(e) => setNewFeature(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Describe this feature"
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="is-core"
+                      checked={newFeature.isCore}
+                      onCheckedChange={(checked) => setNewFeature(prev => ({ ...prev, isCore: checked }))}
+                    />
+                    <Label htmlFor="is-core">Core Feature</Label>
+                  </div>
+
+                  <div className="flex justify-end space-x-2 pt-6 border-t">
+                    <Button variant="outline" onClick={() => setActivePanel(null)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCreateFeature} disabled={creatingFeature}>
+                      {creatingFeature ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Create Feature
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+
+        {/* Edit Plan Side Panel */}
+        {activePanel === 'edit-plan' && editingPlan && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => setActivePanel(null)}
+            />
+
+            {/* Side Panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl z-50 overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+                <h2 className="text-xl font-semibold text-gray-900">Edit Pricing Plan</h2>
+                <Button variant="ghost" size="sm" onClick={() => setActivePanel(null)}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-plan-name">Plan Name *</Label>
+                      <Input
+                        id="edit-plan-name"
+                        value={editPlan.name}
+                        onChange={(e) => setEditPlan(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g., Basic Plan"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-plan-slug">Slug *</Label>
+                      <Input
+                        id="edit-plan-slug"
+                        value={editingPlan.slug}
+                        disabled
+                        className="bg-gray-100"
+                      />
+                      <p className="text-xs text-gray-500">Slug cannot be changed</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-plan-description">Description</Label>
+                    <Textarea
+                      id="edit-plan-description"
+                      value={editPlan.description}
+                      onChange={(e) => setEditPlan(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Describe this pricing plan"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-base-salary">Base Salary per Student *</Label>
+                      <Input
+                        id="edit-base-salary"
+                        type="number"
+                        step="0.01"
+                        value={editPlan.baseSalaryPerStudent}
+                        onChange={(e) => setEditPlan(prev => ({ ...prev, baseSalaryPerStudent: e.target.value }))}
+                        placeholder="50.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-currency">Currency</Label>
+                      <Select
+                        value={editPlan.currency}
+                        onValueChange={(value) => setEditPlan(prev => ({ ...prev, currency: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ETB">ETB (Ethiopian Birr)</SelectItem>
+                          <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                          <SelectItem value="EUR">EUR (Euro)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="edit-is-active"
+                      checked={editPlan.isActive}
+                      onCheckedChange={(checked) => setEditPlan(prev => ({ ...prev, isActive: checked }))}
+                    />
+                    <Label htmlFor="edit-is-active">Active Plan</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="edit-is-default"
+                      checked={editPlan.isDefault}
+                      onCheckedChange={(checked) => setEditPlan(prev => ({ ...prev, isDefault: checked }))}
+                    />
+                    <Label htmlFor="edit-is-default">Set as Default Plan</Label>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label>Features</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addFeatureToPlan(editPlan, setEditPlan)}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Feature
+                      </Button>
+                    </div>
+
+                    {editPlan.features.map((planFeature, index) => (
+                      <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <Select
+                            value={planFeature.id}
+                            onValueChange={(value) => updateFeatureInPlan(index, 'id', value, editPlan, setEditPlan)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select feature" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {features.map((feature) => (
+                                <SelectItem key={feature.id} value={feature.id}>
+                                  {feature.name} ({feature.code})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="w-24">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={planFeature.price}
+                            onChange={(e) => updateFeatureInPlan(index, 'price', e.target.value, editPlan, setEditPlan)}
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={planFeature.isEnabled}
+                            onCheckedChange={(checked) => updateFeatureInPlan(index, 'isEnabled', checked, editPlan, setEditPlan)}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeFeatureFromPlan(index, editPlan, setEditPlan)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-end space-x-2 pt-6 border-t">
+                    <Button variant="outline" onClick={() => setActivePanel(null)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleUpdatePlan} disabled={updatingPlan}>
+                      {updatingPlan ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Update Plan
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

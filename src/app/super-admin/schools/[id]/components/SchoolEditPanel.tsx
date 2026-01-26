@@ -15,6 +15,11 @@ import {
   Save,
   Eye,
   EyeOff,
+  Receipt,
+  Calculator,
+  Plus,
+  Trash2,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,8 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusHistory } from "../../components/StatusHistory";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SchoolEditPanelProps {
@@ -38,6 +45,38 @@ interface SchoolEditPanelProps {
   onSuccess: () => void;
 }
 
+interface PricingPlan {
+  id: string;
+  name: string;
+  description?: string;
+  slug: string;
+  baseSalaryPerStudent: number;
+  currency: string;
+  isActive: boolean;
+  isDefault: boolean;
+  planFeatures: Array<{
+    id: string;
+    price: number;
+    isEnabled: boolean;
+    feature: {
+      id: string;
+      name: string;
+      description?: string;
+      code: string;
+      isCore: boolean;
+    };
+  }>;
+}
+
+interface Feature {
+  id: string;
+  name: string;
+  description?: string;
+  code: string;
+  isCore: boolean;
+  isActive: boolean;
+}
+
 interface EditSchool {
   // Basic Information
   name: string;
@@ -45,6 +84,9 @@ interface EditSchool {
   phone: string;
   address: string;
   status: string;
+
+  // Pricing Plan
+  enabledFeatures: Record<string, boolean>;
 
   // Configuration
   timezone: string;
@@ -68,6 +110,7 @@ export function SchoolEditPanel({ isOpen, onClose, school, onSuccess }: SchoolEd
     phone: "",
     address: "",
     status: "active",
+    enabledFeatures: {},
     timezone: "Africa/Addis_Ababa",
     defaultCurrency: "ETB",
     defaultLanguage: "en",
@@ -75,6 +118,46 @@ export function SchoolEditPanel({ isOpen, onClose, school, onSuccess }: SchoolEd
     primaryColor: "#3B82F6",
     secondaryColor: "#1F2937",
   });
+
+  // Pricing state
+  const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
+  const [features, setFeatures] = useState<Feature[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [showStatusHistory, setShowStatusHistory] = useState(false);
+
+  // Fetch pricing data on mount
+  useEffect(() => {
+    fetchPricingPlans();
+    fetchFeatures();
+  }, []);
+
+  const fetchPricingPlans = async () => {
+    setLoadingPlans(true);
+    try {
+      const response = await fetch("/api/super-admin/pricing/plans");
+      const data = await response.json();
+      if (data.success) {
+        setPricingPlans(data.plans);
+      }
+    } catch (error) {
+      console.error("Failed to fetch pricing plans:", error);
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
+  const fetchFeatures = async () => {
+    try {
+      const response = await fetch("/api/super-admin/pricing/features");
+      const data = await response.json();
+      if (data.success) {
+        setFeatures(data.features);
+      }
+    } catch (error) {
+      console.error("Failed to fetch features:", error);
+    }
+  };
 
   // Initialize form data when school changes
   useEffect(() => {
@@ -85,6 +168,7 @@ export function SchoolEditPanel({ isOpen, onClose, school, onSuccess }: SchoolEd
         phone: school.phone || "",
         address: school.address || "",
         status: school.status || "active",
+        enabledFeatures: school.subscription?.enabledFeatures || {},
         timezone: school.timezone || "Africa/Addis_Ababa",
         defaultCurrency: school.defaultCurrency || "ETB",
         defaultLanguage: school.defaultLanguage || "en",
@@ -92,11 +176,17 @@ export function SchoolEditPanel({ isOpen, onClose, school, onSuccess }: SchoolEd
         primaryColor: school.primaryColor || "#3B82F6",
         secondaryColor: school.secondaryColor || "#1F2937",
       });
+
+      // Set selected plan if school has a subscription
+      if (school.subscription?.plan) {
+        setSelectedPlan(school.subscription.plan);
+      }
     }
   }, [school]);
 
   const steps = [
     { id: "basic", title: "Basic Info", icon: Building2 },
+    { id: "pricing", title: "Pricing", icon: Receipt },
     { id: "config", title: "Configuration", icon: Settings },
     { id: "branding", title: "Branding", icon: Palette },
   ];
@@ -346,8 +436,121 @@ export function SchoolEditPanel({ isOpen, onClose, school, onSuccess }: SchoolEd
                 </motion.div>
               )}
 
-              {/* Step 2: Configuration */}
+              {/* Step 1: Pricing Plan */}
               {currentStep === 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-6"
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <Receipt className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-900">Pricing Plan Management</h3>
+                        <p className="text-sm text-slate-600">Manage the school's subscription and feature access</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowStatusHistory(true)}
+                      className="flex items-center space-x-2"
+                    >
+                      <History className="w-4 h-4" />
+                      <span>View History</span>
+                    </Button>
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Current Plan</CardTitle>
+                      <CardDescription>
+                        {selectedPlan ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{selectedPlan.name}</span>
+                              <Badge variant="outline">
+                                {selectedPlan.currency} {selectedPlan.baseSalaryPerStudent}/student
+                              </Badge>
+                            </div>
+                            {selectedPlan.description && (
+                              <p className="text-sm text-gray-600">{selectedPlan.description}</p>
+                            )}
+                          </div>
+                        ) : (
+                          "No pricing plan assigned"
+                        )}
+                      </CardDescription>
+                    </CardHeader>
+                    {selectedPlan && (
+                      <CardContent className="space-y-4">
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium">Feature Configuration:</h4>
+                          {selectedPlan.planFeatures.map((planFeature) => (
+                            <div
+                              key={planFeature.id}
+                              className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
+                            >
+                              <div className="flex-1">
+                                <div className="text-sm font-medium">
+                                  {planFeature.feature.name}
+                                </div>
+                                {planFeature.feature.description && (
+                                  <div className="text-xs text-gray-600">
+                                    {planFeature.feature.description}
+                                  </div>
+                                )}
+                                {!planFeature.feature.isCore && planFeature.price > 0 && (
+                                  <div className="text-xs text-green-600 font-medium">
+                                    +{selectedPlan.currency} {planFeature.price}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                {planFeature.feature.isCore && (
+                                  <Badge variant="outline" className="text-xs">
+                                    Core
+                                  </Badge>
+                                )}
+                                <Switch
+                                  checked={
+                                    editData.enabledFeatures[planFeature.feature.code] !== undefined
+                                      ? editData.enabledFeatures[planFeature.feature.code]
+                                      : planFeature.isEnabled
+                                  }
+                                  onCheckedChange={(checked) =>
+                                    setEditData(prev => ({
+                                      ...prev,
+                                      enabledFeatures: {
+                                        ...prev.enabledFeatures,
+                                        [planFeature.feature.code]: checked,
+                                      },
+                                    }))
+                                  }
+                                  disabled={planFeature.feature.isCore}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                          <div className="text-sm text-blue-800">
+                            <strong>Note:</strong> Changes to feature configuration will be applied immediately when you save.
+                            The school's billing will be recalculated based on the active student count and enabled features.
+                          </div>
+                        </div>
+                      </CardContent>
+                    )}
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* Step 2: Configuration */}
+              {currentStep === 2 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -434,7 +637,7 @@ export function SchoolEditPanel({ isOpen, onClose, school, onSuccess }: SchoolEd
               )}
 
               {/* Step 3: Branding */}
-              {currentStep === 2 && (
+              {currentStep === 3 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -591,6 +794,13 @@ export function SchoolEditPanel({ isOpen, onClose, school, onSuccess }: SchoolEd
           </motion.div>
         </>
       )}
+
+      {/* Status History Panel */}
+      <StatusHistory
+        schoolId={school?.id || ''}
+        isOpen={showStatusHistory}
+        onClose={() => setShowStatusHistory(false)}
+      />
     </AnimatePresence>
   );
 }

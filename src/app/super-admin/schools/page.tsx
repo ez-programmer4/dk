@@ -16,7 +16,8 @@ import {
   Zap,
   RefreshCw,
   Shield,
-  Receipt
+  Receipt,
+  CheckSquare
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,6 +27,7 @@ import { SchoolsFilters } from "./components/SchoolsFilters";
 import { SchoolsTable } from "./components/SchoolsTable";
 import { SchoolCreationPanel } from "./components/SchoolCreationPanel";
 import { PricingManagement } from "./components/PricingManagement";
+import { BulkStatusChange } from "./components/BulkStatusChange";
 
 interface School {
   id: string;
@@ -109,6 +111,42 @@ export default function SuperAdminSchools() {
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [currentStep, setCurrentStep] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Bulk selection state
+  const [selectedSchoolIds, setSelectedSchoolIds] = useState<string[]>([]);
+  const [isBulkStatusPanelOpen, setIsBulkStatusPanelOpen] = useState(false);
+
+  // Bulk selection handlers
+  const handleSelectAllSchools = (checked: boolean) => {
+    if (checked) {
+      setSelectedSchoolIds(schools.map(school => school.id));
+    } else {
+      setSelectedSchoolIds([]);
+    }
+  };
+
+  const handleSelectSchool = (schoolId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedSchoolIds(prev => [...prev, schoolId]);
+    } else {
+      setSelectedSchoolIds(prev => prev.filter(id => id !== schoolId));
+    }
+  };
+
+  const handleBulkStatusChange = () => {
+    if (selectedSchoolIds.length > 0) {
+      setIsBulkStatusPanelOpen(true);
+    }
+  };
+
+  const handleBulkStatusClose = () => {
+    setIsBulkStatusPanelOpen(false);
+  };
+
+  const handleBulkStatusSuccess = () => {
+    setSelectedSchoolIds([]);
+    fetchSchools();
+  };
 
 
   // Auto-generate slug from name
@@ -665,8 +703,58 @@ export default function SuperAdminSchools() {
                 onViewSchool={handleViewSchool}
                 onEditSchool={handleEditSchool}
                 onDeleteSchool={handleDeleteSchool}
+                selectedSchoolIds={selectedSchoolIds}
+                onSelectSchool={handleSelectSchool}
+                onSelectAllSchools={handleSelectAllSchools}
               />
             )}
+
+            {/* Bulk Actions */}
+            {selectedSchoolIds.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2">
+                      <CheckSquare className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium text-blue-900">
+                        {selectedSchoolIds.length} school{selectedSchoolIds.length !== 1 ? 's' : ''} selected
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      onClick={handleBulkStatusChange}
+                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Change Status
+                    </Button>
+                    <Button
+                      onClick={() => setSelectedSchoolIds([])}
+                      variant="outline"
+                    >
+                      Clear Selection
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            <SchoolsTable
+              schools={filteredSchools}
+              loading={loading}
+              onViewSchool={handleViewSchool}
+              onEditSchool={handleEditSchool}
+              onDeleteSchool={handleDeleteSchool}
+              selectedSchoolIds={selectedSchoolIds}
+              onSelectSchool={handleSelectSchool}
+              onSelectAllSchools={handleSelectAllSchools}
+            />
           </TabsContent>
 
           <TabsContent value="pricing" className="space-y-6">
@@ -1078,7 +1166,15 @@ export default function SuperAdminSchools() {
           onClose={() => setIsCreatePanelOpen(false)}
           onSuccess={fetchSchools}
         />
+        {/* Bulk Status Change Panel */}
+        <BulkStatusChange
+          isOpen={isBulkStatusPanelOpen}
+          onClose={handleBulkStatusClose}
+          schools={schools}
+          selectedSchoolIds={selectedSchoolIds}
+          onSuccess={handleBulkStatusSuccess}
+        />
       </div>
-    </div> 
+    </div>
   );
 }

@@ -23,7 +23,10 @@ model School {
     secondaryColor String? @db.VarChar(7)
 
     // Status
-    status String @default("active") // active, inactive, suspended
+    status              String   @default("trial") // trial, active, inactive, suspended, expired, cancelled
+    statusReason        String?  @db.Text // Reason for status change
+    statusChangedAt     DateTime @default(now()) @updatedAt
+    statusChangedById   String? // Super admin who changed status
 
     // Configuration
     timezone        String @default("Africa/Addis_Ababa") @db.VarChar(50)
@@ -41,15 +44,17 @@ model School {
     createdById String? // Super admin who created
 
     // Relations
-    createdBy    SuperAdmin?         @relation("SuperAdminCreatedSchools", fields: [createdById], references: [id])
-    subscription SchoolSubscription? @relation("SchoolSubscription")
+    createdBy       SuperAdmin?             @relation("SuperAdminCreatedSchools", fields: [createdById], references: [id])
+    statusChangedBy SuperAdmin?             @relation("SuperAdminChangedSchoolStatus", fields: [statusChangedById], references: [id])
+    subscription    SchoolSubscription?     @relation("SchoolSubscription")
     students     wpos_wpdatatable_23[]
     teachers     wpos_wpdatatable_24[]
     controllers  wpos_wpdatatable_28[]
-    registrals   wpos_wpdatatable_33[]
-    admins       admin[]
-    settings     SchoolSetting[]
-    payments     SchoolPayment[]
+    registrals    wpos_wpdatatable_33[]
+    admins        admin[]
+    settings      SchoolSetting[]
+    payments      SchoolPayment[]
+    statusHistory SchoolStatusHistory[]
 
     @@map("schools")
 }
@@ -71,9 +76,12 @@ model SuperAdmin {
     createdAt DateTime @default(now())
 
     // Relations - SuperAdmin can manage schools
-    createdSchools    School[]             @relation("SuperAdminCreatedSchools")
-    auditLogs         SuperAdminAuditLog[] @relation("SuperAdminAuditLogs")
-    createdPricingPlans PricingPlan[]       @relation("SuperAdminCreatedPricingPlans")
+    createdSchools       School[]                    @relation("SuperAdminCreatedSchools")
+    changedSchoolStatuses School[]                   @relation("SuperAdminChangedSchoolStatus")
+    auditLogs            SuperAdminAuditLog[]        @relation("SuperAdminAuditLogs")
+    createdPricingPlans  PricingPlan[]               @relation("SuperAdminCreatedPricingPlans")
+    schoolStatusChanges  SchoolStatusHistory[]       @relation("SchoolStatusHistoryChangedBy")
+    subscriptionStatusChanges SubscriptionStatusHistory[] @relation("SubscriptionStatusHistoryChangedBy")
 
     @@map("super_admins")
 }
@@ -152,7 +160,7 @@ model SchoolSubscription {
     planId    String
 
     // Subscription details
-    status           String   @default("active") // active, cancelled, suspended, expired
+    status           String   @default("trial") // trial, active, past_due, cancelled, suspended, expired
     currentPeriodStart DateTime?
     currentPeriodEnd   DateTime?
 
@@ -174,8 +182,9 @@ model SchoolSubscription {
     cancelledAt       DateTime?
 
     // Relations
-    school School      @relation("SchoolSubscription", fields: [schoolId], references: [id], onDelete: Cascade)
-    plan   PricingPlan @relation(fields: [planId], references: [id])
+    school       School                   @relation("SchoolSubscription", fields: [schoolId], references: [id], onDelete: Cascade)
+    plan         PricingPlan              @relation(fields: [planId], references: [id])
+    statusHistory SubscriptionStatusHistory[]
 
     @@unique([schoolId]) // One subscription per school
     @@map("school_subscriptions")
@@ -220,6 +229,42 @@ model SchoolPayment {
     @@index([period])
     @@index([status])
     @@map("school_payments")
+}
+
+model SchoolStatusHistory {
+    id          String   @id @default(cuid())
+    schoolId    String
+    oldStatus   String?
+    newStatus   String
+    reason      String?
+    changedById String   // SuperAdmin ID who made the change
+    changedAt   DateTime @default(now())
+
+    // Relations
+    school      School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+    changedBy   SuperAdmin  @relation("SchoolStatusHistoryChangedBy", fields: [changedById], references: [id])
+
+    @@index([schoolId])
+    @@index([changedAt])
+    @@map("school_status_history")
+}
+
+model SubscriptionStatusHistory {
+    id             String   @id @default(cuid())
+    subscriptionId String
+    oldStatus      String?
+    newStatus      String
+    reason         String?
+    changedById    String   // SuperAdmin ID who made the change
+    changedAt      DateTime @default(now())
+
+    // Relations
+    subscription SchoolSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+    changedBy    SuperAdmin         @relation("SubscriptionStatusHistoryChangedBy", fields: [changedById], references: [id])
+
+    @@index([subscriptionId])
+    @@index([changedAt])
+    @@map("subscription_status_history")
 }
 
 model wpos_teams {
