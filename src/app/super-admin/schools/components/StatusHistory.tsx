@@ -235,3 +235,4 @@ export function StatusHistory({ schoolId, isOpen, onClose }: StatusHistoryProps)
     </motion.div>
   );
 }
+

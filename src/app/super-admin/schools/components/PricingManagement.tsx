@@ -3,20 +3,17 @@
 import { useEffect, useState } from "react";
 import {
   Plus,
-  Edit,
-  Trash2,
-  DollarSign,
-  Users,
-  Settings,
-  Eye,
   Star,
   ToggleLeft,
   ToggleRight,
-  Save,
   RefreshCw,
   Receipt,
   Target,
-  X
+  X,
+  Settings,
+  Edit,
+  Save,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +24,6 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PricingPlan {
   id: string;
@@ -70,36 +66,21 @@ export function PricingManagement() {
   const [features, setFeatures] = useState<Feature[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("plans");
-
-  // Side panel state
-  const [activePanel, setActivePanel] = useState<string | null>(null);
-
-  // Plan creation state
-  const [creatingPlan, setCreatingPlan] = useState(false);
-  const [newPlan, setNewPlan] = useState({
+  const [premiumFeatures, setPremiumFeatures] = useState<string[]>([]);
+  const [togglingPremium, setTogglingPremium] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [allFeatures, setAllFeatures] = useState<Feature[]>([]);
+  const [loadingFeatures, setLoadingFeatures] = useState(true);
+  const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
+  const [editFeatureData, setEditFeatureData] = useState({
     name: "",
     description: "",
-    slug: "",
-    baseSalaryPerStudent: "",
-    currency: "ETB",
-    isDefault: false,
-    features: [] as Array<{ id: string; price: string; isEnabled: boolean }>,
-  });
-
-  // Plan editing state
-  const [editingPlan, setEditingPlan] = useState<PricingPlan | null>(null);
-  const [updatingPlan, setUpdatingPlan] = useState(false);
-  const [editPlan, setEditPlan] = useState({
-    name: "",
-    description: "",
-    baseSalaryPerStudent: "",
-    currency: "ETB",
+    code: "",
+    isCore: false,
     isActive: true,
-    isDefault: false,
-    features: [] as Array<{ id: string; price: string; isEnabled: boolean }>,
   });
-
-  // Feature creation state
+  const [updatingFeature, setUpdatingFeature] = useState(false);
+  const [activePanel, setActivePanel] = useState<string | null>(null);
   const [creatingFeature, setCreatingFeature] = useState(false);
   const [newFeature, setNewFeature] = useState({
     name: "",
@@ -111,7 +92,28 @@ export function PricingManagement() {
   useEffect(() => {
     fetchPlans();
     fetchFeatures();
+    fetchPremiumFeatures();
+    fetchAllFeatures();
   }, []);
+
+  useEffect(() => {
+    setError(null);
+  }, [activeTab]);
+
+  const fetchAllFeatures = async () => {
+    setLoadingFeatures(true);
+    try {
+      const response = await fetch("/api/super-admin/pricing/features");
+      const data = await response.json();
+      if (data.success) {
+        setAllFeatures(data.features);
+      }
+    } catch (error) {
+      console.error("Failed to fetch all features:", error);
+    } finally {
+      setLoadingFeatures(false);
+    }
+  };
 
   const fetchPlans = async () => {
     try {
@@ -139,51 +141,15 @@ export function PricingManagement() {
     }
   };
 
-  const handleCreatePlan = async () => {
-    if (!newPlan.name || !newPlan.slug || !newPlan.baseSalaryPerStudent) {
-      alert("Please fill in all required fields");
-      return;
-    }
-
-    setCreatingPlan(true);
+  const fetchPremiumFeatures = async () => {
     try {
-      const response = await fetch("/api/super-admin/pricing/plans", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...newPlan,
-          baseSalaryPerStudent: parseFloat(newPlan.baseSalaryPerStudent),
-          features: newPlan.features.map(f => ({
-            id: f.id,
-            price: parseFloat(f.price),
-            isEnabled: f.isEnabled,
-          })),
-        }),
-      });
-
+      const response = await fetch("/api/super-admin/features/premium");
       const data = await response.json();
       if (data.success) {
-        setActivePanel(null);
-        setNewPlan({
-          name: "",
-          description: "",
-          slug: "",
-          baseSalaryPerStudent: "",
-          currency: "ETB",
-          isDefault: false,
-          features: [],
-        });
-        fetchPlans();
-      } else {
-        alert(data.error || "Failed to create plan");
+        setPremiumFeatures(data.premiumFeatures.map((pf: any) => pf.featureCode));
       }
     } catch (error) {
-      console.error("Failed to create plan:", error);
-      alert("Failed to create plan");
-    } finally {
-      setCreatingPlan(false);
+      console.error("Failed to fetch premium features:", error);
     }
   };
 
@@ -197,9 +163,7 @@ export function PricingManagement() {
     try {
       const response = await fetch("/api/super-admin/pricing/features", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newFeature),
       });
 
@@ -213,7 +177,7 @@ export function PricingManagement() {
           isCore: false,
         });
         fetchFeatures();
-        fetchPlans(); // Refresh plans to show new features
+        fetchAllFeatures();
       } else {
         alert(data.error || "Failed to create feature");
       }
@@ -225,148 +189,116 @@ export function PricingManagement() {
     }
   };
 
-  const handleEditPlan = (plan: PricingPlan) => {
-    setEditingPlan(plan);
-    setEditPlan({
-      name: plan.name,
-      description: plan.description || "",
-      baseSalaryPerStudent: plan.baseSalaryPerStudent.toString(),
-      currency: plan.currency,
-      isActive: plan.isActive,
-      isDefault: plan.isDefault,
-      features: plan.planFeatures.map(pf => ({
-        id: pf.feature.id,
-        price: pf.price.toString(),
-        isEnabled: pf.isEnabled,
-      })),
-    });
-    setActivePanel('edit-plan');
+  const handleTogglePremium = async (featureCode: string, isPremium: boolean) => {
+    setTogglingPremium(featureCode);
+    setError(null);
+
+    try {
+      if (isPremium) {
+        const response = await fetch("/api/super-admin/features/premium", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            featureCode,
+            requiredPlans: ["professional", "enterprise"],
+            isEnabled: true
+          }),
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          setPremiumFeatures(prev => [...prev, featureCode]);
+          setError(null);
+        } else {
+          setError(data.error || "Failed to make feature premium");
+        }
+      } else {
+        const response = await fetch(`/api/super-admin/features/premium/${featureCode}`, {
+          method: "DELETE",
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          setPremiumFeatures(prev => prev.filter(code => code !== featureCode));
+          setError(null);
+        } else {
+          setError(data.error || "Failed to make feature core");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to toggle premium status:", err);
+      setError("An unexpected error occurred");
+    } finally {
+      setTogglingPremium(null);
+    }
   };
 
-  const handleUpdatePlan = async () => {
-    if (!editingPlan || !editPlan.name || !editPlan.baseSalaryPerStudent) {
+  const handleEditFeature = (feature: Feature) => {
+    setEditingFeature(feature);
+    setEditFeatureData({
+      name: feature.name,
+      description: feature.description || "",
+      code: feature.code,
+      isCore: feature.isCore,
+      isActive: feature.isActive,
+    });
+    setActivePanel('edit-feature');
+  };
+
+  const handleUpdateFeature = async () => {
+    if (!editingFeature || !editFeatureData.name || !editFeatureData.code) {
       alert("Please fill in all required fields");
       return;
     }
 
-    setUpdatingPlan(true);
+    setUpdatingFeature(true);
     try {
-      const response = await fetch(`/api/super-admin/pricing/plans/${editingPlan.id}`, {
+      const response = await fetch(`/api/super-admin/pricing/features/${editingFeature.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: editPlan.name,
-          description: editPlan.description,
-          baseSalaryPerStudent: editPlan.baseSalaryPerStudent,
-          currency: editPlan.currency,
-          isActive: editPlan.isActive,
-          isDefault: editPlan.isDefault,
-          features: editPlan.features.map(f => ({
-            id: f.id,
-            price: parseFloat(f.price),
-            isEnabled: f.isEnabled,
-          })),
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editFeatureData),
       });
 
       const data = await response.json();
       if (data.success) {
         setActivePanel(null);
-        setEditingPlan(null);
-        fetchPlans();
+        setEditingFeature(null);
+        fetchFeatures();
+        fetchAllFeatures();
+        fetchPremiumFeatures();
       } else {
-        alert(data.error || "Failed to update plan");
+        alert(data.error || "Failed to update feature");
       }
     } catch (error) {
-      console.error("Failed to update plan:", error);
-      alert("Failed to update plan");
+      console.error("Failed to update feature:", error);
+      alert("Failed to update feature");
     } finally {
-      setUpdatingPlan(false);
+      setUpdatingFeature(false);
     }
   };
 
-  const handleDeletePlan = async (plan: PricingPlan) => {
-    if (plan._count.subscriptions > 0) {
-      alert(`Cannot delete plan "${plan.name}" because it has ${plan._count.subscriptions} active subscriptions. Deactivate it instead.`);
-      return;
-    }
-
-    if (!confirm(`Are you sure you want to delete the plan "${plan.name}"? This action cannot be undone.`)) {
+  const handleDeleteFeature = async (feature: Feature) => {
+    if (!confirm(`Are you sure you want to delete the feature "${feature.name}"? This action cannot be undone.`)) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/super-admin/pricing/plans/${plan.id}`, {
+      const response = await fetch(`/api/super-admin/pricing/features/${feature.id}`, {
         method: "DELETE",
       });
 
       const data = await response.json();
       if (data.success) {
-        fetchPlans();
+        fetchFeatures();
+        fetchAllFeatures();
+        fetchPremiumFeatures();
       } else {
-        alert(data.error || "Failed to delete plan");
+        alert(data.error || "Failed to delete feature");
       }
     } catch (error) {
-      console.error("Failed to delete plan:", error);
-      alert("Failed to delete plan");
+      console.error("Failed to delete feature:", error);
+      alert("Failed to delete feature");
     }
-  };
-
-  const handleTogglePlanStatus = async (plan: PricingPlan) => {
-    try {
-      const response = await fetch(`/api/super-admin/pricing/plans/${plan.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          isActive: !plan.isActive,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        fetchPlans();
-      } else {
-        alert(data.error || "Failed to update plan status");
-      }
-    } catch (error) {
-      console.error("Failed to update plan status:", error);
-      alert("Failed to update plan status");
-    }
-  };
-
-  const addFeatureToPlan = (planState: any, setPlanState: any) => {
-    setPlanState((prev: any) => ({
-      ...prev,
-      features: [...prev.features, { id: "", price: "0", isEnabled: true }],
-    }));
-  };
-
-  const updateFeatureInPlan = (index: number, field: string, value: any, planState: any, setPlanState: any) => {
-    setPlanState((prev: any) => ({
-      ...prev,
-      features: prev.features.map((f: any, i: number) =>
-        i === index ? { ...f, [field]: value } : f
-      ),
-    }));
-  };
-
-  const removeFeatureFromPlan = (index: number, planState: any, setPlanState: any) => {
-    setPlanState((prev: any) => ({
-      ...prev,
-      features: prev.features.filter((_: any, i: number) => i !== index),
-    }));
-  };
-
-  const handleNameChange = (name: string) => {
-    setNewPlan(prev => ({
-      ...prev,
-      name,
-      slug: name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''),
-    }));
   };
 
   if (loading) {
@@ -380,14 +312,18 @@ export function PricingManagement() {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="plans" className="flex items-center space-x-2">
             <Target className="w-4 h-4" />
-            <span>Pricing Plans</span>
+            <span>Plans</span>
           </TabsTrigger>
           <TabsTrigger value="features" className="flex items-center space-x-2">
             <Settings className="w-4 h-4" />
             <span>Features</span>
+          </TabsTrigger>
+          <TabsTrigger value="premium" className="flex items-center space-x-2">
+            <Star className="w-4 h-4" />
+            <span>Premium</span>
           </TabsTrigger>
         </TabsList>
 
@@ -395,17 +331,8 @@ export function PricingManagement() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium">Pricing Plans</h3>
-              <p className="text-sm text-gray-600">
-                Manage pricing plans for schools
-              </p>
+              <p className="text-sm text-gray-600">Manage pricing plans for schools</p>
             </div>
-            <Button
-              className="flex items-center space-x-2"
-              onClick={() => setActivePanel('create-plan')}
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create Plan</span>
-            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -471,35 +398,10 @@ export function PricingManagement() {
                       </div>
                     </div>
 
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleEditPlan(plan)}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant={plan.isActive ? "destructive" : "default"}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleTogglePlanStatus(plan)}
-                      >
-                        {plan.isActive ? "Deactivate" : "Activate"}
-                      </Button>
-                    </div>
-                    <div className="flex justify-center mt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeletePlan(plan)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        Delete
-                      </Button>
+                    <div className="flex justify-center">
+                      <span className={`text-xs px-2 py-1 rounded ${plan.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {plan.isActive ? "Active" : "Inactive"}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -511,10 +413,8 @@ export function PricingManagement() {
         <TabsContent value="features" className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium">Features</h3>
-              <p className="text-sm text-gray-600">
-                Manage available features for pricing plans
-              </p>
+              <h3 className="text-lg font-medium">Feature Management</h3>
+              <p className="text-sm text-gray-600">Create, edit, and delete features for your platform</p>
             </div>
             <Button
               className="flex items-center space-x-2"
@@ -554,19 +454,29 @@ export function PricingManagement() {
                   </CardHeader>
 
                   <CardContent>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                       <span className="text-sm text-gray-600">Code:</span>
                       <code className="text-xs bg-gray-100 px-2 py-1 rounded">
                         {feature.code}
                       </code>
                     </div>
 
-                    <div className="flex space-x-2 mt-4">
-                      <Button variant="outline" size="sm" className="flex-1">
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleEditFeature(feature)}
+                      >
                         <Edit className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteFeature(feature)}
+                      >
                         <Trash2 className="w-4 h-4 mr-1" />
                         Delete
                       </Button>
@@ -577,190 +487,92 @@ export function PricingManagement() {
             ))}
           </div>
         </TabsContent>
-      </Tabs>
 
-      {/* Side Panels */}
-      <AnimatePresence>
-        {/* Create Plan Side Panel */}
-        {activePanel === 'create-plan' && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-40"
-              onClick={() => setActivePanel(null)}
-            />
-
-            {/* Side Panel */}
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl z-50 overflow-y-auto"
+        <TabsContent value="premium" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium">Premium Feature Settings</h3>
+              <p className="text-sm text-gray-600">Toggle features between core (free) and premium (paid) access</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                fetchAllFeatures();
+                fetchPremiumFeatures();
+              }}
+              className="flex items-center space-x-2"
             >
-              {/* Header */}
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-                <h2 className="text-xl font-semibold text-gray-900">Create Pricing Plan</h2>
-                <Button variant="ghost" size="sm" onClick={() => setActivePanel(null)}>
-                  <X className="w-5 h-5" />
-                </Button>
+              <RefreshCw className="w-4 h-4" />
+              <span>Refresh</span>
+            </Button>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          <Card className="p-6">
+            {loadingFeatures ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+                <span className="ml-2 text-gray-500">Loading features...</span>
               </div>
-
-              {/* Content */}
-              <div className="px-6 py-6">
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="plan-name">Plan Name *</Label>
-                      <Input
-                        id="plan-name"
-                        value={newPlan.name}
-                        onChange={(e) => handleNameChange(e.target.value)}
-                        placeholder="e.g., Basic Plan"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="plan-slug">Slug *</Label>
-                      <Input
-                        id="plan-slug"
-                        value={newPlan.slug}
-                        onChange={(e) => setNewPlan(prev => ({ ...prev, slug: e.target.value }))}
-                        placeholder="basic-plan"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="plan-description">Description</Label>
-                    <Textarea
-                      id="plan-description"
-                      value={newPlan.description}
-                      onChange={(e) => setNewPlan(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Describe this pricing plan"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="base-salary">Base Salary per Student *</Label>
-                      <Input
-                        id="base-salary"
-                        type="number"
-                        step="0.01"
-                        value={newPlan.baseSalaryPerStudent}
-                        onChange={(e) => setNewPlan(prev => ({ ...prev, baseSalaryPerStudent: e.target.value }))}
-                        placeholder="50.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="currency">Currency</Label>
-                      <Select
-                        value={newPlan.currency}
-                        onValueChange={(value) => setNewPlan(prev => ({ ...prev, currency: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ETB">ETB (Ethiopian Birr)</SelectItem>
-                          <SelectItem value="USD">USD (US Dollar)</SelectItem>
-                          <SelectItem value="EUR">EUR (Euro)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label>Features</Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addFeatureToPlan(newPlan, setNewPlan)}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Feature
-                      </Button>
-                    </div>
-
-                    {newPlan.features.map((planFeature, index) => (
-                      <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg">
-                        <div className="flex-1">
-                          <Select
-                            value={planFeature.id}
-                            onValueChange={(value) => updateFeatureInPlan(index, 'id', value, newPlan, setNewPlan)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select feature" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {features.map((feature) => (
-                                <SelectItem key={feature.id} value={feature.id}>
-                                  {feature.name} ({feature.code})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="w-24">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={planFeature.price}
-                            onChange={(e) => updateFeatureInPlan(index, 'price', e.target.value, newPlan, setNewPlan)}
-                          />
-                        </div>
+            ) : allFeatures.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No features available</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {allFeatures.map((feature) => (
+                  <div key={feature.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-medium">{feature.name}</h4>
                         <div className="flex items-center space-x-2">
-                          <Switch
-                            checked={planFeature.isEnabled}
-                            onCheckedChange={(checked) => updateFeatureInPlan(index, 'isEnabled', checked, newPlan, setNewPlan)}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeFeatureFromPlan(index, newPlan, setNewPlan)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {feature.isCore && (
+                            <Badge variant="outline" className="text-xs">
+                              Core
+                            </Badge>
+                          )}
+                          {togglingPremium === feature.code && (
+                            <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                          )}
                         </div>
                       </div>
-                    ))}
+                      <p className="text-sm text-gray-600 mb-2">{feature.description}</p>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-500">Code:</span>
+                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                          {feature.code}
+                        </code>
+                        {premiumFeatures.includes(feature.code) && (
+                          <Badge className="text-xs bg-yellow-100 text-yellow-800">
+                            Premium
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <Switch
+                        checked={premiumFeatures.includes(feature.code)}
+                        onCheckedChange={(checked) => handleTogglePremium(feature.code, checked)}
+                        disabled={togglingPremium === feature.code}
+                      />
+                    </div>
                   </div>
-
-                  <div className="flex justify-end space-x-2 pt-6 border-t">
-                    <Button variant="outline" onClick={() => setActivePanel(null)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleCreatePlan} disabled={creatingPlan}>
-                      {creatingPlan ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          Create Plan
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
+                ))}
               </div>
-            </motion.div>
-          </>
-        )}
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
 
-        {/* Create Feature Side Panel */}
+      <AnimatePresence>
         {activePanel === 'create-feature' && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -769,7 +581,6 @@ export function PricingManagement() {
               onClick={() => setActivePanel(null)}
             />
 
-            {/* Side Panel */}
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
@@ -777,7 +588,6 @@ export function PricingManagement() {
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 overflow-y-auto"
             >
-              {/* Header */}
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
                 <h2 className="text-xl font-semibold text-gray-900">Create Feature</h2>
                 <Button variant="ghost" size="sm" onClick={() => setActivePanel(null)}>
@@ -785,7 +595,6 @@ export function PricingManagement() {
                 </Button>
               </div>
 
-              {/* Content */}
               <div className="px-6 py-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -806,9 +615,7 @@ export function PricingManagement() {
                       onChange={(e) => setNewFeature(prev => ({ ...prev, code: e.target.value }))}
                       placeholder="teacher_payment"
                     />
-                    <p className="text-xs text-gray-500">
-                      Unique identifier, use snake_case
-                    </p>
+                    <p className="text-xs text-gray-500">Unique identifier, use snake_case</p>
                   </div>
 
                   <div className="space-y-2">
@@ -854,10 +661,8 @@ export function PricingManagement() {
           </>
         )}
 
-        {/* Edit Plan Side Panel */}
-        {activePanel === 'edit-plan' && editingPlan && (
+        {activePanel === 'edit-feature' && editingFeature && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -866,171 +671,77 @@ export function PricingManagement() {
               onClick={() => setActivePanel(null)}
             />
 
-            {/* Side Panel */}
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl z-50 overflow-y-auto"
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 overflow-y-auto"
             >
-              {/* Header */}
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-                <h2 className="text-xl font-semibold text-gray-900">Edit Pricing Plan</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Edit Feature</h2>
                 <Button variant="ghost" size="sm" onClick={() => setActivePanel(null)}>
                   <X className="w-5 h-5" />
                 </Button>
               </div>
 
-              {/* Content */}
               <div className="px-6 py-6">
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-plan-name">Plan Name *</Label>
-                      <Input
-                        id="edit-plan-name"
-                        value={editPlan.name}
-                        onChange={(e) => setEditPlan(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="e.g., Basic Plan"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-plan-slug">Slug *</Label>
-                      <Input
-                        id="edit-plan-slug"
-                        value={editingPlan.slug}
-                        disabled
-                        className="bg-gray-100"
-                      />
-                      <p className="text-xs text-gray-500">Slug cannot be changed</p>
-                    </div>
-                  </div>
-
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-plan-description">Description</Label>
-                    <Textarea
-                      id="edit-plan-description"
-                      value={editPlan.description}
-                      onChange={(e) => setEditPlan(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Describe this pricing plan"
+                    <Label htmlFor="edit-feature-name">Feature Name *</Label>
+                    <Input
+                      id="edit-feature-name"
+                      value={editFeatureData.name}
+                      onChange={(e) => setEditFeatureData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Teacher Payment"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-base-salary">Base Salary per Student *</Label>
-                      <Input
-                        id="edit-base-salary"
-                        type="number"
-                        step="0.01"
-                        value={editPlan.baseSalaryPerStudent}
-                        onChange={(e) => setEditPlan(prev => ({ ...prev, baseSalaryPerStudent: e.target.value }))}
-                        placeholder="50.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-currency">Currency</Label>
-                      <Select
-                        value={editPlan.currency}
-                        onValueChange={(value) => setEditPlan(prev => ({ ...prev, currency: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ETB">ETB (Ethiopian Birr)</SelectItem>
-                          <SelectItem value="USD">USD (US Dollar)</SelectItem>
-                          <SelectItem value="EUR">EUR (Euro)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-feature-code">Code *</Label>
+                    <Input
+                      id="edit-feature-code"
+                      value={editFeatureData.code}
+                      onChange={(e) => setEditFeatureData(prev => ({ ...prev, code: e.target.value }))}
+                      placeholder="teacher_payment"
+                    />
+                    <p className="text-xs text-gray-500">Unique identifier, use snake_case</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-feature-description">Description</Label>
+                    <Textarea
+                      id="edit-feature-description"
+                      value={editFeatureData.description}
+                      onChange={(e) => setEditFeatureData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Describe this feature"
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="edit-is-core"
+                      checked={editFeatureData.isCore}
+                      onCheckedChange={(checked) => setEditFeatureData(prev => ({ ...prev, isCore: checked }))}
+                    />
+                    <Label htmlFor="edit-is-core">Core Feature</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="edit-is-active"
-                      checked={editPlan.isActive}
-                      onCheckedChange={(checked) => setEditPlan(prev => ({ ...prev, isActive: checked }))}
+                      checked={editFeatureData.isActive}
+                      onCheckedChange={(checked) => setEditFeatureData(prev => ({ ...prev, isActive: checked }))}
                     />
-                    <Label htmlFor="edit-is-active">Active Plan</Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="edit-is-default"
-                      checked={editPlan.isDefault}
-                      onCheckedChange={(checked) => setEditPlan(prev => ({ ...prev, isDefault: checked }))}
-                    />
-                    <Label htmlFor="edit-is-default">Set as Default Plan</Label>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label>Features</Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addFeatureToPlan(editPlan, setEditPlan)}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Feature
-                      </Button>
-                    </div>
-
-                    {editPlan.features.map((planFeature, index) => (
-                      <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg">
-                        <div className="flex-1">
-                          <Select
-                            value={planFeature.id}
-                            onValueChange={(value) => updateFeatureInPlan(index, 'id', value, editPlan, setEditPlan)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select feature" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {features.map((feature) => (
-                                <SelectItem key={feature.id} value={feature.id}>
-                                  {feature.name} ({feature.code})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="w-24">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={planFeature.price}
-                            onChange={(e) => updateFeatureInPlan(index, 'price', e.target.value, editPlan, setEditPlan)}
-                          />
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            checked={planFeature.isEnabled}
-                            onCheckedChange={(checked) => updateFeatureInPlan(index, 'isEnabled', checked, editPlan, setEditPlan)}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeFeatureFromPlan(index, editPlan, setEditPlan)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                    <Label htmlFor="edit-is-active">Active Feature</Label>
                   </div>
 
                   <div className="flex justify-end space-x-2 pt-6 border-t">
                     <Button variant="outline" onClick={() => setActivePanel(null)}>
                       Cancel
                     </Button>
-                    <Button onClick={handleUpdatePlan} disabled={updatingPlan}>
-                      {updatingPlan ? (
+                    <Button onClick={handleUpdateFeature} disabled={updatingFeature}>
+                      {updatingFeature ? (
                         <>
                           <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                           Updating...
@@ -1038,7 +749,7 @@ export function PricingManagement() {
                       ) : (
                         <>
                           <Save className="w-4 h-4 mr-2" />
-                          Update Plan
+                          Update Feature
                         </>
                       )}
                     </Button>

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Toaster, toast } from "react-hot-toast";
+import { FeatureGate } from "@/components/features";
 import {
   FiArrowLeft,
   FiTrendingUp,
@@ -405,7 +406,8 @@ export default function AnalyticsDashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-2 sm:p-6 bg-white min-h-screen">
+    <FeatureGate feature="advanced_analytics">
+      <div className="max-w-7xl mx-auto p-2 sm:p-6 bg-white min-h-screen">
       <Toaster position="top-center" reverseOrder={false} />
 
       {/* Header */}

@@ -80,8 +80,8 @@ model SuperAdmin {
     changedSchoolStatuses School[]                   @relation("SuperAdminChangedSchoolStatus")
     auditLogs            SuperAdminAuditLog[]        @relation("SuperAdminAuditLogs")
     createdPricingPlans  PricingPlan[]               @relation("SuperAdminCreatedPricingPlans")
+    premiumFeatures      PremiumFeature[]            @relation("PremiumFeatureCreatedBy")
     schoolStatusChanges  SchoolStatusHistory[]       @relation("SchoolStatusHistoryChangedBy")
-    subscriptionStatusChanges SubscriptionStatusHistory[] @relation("SubscriptionStatusHistoryChangedBy")
 
     @@map("super_admins")
 }
@@ -131,6 +131,19 @@ model Feature {
     planFeatures PlanFeature[]
 
     @@map("features")
+}
+
+model PremiumFeature {
+    id            String     @id @default(cuid())
+    featureCode   String     @unique @db.VarChar(100) // References feature codes
+    isEnabled     Boolean    @default(true) // Can disable premium gating
+    requiredPlans Json       // JSON array of required plan tiers
+    createdAt     DateTime   @default(now())
+    updatedAt     DateTime   @updatedAt
+    createdById   String     // SuperAdmin who made it premium
+    createdBy     SuperAdmin @relation("PremiumFeatureCreatedBy", fields: [createdById], references: [id])
+
+    @@map("premium_features")
 }
 
 model PlanFeature {
@@ -184,7 +197,6 @@ model SchoolSubscription {
     // Relations
     school       School                   @relation("SchoolSubscription", fields: [schoolId], references: [id], onDelete: Cascade)
     plan         PricingPlan              @relation(fields: [planId], references: [id])
-    statusHistory SubscriptionStatusHistory[]
 
     @@unique([schoolId]) // One subscription per school
     @@map("school_subscriptions")
@@ -249,23 +261,6 @@ model SchoolStatusHistory {
     @@map("school_status_history")
 }
 
-model SubscriptionStatusHistory {
-    id             String   @id @default(cuid())
-    subscriptionId String
-    oldStatus      String?
-    newStatus      String
-    reason         String?
-    changedById    String   // SuperAdmin ID who made the change
-    changedAt      DateTime @default(now())
-
-    // Relations
-    subscription SchoolSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-    changedBy    SuperAdmin         @relation("SubscriptionStatusHistoryChangedBy", fields: [changedById], references: [id])
-
-    @@index([subscriptionId])
-    @@index([changedAt])
-    @@map("subscription_status_history")
-}
 
 model wpos_teams {
     id   Int    @id @default(autoincrement()) @db.UnsignedInt

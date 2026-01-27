@@ -261,16 +261,18 @@ export const authOptions: NextAuthOptions = {
 
           if (user.role === 'admin') {
             // Fetch admin with school info
-            const admin = await prisma.admin.findUnique({
-              where: { id: parseInt(user.id) },
-              include: { school: true }
-            });
-            if (admin?.school) {
-              schoolInfo = {
-                schoolId: admin.school.id,
-                schoolSlug: admin.school.slug,
-                schoolName: admin.school.name
-              };
+            if (user.id && user.id.trim() !== '') {
+              const admin = await prisma.admin.findUnique({
+                where: { id: user.id },
+                include: { school: true }
+              });
+              if (admin?.school) {
+                schoolInfo = {
+                  schoolId: admin.school.id,
+                  schoolSlug: admin.school.slug,
+                  schoolName: admin.school.name
+                };
+              }
             }
           } else if (user.role === 'teacher') {
             // Fetch teacher with school info

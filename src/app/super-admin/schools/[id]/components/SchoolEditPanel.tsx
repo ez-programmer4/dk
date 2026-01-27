@@ -132,6 +132,32 @@ export function SchoolEditPanel({ isOpen, onClose, school, onSuccess }: SchoolEd
     fetchFeatures();
   }, []);
 
+  // Set selected plan when school data is available
+  useEffect(() => {
+    if (school?.subscription?.plan) {
+      const currentPlan = school.subscription.plan;
+      setSelectedPlan({
+        id: currentPlan.id,
+        name: currentPlan.name,
+        description: currentPlan.description,
+        baseSalaryPerStudent: currentPlan.baseSalaryPerStudent,
+        currency: currentPlan.currency,
+        planFeatures: currentPlan.planFeatures.map(pf => ({
+          id: pf.id,
+          price: pf.price,
+          isEnabled: pf.isEnabled,
+          feature: {
+            id: pf.feature.id,
+            name: pf.feature.name,
+            code: pf.feature.code,
+            description: pf.feature.description,
+            isCore: pf.feature.isCore,
+          },
+        })),
+      });
+    }
+  }, [school]);
+
   const fetchPricingPlans = async () => {
     setLoadingPlans(true);
     try {

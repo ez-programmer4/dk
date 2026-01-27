@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { I18nProvider, useI18n } from "@/lib/i18n";
+import { FeatureGate } from "@/components/features";
 import {
   Calendar,
   BookOpen,
@@ -11716,14 +11717,16 @@ export default function StudentMiniApp({
   }, [params.chatId]);
 
   return (
-    <I18nProvider>
-      <StudentMiniAppInner
-        params={params}
-        selectedStudentId={selectedStudentId}
-        onStudentSelected={setSelectedStudentId}
-        students={students}
-        loadingStudents={loadingStudents}
-      />
-    </I18nProvider>
+    <FeatureGate feature="student_mini_app">
+      <I18nProvider>
+        <StudentMiniAppInner
+          params={params}
+          selectedStudentId={selectedStudentId}
+          onStudentSelected={setSelectedStudentId}
+          students={students}
+          loadingStudents={loadingStudents}
+        />
+      </I18nProvider>
+    </FeatureGate>
   );
 }

@@ -34,6 +34,19 @@ export async function GET(
             email: true,
           },
         },
+        subscription: {
+          include: {
+            plan: {
+              include: {
+                planFeatures: {
+                  include: {
+                    feature: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
