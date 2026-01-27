@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "./button";
@@ -87,14 +87,62 @@ export function LoginForm({
         setError(res.error);
         setIsSubmitting(false);
       } else {
-        // Don't redirect immediately - let useAuth hook handle the redirection
-        // based on the authenticated user's school information
-        if (!callbackUrl) {
-          // The useAuth hook will handle the redirection in the login page
-          // based on the user's role and school assignment
-          window.location.reload(); // Force a reload to trigger the auth hook
-        } else {
+        // Handle redirection after successful authentication
+        if (callbackUrl) {
           router.push(callbackUrl);
+        } else {
+          // Get the updated session and redirect based on role and school
+          console.log('LoginForm: Getting session after authentication...');
+          const session = await getSession();
+          console.log('LoginForm: Session retrieved:', session?.user);
+
+          if (session?.user) {
+            const userRole = session.user.role;
+            const schoolSlug = session.user.schoolSlug;
+
+            console.log('LoginForm: Redirect logic', { userRole, schoolSlug });
+
+            let redirectUrl = '/login'; // fallback
+
+            switch (userRole) {
+              case 'superAdmin':
+                redirectUrl = '/super-admin/dashboard';
+                break;
+              case 'admin':
+                if (schoolSlug) {
+                  redirectUrl = `/admin/${schoolSlug}`;
+                } else {
+                  redirectUrl = '/school-selector';
+                }
+                break;
+              case 'teacher':
+                if (schoolSlug) {
+                  redirectUrl = `/teachers/${schoolSlug}/dashboard`;
+                } else {
+                  redirectUrl = '/school-selector';
+                }
+                break;
+              case 'controller':
+                if (schoolSlug) {
+                  redirectUrl = `/controller/${schoolSlug}/dashboard`;
+                } else {
+                  redirectUrl = '/school-selector';
+                }
+                break;
+              case 'registral':
+                if (schoolSlug) {
+                  redirectUrl = `/registral/${schoolSlug}/dashboard`;
+                } else {
+                  redirectUrl = '/school-selector';
+                }
+                break;
+            }
+
+            console.log('LoginForm: Redirecting to:', redirectUrl);
+            router.push(redirectUrl);
+          } else {
+            console.log('LoginForm: No session found, staying on login page');
+          }
         }
       }
     } catch (error) {

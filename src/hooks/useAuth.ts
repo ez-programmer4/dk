@@ -27,6 +27,13 @@ export function useAuth(options: UseAuthOptions = {}) {
   const { requiredRole, redirectTo, redirectIfFound } = options;
 
   useEffect(() => {
+    console.log('useAuth: Effect triggered', {
+      status,
+      redirectIfFound,
+      sessionUser: session?.user,
+      hasSchoolSlug: !!session?.user?.schoolSlug,
+      timestamp: new Date().toISOString()
+    });
     setLoading(true);
     // If still loading, do nothing
     if (status === "loading") return;
@@ -46,6 +53,12 @@ export function useAuth(options: UseAuthOptions = {}) {
         // Role-based redirects with school-specific URLs
         const userRole = session.user.role;
         const schoolSlug = session.user.schoolSlug;
+
+        console.log('useAuth: Redirect logic', {
+          userRole,
+          schoolSlug,
+          user: session.user
+        });
 
         switch (userRole) {
           case 'superAdmin':

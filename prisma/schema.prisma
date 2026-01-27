@@ -55,6 +55,10 @@ model School {
     settings      SchoolSetting[]
     payments      SchoolPayment[]
     statusHistory SchoolStatusHistory[]
+    paymentRecords payment[]
+    permissionRequests permissionrequest[]
+    registralEarningsConfigs registralearningsconfig[]
+    teacherRatings teacherRating[]
 
     @@map("schools")
 }
@@ -804,6 +808,8 @@ model payment {
     subscriptionId      Int?
     taxAmount           Decimal?               @db.Decimal(10, 2)
     taxBreakdown        Json?
+    schoolId            String                 @db.VarChar(255)
+    school              School                 @relation(fields: [schoolId], references: [id])
     wpos_wpdatatable_23 wpos_wpdatatable_23    @relation(fields: [studentid], references: [wdt_ID], map: "Payment_studentid_fkey")
     paymentCheckouts    payment_checkout[]
     monthsApplied       months_table[]
@@ -859,6 +865,8 @@ model permissionrequest {
     createdAt                 DateTime             @default(now())
     adminId                   String?
     wpos_wpdatatable_28Wdt_ID Int?
+    schoolId                  String               @db.VarChar(255)
+    school                    School               @relation(fields: [schoolId], references: [id])
     absencerecord             absencerecord[]
     admin                     admin?               @relation(fields: [adminId], references: [id], map: "PermissionRequest_admin_fkey")
     wpos_wpdatatable_24       wpos_wpdatatable_24  @relation(fields: [teacherId], references: [ustazid], map: "PermissionRequest_teacherId_fkey")
@@ -867,6 +875,7 @@ model permissionrequest {
     @@index([adminId], map: "PermissionRequest_admin_fkey")
     @@index([teacherId], map: "PermissionRequest_teacherId_fkey")
     @@index([wpos_wpdatatable_28Wdt_ID], map: "PermissionRequest_wpos_wpdatatable_28Wdt_ID_fkey")
+    @@index([schoolId], map: "PermissionRequest_schoolId_fkey")
     @@map("PermissionRequest")
 }
 
@@ -923,6 +932,8 @@ model registralearningsconfig {
     id         Int      @id @default(autoincrement())
     key        String   @unique @db.VarChar(255)
     value      String   @db.Text
+    schoolId   String   @db.VarChar(255)
+    school     School   @relation(fields: [schoolId], references: [id])
     created_at DateTime @default(now())
     updated_at DateTime
 }
@@ -1076,6 +1087,8 @@ model deduction_waivers {
 model teacherRating {
     id        String               @id @default(uuid())
     teacherId String
+    schoolId  String               @db.VarChar(255)
+    school    School               @relation(fields: [schoolId], references: [id])
     teacher   wpos_wpdatatable_24? @relation(fields: [teacherId], references: [ustazid], onDelete: Cascade) // 24
     rating    Int // Rating from 1-5
 }

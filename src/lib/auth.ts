@@ -235,11 +235,17 @@ export const authOptions: NextAuthOptions = {
         session.user.code = token.code as string | undefined;
 
         // Include school information in session
+        console.log('Session Callback: Token school info', {
+          schoolId: token.schoolId,
+          schoolSlug: token.schoolSlug,
+          schoolName: token.schoolName
+        });
         if (token.schoolId) {
           session.user.schoolId = token.schoolId as string;
         }
         if (token.schoolSlug) {
           session.user.schoolSlug = token.schoolSlug as string;
+          console.log('Session Callback: schoolSlug set to:', token.schoolSlug);
         }
         if (token.schoolName) {
           session.user.schoolName = token.schoolName as string;
@@ -260,19 +266,27 @@ export const authOptions: NextAuthOptions = {
           let schoolInfo = null;
 
           if (user.role === 'admin') {
+            console.log('JWT Callback: Processing admin user', { userId: user.id, userRole: user.role });
             // Fetch admin with school info
             if (user.id && user.id.trim() !== '') {
+              console.log('JWT Callback: Fetching admin with ID:', user.id);
               const admin = await prisma.admin.findUnique({
                 where: { id: user.id },
                 include: { school: true }
               });
+              console.log('JWT Callback: Admin found:', admin ? { id: admin.id, schoolId: admin.schoolId } : 'null');
               if (admin?.school) {
                 schoolInfo = {
                   schoolId: admin.school.id,
                   schoolSlug: admin.school.slug,
                   schoolName: admin.school.name
                 };
+                console.log('JWT Callback: School info set:', schoolInfo);
+              } else {
+                console.log('JWT Callback: No school found for admin');
               }
+            } else {
+              console.log('JWT Callback: Invalid user ID:', user.id);
             }
           } else if (user.role === 'teacher') {
             // Fetch teacher with school info
