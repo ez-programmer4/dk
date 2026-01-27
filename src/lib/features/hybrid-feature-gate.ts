@@ -369,8 +369,8 @@ export class HybridFeatureGate {
 
   private static getPlanFeatures(plan: string): string[] {
     const planFeatures = {
-      basic: ['student_management', 'teacher_management', 'basic_reporting'],
-      professional: ['teacher_payment', 'student_mini_app'],
+      basic: ['teacher_management', 'basic_reporting'], // Removed student_management and teacher_payment from basic
+      professional: ['student_management', 'teacher_payment', 'student_mini_app'], // Added student_management and teacher_payment to professional
       enterprise: ['advanced_analytics', 'api_access', 'custom_branding']
     };
     return planFeatures[plan] || [];

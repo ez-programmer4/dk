@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import {
   FiCalendar,
@@ -47,6 +47,8 @@ interface Teacher {
 export default function AdminAttendanceList() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const params = useParams();
+  const schoolSlug = params.schoolSlug as string;
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [controllers, setControllers] = useState<Controller[]>([]);
@@ -114,7 +116,7 @@ export default function AdminAttendanceList() {
   const fetchTeachers = async (controllerId: string) => {
     try {
       const response = await fetch(
-        `/api/admin/teachers?controlId=${controllerId}`
+        `/api/admin/${schoolSlug}/teachers?controlId=${controllerId}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -144,7 +146,7 @@ export default function AdminAttendanceList() {
       });
 
       const response = await fetch(
-        `/api/admin/daily-attendance?${params.toString()}`,
+        `/api/admin/${schoolSlug}/daily-attendance?${params.toString()}`,
         {
           credentials: "include",
           headers: {

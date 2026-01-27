@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import dayjs from "dayjs";
+import { useBranding } from "../layout";
 import {
   FiCalendar,
   FiUser,
@@ -177,6 +178,11 @@ export default function TeacherPaymentsClient({
   startDate,
   endDate,
 }: TeacherPaymentsClientProps) {
+  const branding = useBranding();
+
+  // Use branding colors with fallbacks
+  const primaryColor = branding?.primaryColor || "#4F46E5";
+  const secondaryColor = branding?.secondaryColor || "#7C3AED";
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -487,12 +493,27 @@ export default function TeacherPaymentsClient({
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
+    <div
+      className="min-h-screen"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor}08 0%, ${secondaryColor}05 50%, #ffffff 100%)`,
+      }}
+    >
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
         {/* Enhanced Header with School Branding */}
-        <div className="relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-6 sm:p-8 lg:p-10">
+        <div
+          className="relative overflow-hidden rounded-2xl shadow-lg border border-gray-100/50 p-8 lg:p-10 backdrop-blur-sm"
+          style={{
+            background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+          }}
+        >
           {/* Background Pattern */}
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/30 via-transparent to-blue-50/30 rounded-3xl" />
+          <div
+            className="absolute inset-0 rounded-2xl"
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+            }}
+          />
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5QzkyQUMiIGZpbGwtb3BhY2l0eT0iMC4wMiI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIvPjwvZz48L2c+PC9zdmc+PC9zdmc+')] opacity-30" />
 
           <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -509,7 +530,12 @@ export default function TeacherPaymentsClient({
                 </span>
               </div>
 
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent mb-3">
+              <h1
+                className="text-4xl lg:text-5xl font-bold bg-clip-text text-transparent mb-3"
+                style={{
+                  backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
+              >
                 Teacher Payments
               </h1>
               <p className="text-gray-600 text-lg font-medium">
@@ -556,7 +582,10 @@ export default function TeacherPaymentsClient({
             <Button
               onClick={() => refresh()}
               disabled={loading}
-              className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
+              className="flex items-center gap-2 text-white shadow-lg hover:shadow-xl"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+              }}
             >
               <FiRefreshCw
                 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
@@ -623,7 +652,12 @@ export default function TeacherPaymentsClient({
                   updateURL(month, selectedYear);
                 }}
               >
-                <SelectTrigger className="w-40 border-gray-300 focus:border-black">
+                <SelectTrigger
+                  className="w-40 border-gray-300 focus:border-transparent"
+                  style={{
+                    boxShadow: `0 0 0 2px ${primaryColor}40`,
+                  }}
+                >
                   <SelectValue placeholder="Select month" />
                 </SelectTrigger>
                 <SelectContent>
@@ -649,7 +683,12 @@ export default function TeacherPaymentsClient({
                   updateURL(selectedMonth, year);
                 }}
               >
-                <SelectTrigger className="w-24 border-gray-300 focus:border-black">
+                <SelectTrigger
+                  className="w-24 border-gray-300 focus:border-transparent"
+                  style={{
+                    boxShadow: `0 0 0 2px ${primaryColor}40`,
+                  }}
+                >
                   <SelectValue placeholder="Year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -679,7 +718,10 @@ export default function TeacherPaymentsClient({
               variant="default"
               size="sm"
               onClick={goToCurrentMonth}
-              className="flex items-center gap-1 bg-black hover:bg-gray-800 text-white"
+              className="flex items-center gap-1 text-white shadow-lg hover:shadow-xl"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+              }}
             >
               <FiCalendar className="w-4 h-4" />
               Current Month
@@ -999,7 +1041,10 @@ export default function TeacherPaymentsClient({
                       type="checkbox"
                       checked={includeSundays}
                       onChange={(e) => updateSundaySetting(e.target.checked)}
-                      className="w-4 h-4 text-black bg-gray-100 border-gray-300 rounded focus:ring-black"
+                      className="w-4 h-4 text-black bg-gray-100 border-gray-300 rounded"
+                      style={{
+                        boxShadow: `0 0 0 2px ${primaryColor}40`,
+                      }}
                     />
                   </div>
                 </div>
@@ -1020,7 +1065,10 @@ export default function TeacherPaymentsClient({
                         onChange={(e) =>
                           updateShowTeacherSalarySetting(e.target.checked)
                         }
-                        className="w-4 h-4 text-black bg-gray-100 border-gray-300 rounded focus:ring-black"
+                        className="w-4 h-4 text-black bg-gray-100 border-gray-300 rounded"
+                      style={{
+                        boxShadow: `0 0 0 2px ${primaryColor}40`,
+                      }}
                       />
                     </div>
                   </div>
@@ -1129,7 +1177,13 @@ export default function TeacherPaymentsClient({
               <Button variant="outline" onClick={() => setShowSettings(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setShowSettings(false)}>
+              <Button
+                onClick={() => setShowSettings(false)}
+                className="text-white shadow-lg hover:shadow-xl"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
+              >
                 Save Settings
               </Button>
             </div>

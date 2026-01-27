@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
+import { useBranding } from "../layout";
 import {
   FiCheck,
   FiX,
@@ -40,6 +41,11 @@ function classNames(...classes: string[]) {
 export default function AdminPermissionsPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+  const branding = useBranding();
+
+  // Use branding colors with fallbacks
+  const primaryColor = branding?.primaryColor || "#4F46E5";
+  const secondaryColor = branding?.secondaryColor || "#7C3AED";
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -272,20 +278,40 @@ export default function AdminPermissionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div
+      className="min-h-screen"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor}08 0%, ${secondaryColor}05 50%, #ffffff 100%)`,
+      }}
+    >
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
         {/* Header + Stats */}
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 p-6 sm:p-8 lg:p-10">
+        <div
+          className="rounded-2xl shadow-lg border border-gray-100/50 p-8 lg:p-10 backdrop-blur-sm"
+          style={{
+            background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+          }}
+        >
           <div className="flex flex-col lg:flex-row lg:items-center gap-8 mb-8">
             <div className="flex items-center gap-6">
-              <div className="p-4 bg-black rounded-2xl shadow-lg">
+              <div
+                className="p-4 rounded-2xl shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
+              >
                 <FiBell className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-2">
+                <h1
+                  className="text-4xl lg:text-5xl font-bold bg-clip-text text-transparent mb-2"
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                  }}
+                >
                   Permission Review
                 </h1>
-                <p className="text-gray-600 text-base sm:text-lg lg:text-xl">
+                <p className="text-gray-600 text-lg lg:text-xl font-medium">
                   Manage teacher absence requests and notifications
                 </p>
               </div>
@@ -293,47 +319,95 @@ export default function AdminPermissionsPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:ml-auto w-full">
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
+              <div
+                className="rounded-2xl p-4 text-center border border-gray-200 hover:shadow-md transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+                }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiBell className="h-5 w-5 text-gray-600" />
+                  <div
+                    className="p-1 rounded-lg"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}25)`,
+                    }}
+                  >
+                    <FiBell className="h-4 w-4 text-white" />
+                  </div>
                   <span className="text-xs font-semibold text-gray-600">
                     Total
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-black">
+                <div className="text-2xl font-bold text-gray-900">
                   {stats.total}
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
+              <div
+                className="rounded-2xl p-4 text-center border border-gray-200 hover:shadow-md transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+                }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiClock className="h-5 w-5 text-gray-600" />
+                  <div
+                    className="p-1 rounded-lg"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}25)`,
+                    }}
+                  >
+                    <FiClock className="h-4 w-4 text-white" />
+                  </div>
                   <span className="text-xs font-semibold text-gray-600">
                     Pending
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-black">
+                <div className="text-2xl font-bold text-gray-900">
                   {stats.pending}
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
+              <div
+                className="rounded-2xl p-4 text-center border border-gray-200 hover:shadow-md transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+                }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiCheck className="h-5 w-5 text-gray-600" />
+                  <div
+                    className="p-1 rounded-lg"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}25)`,
+                    }}
+                  >
+                    <FiCheck className="h-4 w-4 text-white" />
+                  </div>
                   <span className="text-xs font-semibold text-gray-600">
                     Approved
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-black">
+                <div className="text-2xl font-bold text-gray-900">
                   {stats.approved}
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
+              <div
+                className="rounded-2xl p-4 text-center border border-gray-200 hover:shadow-md transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+                }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiX className="h-5 w-5 text-gray-600" />
+                  <div
+                    className="p-1 rounded-lg"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}25)`,
+                    }}
+                  >
+                    <FiX className="h-4 w-4 text-white" />
+                  </div>
                   <span className="text-xs font-semibold text-gray-600">
                     Declined
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-black">
+                <div className="text-2xl font-bold text-gray-900">
                   {stats.declined}
                 </div>
               </div>
@@ -341,7 +415,12 @@ export default function AdminPermissionsPage() {
           </div>
 
           {/* Controls */}
-          <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+          <div
+            className="rounded-2xl p-6 border border-gray-100/50"
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+            }}
+          >
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
               <div className="lg:col-span-4">
                 <label className="block text-sm font-bold text-black mb-3">
@@ -353,7 +432,10 @@ export default function AdminPermissionsPage() {
                   placeholder="Search teacher..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                  style={{
+                    boxShadow: `0 0 0 2px ${primaryColor}40`,
+                  }}
                 />
               </div>
               <div className="lg:col-span-4">
@@ -364,7 +446,10 @@ export default function AdminPermissionsPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                  style={{
+                    boxShadow: `0 0 0 2px ${primaryColor}40`,
+                  }}
                 >
                   <option value="">All Statuses</option>
                   <option value="Pending">Pending</option>
@@ -422,7 +507,10 @@ export default function AdminPermissionsPage() {
                       description: "Permission requests exported successfully!",
                     });
                   }}
-                  className="w-full bg-black hover:bg-gray-800 text-white px-4 py-3 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2"
+                  className="w-full text-white px-4 py-3 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                  }}
                 >
                   <FiDownload className="h-4 w-4" />
                   Export CSV
@@ -433,14 +521,24 @@ export default function AdminPermissionsPage() {
         </div>
 
         {/* Requests Table */}
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden">
-          <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-200">
+        <div
+          className="rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden backdrop-blur-sm"
+          style={{
+            background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+          }}
+        >
+          <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-100">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-black rounded-xl">
+              <div
+                className="p-3 rounded-xl shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
+              >
                 <FiUsers className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-black">
+                <h2 className="text-2xl font-bold text-gray-900">
                   Permission Requests
                 </h2>
                 <p className="text-gray-600">
@@ -452,35 +550,86 @@ export default function AdminPermissionsPage() {
 
           <div className="p-6 sm:p-8 lg:p-10">
             {loading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-black mx-auto mb-6"></div>
-                <p className="text-black font-medium text-lg">
-                  Loading requests...
-                </p>
-                <p className="text-gray-500 text-sm mt-2">
+              <div className="text-center py-16">
+                <div className="relative mb-8">
+                  <div
+                    className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200 mx-auto"
+                    style={{
+                      borderTopColor: primaryColor,
+                    }}
+                  ></div>
+                  <div
+                    className="absolute inset-0 rounded-full border-4 border-transparent animate-spin mx-auto"
+                    style={{
+                      borderTopColor: secondaryColor,
+                      animationDirection: 'reverse',
+                      animationDuration: '1.5s',
+                    }}
+                  ></div>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">Loading Permission Requests</h2>
+                <p className="text-gray-600 text-lg">
                   Please wait while we fetch the data
                 </p>
+                <div className="mt-6 flex justify-center">
+                  <div className="flex space-x-2">
+                    <div
+                      className="w-2 h-2 rounded-full animate-bounce"
+                      style={{ backgroundColor: primaryColor }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 rounded-full animate-bounce"
+                      style={{
+                        backgroundColor: secondaryColor,
+                        animationDelay: '0.1s',
+                      }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 rounded-full animate-bounce"
+                      style={{
+                        backgroundColor: primaryColor,
+                        animationDelay: '0.2s',
+                      }}
+                    ></div>
+                  </div>
+                </div>
               </div>
             ) : error ? (
-              <div className="text-center py-12">
-                <div className="p-8 bg-red-50 rounded-full w-fit mx-auto mb-8">
-                  <FiX className="h-16 w-16 text-red-500" />
+              <div className="text-center py-16">
+                <div className="relative mb-8">
+                  <div className="p-8 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl w-fit mx-auto shadow-lg">
+                    <FiX className="h-16 w-16 text-red-600" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 p-2 bg-red-500 rounded-full">
+                    <FiAlertTriangle className="h-4 w-4 text-white" />
+                  </div>
                 </div>
-                <h3 className="text-3xl font-bold text-black mb-4">
+                <h3 className="text-3xl font-bold text-gray-900 mb-4">
                   Error Loading Requests
                 </h3>
-                <p className="text-red-600 text-xl">{error}</p>
+                <p className="text-red-600 text-xl font-medium">{error}</p>
+                <p className="text-gray-500 text-sm mt-2">
+                  Please try refreshing the page or contact support if the issue persists.
+                </p>
               </div>
             ) : paginatedRequests.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="p-8 bg-gray-100 rounded-full w-fit mx-auto mb-8">
-                  <FiBell className="h-16 w-16 text-gray-500" />
+              <div className="text-center py-16">
+                <div className="relative mb-8">
+                  <div className="p-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl w-fit mx-auto shadow-lg">
+                    <FiBell className="h-16 w-16 text-gray-500" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 p-2 bg-gray-400 rounded-full">
+                    <FiSearch className="h-4 w-4 text-white" />
+                  </div>
                 </div>
-                <h3 className="text-3xl font-bold text-black mb-4">
+                <h3 className="text-3xl font-bold text-gray-900 mb-4">
                   No Requests Found
                 </h3>
-                <p className="text-gray-600 text-xl">
+                <p className="text-gray-600 text-xl font-medium">
                   No permission requests match your current filters.
+                </p>
+                <p className="text-gray-500 text-sm mt-2">
+                  Try adjusting your search criteria or status filter.
                 </p>
               </div>
             ) : (
@@ -636,14 +785,24 @@ export default function AdminPermissionsPage() {
         </div>
 
         {/* Permission Reasons Management */}
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden">
-          <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-200">
+        <div
+          className="rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden backdrop-blur-sm"
+          style={{
+            background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+          }}
+        >
+          <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-100">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-black rounded-xl">
+              <div
+                className="p-3 rounded-xl shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
+              >
                 <FiBell className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-black">
+                <h2 className="text-2xl font-bold text-gray-900">
                   Permission Reasons
                 </h2>
                 <p className="text-gray-600">
@@ -693,7 +852,12 @@ export default function AdminPermissionsPage() {
               <button
                 onClick={addReason}
                 disabled={savingReasons || !newReason.trim()}
-                className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50"
+                className="text-white px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50 shadow-lg hover:shadow-xl"
+                style={{
+                  background: savingReasons || !newReason.trim()
+                    ? '#9CA3AF'
+                    : `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
               >
                 {savingReasons ? (
                   <FiLoader className="h-4 w-4 animate-spin" />
@@ -717,7 +881,12 @@ export default function AdminPermissionsPage() {
               </button>
 
               {/* Modal Header */}
-              <div className="bg-black rounded-t-3xl p-6 text-white">
+              <div
+                className="rounded-t-3xl p-6 text-white"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
+              >
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-white/20 rounded-2xl">
                     <FiBell className="h-8 w-8" />
@@ -856,9 +1025,16 @@ export default function AdminPermissionsPage() {
                         type="button"
                         className={`flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all transform hover:scale-105 ${
                           form.status === "Approved"
-                            ? "bg-green-600 text-white"
+                            ? "text-white shadow-lg"
                             : "bg-gray-100 text-gray-700 hover:bg-green-50 hover:text-green-700"
                         }`}
+                        style={
+                          form.status === "Approved"
+                            ? {
+                                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                              }
+                            : {}
+                        }
                         onClick={() =>
                           setForm((f) => ({ ...f, status: "Approved" }))
                         }
@@ -871,9 +1047,16 @@ export default function AdminPermissionsPage() {
                         type="button"
                         className={`flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all transform hover:scale-105 ${
                           form.status === "Declined"
-                            ? "bg-red-600 text-white"
+                            ? "text-white shadow-lg"
                             : "bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-700"
                         }`}
+                        style={
+                          form.status === "Declined"
+                            ? {
+                                background: `linear-gradient(135deg, #DC2626, #B91C1C)`,
+                              }
+                            : {}
+                        }
                         onClick={() =>
                           setForm((f) => ({ ...f, status: "Declined" }))
                         }
@@ -905,7 +1088,10 @@ export default function AdminPermissionsPage() {
                           Review Notes
                         </label>
                         <textarea
-                          className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
+                          className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:border-transparent bg-white"
+                          style={{
+                            boxShadow: `0 0 0 2px ${primaryColor}40`,
+                          }}
                           value={form.reviewNotes}
                           onChange={(e) =>
                             setForm((f) => ({
@@ -922,7 +1108,10 @@ export default function AdminPermissionsPage() {
                           Review Classification
                         </label>
                         <select
-                          className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
+                          className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:border-transparent bg-white"
+                          style={{
+                            boxShadow: `0 0 0 2px ${primaryColor}40`,
+                          }}
                           value={form.lateReviewReason}
                           onChange={(e) =>
                             setForm((f) => ({
@@ -955,7 +1144,10 @@ export default function AdminPermissionsPage() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <button
                         type="button"
-                        className="flex items-center gap-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-all font-semibold hover:scale-105"
+                        className="flex items-center gap-2 px-4 py-3 text-white rounded-xl transition-all font-semibold hover:scale-105 shadow-lg hover:shadow-xl"
+                        style={{
+                          background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                        }}
                         onClick={async () => {
                           if (!selected) return;
                           try {
@@ -1029,9 +1221,16 @@ export default function AdminPermissionsPage() {
                         type="button"
                         className={`flex items-center gap-2 px-4 py-3 rounded-xl transition-all font-semibold hover:scale-105 ${
                           form.status === "Approved"
-                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                            ? "text-white shadow-lg hover:shadow-xl"
                             : "bg-gray-300 text-gray-500 cursor-not-allowed"
                         }`}
+                        style={
+                          form.status === "Approved"
+                            ? {
+                                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                              }
+                            : {}
+                        }
                         onClick={async () => {
                           if (!selected || form.status !== "Approved") return;
                           try {
@@ -1102,8 +1301,13 @@ export default function AdminPermissionsPage() {
                         className={`px-6 py-3 rounded-xl font-semibold text-white transition-all ${
                           submitting
                             ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-black hover:bg-gray-800 hover:scale-105"
+                            : "hover:scale-105 shadow-lg hover:shadow-xl"
                         }`}
+                        style={{
+                          background: submitting
+                            ? '#9CA3AF'
+                            : `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                        }}
                         disabled={submitting}
                       >
                         {submitting ? (

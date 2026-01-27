@@ -56,9 +56,37 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
   }
   const url = new URL(req.url);
   const type = url.searchParams.get("type");
-  const where = type ? { type, schoolId: school.id } : { schoolId: school.id };
+
+  // Build where clause to filter by school through relations
+  const where: any = {};
+  if (type) {
+    where.type = type;
+  }
+
+  // Filter by school through admin or controller relations
+  where.OR = [
+    {
+      admin: {
+        schoolId: school.id
+      }
+    },
+    {
+      wpos_wpdatatable_28: {
+        schoolId: school.id
+      }
+    }
+  ];
+
   const descriptions = await prisma.qualitydescription.findMany({
     where,
+    include: {
+      admin: {
+        select: { id: true, name: true }
+      },
+      wpos_wpdatatable_28: {
+        select: { wdt_ID: true, name: true }
+      }
+    },
     orderBy: { updatedAt: "asc" },
   });
   return NextResponse.json(descriptions);
@@ -104,12 +132,13 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
     );
   }
   const { type, description } = parse.data;
-  // Do NOT set createdBy at all
+  // Link to admin who created it
   const created = await prisma.qualitydescription.create({
     data: {
       type,
       description,
-      schoolId: school.id,
+      adminId: session.id as string,
+      updatedAt: new Date(),
     },
   });
   return NextResponse.json(created, { status: 201 });
@@ -160,7 +189,7 @@ export async function PUT(req: NextRequest, { params }: { params: { schoolSlug: 
   }
   const updated = await prisma.qualitydescription.update({
     where: { id: Number(id) },
-    data: { type, description },
+    data: { type, description, updatedAt: new Date() },
   });
   return NextResponse.json(updated);
 }
@@ -201,6 +230,32 @@ export async function DELETE(req: NextRequest, { params }: { params: { schoolSlu
   if (!id) {
     return NextResponse.json({ error: "ID is required" }, { status: 400 });
   }
-  await prisma.qualitydescription.delete({ where: { id: Number(id), schoolId: school.id } });
+  // First check if the record belongs to this school
+  const record = await prisma.qualitydescription.findFirst({
+    where: {
+      id: Number(id),
+      OR: [
+        {
+          admin: {
+            schoolId: school.id
+          }
+        },
+        {
+          wpos_wpdatatable_28: {
+            schoolId: school.id
+          }
+        }
+      ]
+    }
+  });
+
+  if (!record) {
+    return NextResponse.json(
+      { error: "Quality description not found or access denied" },
+      { status: 404 }
+    );
+  }
+
+  await prisma.qualitydescription.delete({ where: { id: Number(id) } });
   return NextResponse.json({ success: true });
 }

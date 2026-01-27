@@ -9,54 +9,50 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
-  try {
-    // Fallback secret for development if NEXTAUTH_SECRET is not set
-    const secret =
-      process.env.NEXTAUTH_SECRET || "fallback-secret-for-development";
+  // Fallback secret for development if NEXTAUTH_SECRET is not set
+  const secret =
+    process.env.NEXTAUTH_SECRET || "fallback-secret-for-development";
 
-    const session = await getToken({
-      req,
-      secret,
-    });
+  const session = await getToken({
+    req,
+    secret,
+  });
 
-    if (!session) {
-      return NextResponse.json({ error: "No session token" }, { status: 401 });
-    }
+  if (!session) {
+    return NextResponse.json({ error: "No session token" }, { status: 401 });
+  }
 
-    if (session.role !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 401 }
-      );
-    }
+  if (session.role !== "admin") {
+    return NextResponse.json(
+      { error: "Admin access required" },
+      { status: 401 }
+    );
+  }
 
-    // Get school information
-    const school = await prisma.school.findUnique({
-      where: { slug: params.schoolSlug },
-      select: { id: true, name: true },
-    });
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
 
-    if (!school) {
-      return NextResponse.json(
-        { error: "School not found" },
-        { status: 404 }
-      );
-    }
+  if (!school) {
+    return NextResponse.json(
+      { error: "School not found" },
+      { status: 404 }
+    );
+  }
 
-    // Verify admin has access to this school
-    const admin = await prisma.admin.findUnique({
-      where: { id: session.id as string },
-      select: { schoolId: true },
-    });
+  // Verify admin has access to this school
+  const admin = await prisma.admin.findUnique({
+    where: { id: session.id as string },
+    select: { schoolId: true },
+  });
 
-    if (!admin || admin.schoolId !== school.id) {
-      return NextResponse.json(
-        { error: "Unauthorized access to school" },
-        { status: 403 }
-      );
-    }
-  } catch (error) {
-    return NextResponse.json({ error: "Session error" }, { status: 401 });
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json(
+      { error: "Unauthorized access to school" },
+      { status: 403 }
+    );
   }
 
   try {

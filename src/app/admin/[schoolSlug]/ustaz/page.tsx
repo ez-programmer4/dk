@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useBranding } from "../layout";
 import UstazRatingsSkeleton from "./components/UstazRatingsSkeleton";
 import {
   BarChart,
@@ -40,6 +41,11 @@ type UstazStats = {
 export default function UstazRatingsPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+  const branding = useBranding();
+
+  // Use branding colors with fallbacks
+  const primaryColor = branding?.primaryColor || "#4F46E5";
+  const secondaryColor = branding?.secondaryColor || "#7C3AED";
   const [stats, setStats] = useState<UstazStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,18 +66,18 @@ export default function UstazRatingsPage() {
         }
 
         const statsPromises = ustazList.map(async (ustaz: any) => {
-          const statsRes = await fetch(`/api/admin/${schoolSlug}/ustaz/${ustaz.ustazid}/stats`);
+          const statsRes = await fetch(`/api/admin/${schoolSlug}/ustaz/${ustaz.id}/stats`);
           if (!statsRes.ok) {
             return {
-              id: ustaz.ustazid,
-              name: ustaz.ustazname,
+              id: ustaz.id,
+              name: ustaz.name,
               passed: 0,
               failed: 0,
               error: true,
             };
           }
           const { passed, failed } = await statsRes.json();
-          return { id: ustaz.ustazid, name: ustaz.ustazname, passed, failed };
+          return { id: ustaz.id, name: ustaz.name, passed, failed };
         });
 
         const allStats = await Promise.all(statsPromises);
@@ -89,7 +95,7 @@ export default function UstazRatingsPage() {
   // Derived stats
   const filteredStats = stats.filter(
     (u) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) &&
+      (u.name || "").toLowerCase().includes(search.toLowerCase()) &&
       (statusFilter === "" ||
         (statusFilter === "passed" && u.passed > u.failed) ||
         (statusFilter === "failed" && u.failed >= u.passed))
@@ -120,7 +126,7 @@ export default function UstazRatingsPage() {
 
   // Chart data
   const barChartData = filteredStats.slice(0, 10).map((u) => ({
-    name: u.name.length > 10 ? u.name.substring(0, 10) + "..." : u.name,
+    name: (u.name || "Unknown").length > 10 ? (u.name || "Unknown").substring(0, 10) + "..." : (u.name || "Unknown"),
     Passed: u.passed,
     Failed: u.failed,
   }));
@@ -136,7 +142,7 @@ export default function UstazRatingsPage() {
       const passRate = ustaz.passed + ustaz.failed > 0
         ? Math.round((ustaz.passed / (ustaz.passed + ustaz.failed)) * 100)
         : 0;
-      return [ustaz.name, ustaz.id, ustaz.passed, ustaz.failed, `${passRate}%`];
+      return [ustaz.name || "Unknown", ustaz.id, ustaz.passed, ustaz.failed, `${passRate}%`];
     });
     const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv" });
@@ -150,11 +156,55 @@ export default function UstazRatingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          background: `linear-gradient(135deg, ${primaryColor}08 0%, ${secondaryColor}05 50%, #ffffff 100%)`,
+        }}
+      >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-black mx-auto mb-6"></div>
-          <p className="text-black font-medium text-lg">Loading teacher ratings...</p>
-          <p className="text-gray-500 text-sm mt-2">Please wait while we fetch the data</p>
+          <div className="relative mb-8">
+            <div
+              className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200 mx-auto"
+              style={{
+                borderTopColor: primaryColor,
+              }}
+            ></div>
+            <div
+              className="absolute inset-0 rounded-full border-4 border-transparent animate-spin mx-auto"
+              style={{
+                borderTopColor: secondaryColor,
+                animationDirection: 'reverse',
+                animationDuration: '1.5s',
+              }}
+            ></div>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Loading Teacher Ratings</h2>
+          <p className="text-gray-600 text-lg">
+            Please wait while we fetch the data
+          </p>
+          <div className="mt-6 flex justify-center">
+            <div className="flex space-x-2">
+              <div
+                className="w-2 h-2 rounded-full animate-bounce"
+                style={{ backgroundColor: primaryColor }}
+              ></div>
+              <div
+                className="w-2 h-2 rounded-full animate-bounce"
+                style={{
+                  backgroundColor: secondaryColor,
+                  animationDelay: '0.1s',
+                }}
+              ></div>
+              <div
+                className="w-2 h-2 rounded-full animate-bounce"
+                style={{
+                  backgroundColor: primaryColor,
+                  animationDelay: '0.2s',
+                }}
+              ></div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -162,33 +212,68 @@ export default function UstazRatingsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          background: `linear-gradient(135deg, ${primaryColor}08 0%, ${secondaryColor}05 50%, #ffffff 100%)`,
+        }}
+      >
         <div className="text-center">
-          <div className="p-8 bg-red-50 rounded-full w-fit mx-auto mb-8">
-            <FiXCircle className="h-16 w-16 text-red-500" />
+          <div className="relative mb-8">
+            <div className="p-8 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl w-fit mx-auto shadow-lg">
+              <FiXCircle className="h-16 w-16 text-red-600" />
+            </div>
+            <div className="absolute -top-2 -right-2 p-2 bg-red-500 rounded-full">
+              <FiXCircle className="h-4 w-4 text-white" />
+            </div>
           </div>
-          <h3 className="text-3xl font-bold text-black mb-4">Error Loading Data</h3>
-          <p className="text-red-600 text-xl">{error}</p>
+          <h3 className="text-3xl font-bold text-gray-900 mb-4">
+            Error Loading Data
+          </h3>
+          <p className="text-red-600 text-xl font-medium">{error}</p>
+          <p className="text-gray-500 text-sm mt-2">
+            Please try refreshing the page or contact support if the issue persists.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div
+      className="min-h-screen"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor}08 0%, ${secondaryColor}05 50%, #ffffff 100%)`,
+      }}
+    >
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
         {/* Header + Stats */}
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 p-6 sm:p-8 lg:p-10">
+        <div
+          className="rounded-2xl shadow-lg border border-gray-100/50 p-8 lg:p-10 backdrop-blur-sm"
+          style={{
+            background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+          }}
+        >
           <div className="flex flex-col lg:flex-row lg:items-center gap-8 mb-8">
             <div className="flex items-center gap-6">
-              <div className="p-4 bg-black rounded-2xl shadow-lg">
+              <div
+                className="p-4 rounded-2xl shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
+              >
                 <FiUsers className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-2">
+                <h1
+                  className="text-4xl lg:text-5xl font-bold bg-clip-text text-transparent mb-2"
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                  }}
+                >
                   Teacher Exam Ratings
                 </h1>
-                <p className="text-gray-600 text-base sm:text-lg lg:text-xl">
+                <p className="text-gray-600 text-lg lg:text-xl font-medium">
                   Performance analytics and exam pass/fail statistics
                 </p>
               </div>
@@ -196,39 +281,92 @@ export default function UstazRatingsPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:ml-auto w-full">
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
+              <div
+                className="rounded-2xl p-4 text-center border border-gray-200 hover:shadow-md transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+                }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiUsers className="h-5 w-5 text-gray-600" />
+                  <div
+                    className="p-1 rounded-lg"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}10)`,
+                    }}
+                  >
+                    <FiUsers className="h-4 w-4 text-white" />
+                  </div>
                   <span className="text-xs font-semibold text-gray-600">Teachers</span>
                 </div>
-                <div className="text-2xl font-bold text-black">{totalTeachers}</div>
+                <div className="text-2xl font-bold text-gray-900">{totalTeachers}</div>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
+              <div
+                className="rounded-2xl p-4 text-center border border-gray-200 hover:shadow-md transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+                }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiCheckCircle className="h-5 w-5 text-gray-600" />
+                  <div
+                    className="p-1 rounded-lg"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}10)`,
+                    }}
+                  >
+                    <FiCheckCircle className="h-4 w-4 text-white" />
+                  </div>
                   <span className="text-xs font-semibold text-gray-600">Passed</span>
                 </div>
-                <div className="text-2xl font-bold text-black">{totalPassed}</div>
+                <div className="text-2xl font-bold text-gray-900">{totalPassed}</div>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
+              <div
+                className="rounded-2xl p-4 text-center border border-gray-200 hover:shadow-md transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+                }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiXCircle className="h-5 w-5 text-gray-600" />
+                  <div
+                    className="p-1 rounded-lg"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}10)`,
+                    }}
+                  >
+                    <FiXCircle className="h-4 w-4 text-white" />
+                  </div>
                   <span className="text-xs font-semibold text-gray-600">Failed</span>
                 </div>
-                <div className="text-2xl font-bold text-black">{totalFailed}</div>
+                <div className="text-2xl font-bold text-gray-900">{totalFailed}</div>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-200">
+              <div
+                className="rounded-2xl p-4 text-center border border-gray-200 hover:shadow-md transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+                }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <FiTarget className="h-5 w-5 text-gray-600" />
+                  <div
+                    className="p-1 rounded-lg"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}10)`,
+                    }}
+                  >
+                    <FiTarget className="h-4 w-4 text-white" />
+                  </div>
                   <span className="text-xs font-semibold text-gray-600">Pass Rate</span>
                 </div>
-                <div className="text-2xl font-bold text-black">{averagePassRate}%</div>
+                <div className="text-2xl font-bold text-gray-900">{averagePassRate}%</div>
               </div>
             </div>
           </div>
 
           {/* Controls */}
-          <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+          <div
+            className="rounded-2xl p-6 border border-gray-100/50 backdrop-blur-sm"
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+            }}
+          >
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
               <div className="lg:col-span-4">
                 <label className="block text-sm font-bold text-black mb-3">
@@ -243,7 +381,10 @@ export default function UstazRatingsPage() {
                     setSearch(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                  style={{
+                    boxShadow: `0 0 0 2px ${primaryColor}40`,
+                  }}
                 />
               </div>
               <div className="lg:col-span-3">
@@ -257,7 +398,10 @@ export default function UstazRatingsPage() {
                     setStatusFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                  style={{
+                    boxShadow: `0 0 0 2px ${primaryColor}40`,
+                  }}
                 >
                   <option value="">All Teachers</option>
                   <option value="passed">Mostly Passed</option>
@@ -268,7 +412,10 @@ export default function UstazRatingsPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={exportToCSV}
-                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-3 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-white"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}90, ${secondaryColor}90)`,
+                    }}
                   >
                     <FiDownload className="h-4 w-4" />
                     Export CSV
@@ -282,13 +429,23 @@ export default function UstazRatingsPage() {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Bar Chart */}
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 p-6 sm:p-8">
+          <div
+            className="rounded-2xl shadow-lg border border-gray-100/50 p-6 sm:p-8 backdrop-blur-sm"
+            style={{
+              background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+            }}
+          >
             <div className="flex items-center gap-4 mb-6">
-              <div className="p-3 bg-black rounded-xl">
+              <div
+                className="p-3 rounded-xl shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
+              >
                 <FiBarChart className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-black">Pass/Fail Distribution</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Pass/Fail Distribution</h2>
                 <p className="text-gray-600">Top 10 teachers by exam results</p>
               </div>
             </div>
@@ -306,13 +463,23 @@ export default function UstazRatingsPage() {
           </div>
 
           {/* Pie Chart */}
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 p-6 sm:p-8">
+          <div
+            className="rounded-2xl shadow-lg border border-gray-100/50 p-6 sm:p-8 backdrop-blur-sm"
+            style={{
+              background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+            }}
+          >
             <div className="flex items-center gap-4 mb-6">
-              <div className="p-3 bg-black rounded-xl">
+              <div
+                className="p-3 rounded-xl shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
+              >
                 <FiPieChart className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-black">Overall Pass/Fail</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Overall Pass/Fail</h2>
                 <p className="text-gray-600">Total exam results distribution</p>
               </div>
             </div>
@@ -343,14 +510,24 @@ export default function UstazRatingsPage() {
         </div>
 
         {/* Teachers Table */}
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden">
-          <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-200">
+        <div
+          className="rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden backdrop-blur-sm"
+          style={{
+            background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+          }}
+        >
+          <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-100">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-black rounded-xl">
+              <div
+                className="p-3 rounded-xl shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
+              >
                 <FiUsers className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-black">Teacher Details</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Teacher Details</h2>
                 <p className="text-gray-600">{filteredStats.length} teachers found</p>
               </div>
             </div>
@@ -358,29 +535,46 @@ export default function UstazRatingsPage() {
 
           <div className="p-6 sm:p-8 lg:p-10">
             {paginatedStats.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="p-8 bg-gray-100 rounded-full w-fit mx-auto mb-8">
-                  <FiUsers className="h-16 w-16 text-gray-500" />
+              <div className="text-center py-16">
+                <div className="relative mb-8">
+                  <div className="p-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl w-fit mx-auto shadow-lg">
+                    <FiUsers className="h-16 w-16 text-gray-500" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 p-2 bg-gray-400 rounded-full">
+                    <FiSearch className="h-4 w-4 text-white" />
+                  </div>
                 </div>
-                <h3 className="text-3xl font-bold text-black mb-4">No Teachers Found</h3>
-                <p className="text-gray-600 text-xl">No teachers match your current filters.</p>
+                <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                  No Teachers Found
+                </h3>
+                <p className="text-gray-600 text-xl font-medium">
+                  No teachers match your current filters.
+                </p>
+                <p className="text-gray-500 text-sm mt-2">
+                  Try adjusting your search criteria or status filter.
+                </p>
               </div>
             ) : (
               <>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full text-sm divide-y divide-gray-100">
+                    <thead
+                      className="backdrop-blur-sm"
+                      style={{
+                        background: `linear-gradient(135deg, ${primaryColor}10 0%, ${secondaryColor}05 100%)`,
+                      }}
+                    >
                       <tr>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-black uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">
                           Teacher Name
                         </th>
-                        <th className="px-6 py-4 text-center text-sm font-bold text-black uppercase tracking-wider">
+                        <th className="px-6 py-4 text-center text-sm font-bold text-gray-900 uppercase tracking-wider">
                           Passed
                         </th>
-                        <th className="px-6 py-4 text-center text-sm font-bold text-black uppercase tracking-wider">
+                        <th className="px-6 py-4 text-center text-sm font-bold text-gray-900 uppercase tracking-wider">
                           Failed
                         </th>
-                        <th className="px-6 py-4 text-center text-sm font-bold text-black uppercase tracking-wider">
+                        <th className="px-6 py-4 text-center text-sm font-bold text-gray-900 uppercase tracking-wider">
                           Pass Rate
                         </th>
                       </tr>
@@ -400,7 +594,7 @@ export default function UstazRatingsPage() {
                           >
                             <td className="px-6 py-4">
                               <div>
-                                <div className="font-semibold text-black">{ustaz.name}</div>
+                                <div className="font-semibold text-black">{ustaz.name || "Unknown"}</div>
                                 <div className="text-sm text-gray-500">{ustaz.id}</div>
                               </div>
                             </td>

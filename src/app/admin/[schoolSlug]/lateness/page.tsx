@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useBranding } from "../layout";
 import { DateRange } from "react-day-picker";
 import { subDays, format } from "date-fns";
 import { useSession } from "next-auth/react";
@@ -85,6 +86,11 @@ export default function AdminLatenessAnalyticsPage() {
   const router = useRouter();
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+  const branding = useBranding();
+
+  // Use branding colors with fallbacks
+  const primaryColor = branding?.primaryColor || "#4F46E5";
+  const secondaryColor = branding?.secondaryColor || "#7C3AED";
   const [date, setDate] = useState<DateRange | undefined>(() => {
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -514,20 +520,38 @@ export default function AdminLatenessAnalyticsPage() {
 
   // UI
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <div
+      className="min-h-screen"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor}08 0%, ${secondaryColor}05 50%, #ffffff 100%)`,
+      }}
+    >
       {/* Header */}
-      <div className="bg-white/70 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-40">
+      <div
+        className="backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-40"
+        style={{
+          background: `linear-gradient(135deg, #ffffff95 0%, ${primaryColor}02 100%)`,
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <button
                 onClick={() => router.push(`/admin/${schoolSlug}`)}
-                className="mr-4 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="mr-4 p-2 rounded-lg transition-all hover:scale-105"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}10, ${secondaryColor}10)`,
+                }}
               >
-                <FiChevronLeft className="h-5 w-5" />
+                <FiChevronLeft className="h-5 w-5 text-gray-700" />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1
+                  className="text-2xl font-bold bg-clip-text text-transparent"
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                  }}
+                >
                   Lateness Analytics
                 </h1>
                 <p className="text-sm text-gray-600">
@@ -543,17 +567,32 @@ export default function AdminLatenessAnalyticsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
           {/* Header + Stats */}
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 p-6 sm:p-8 lg:p-10">
+          <div
+            className="rounded-2xl shadow-lg border border-gray-100/50 p-8 lg:p-10 backdrop-blur-sm"
+            style={{
+              background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+            }}
+          >
             <div className="flex flex-col lg:flex-row lg:items-center gap-8 mb-8">
               <div className="flex items-center gap-6">
-                <div className="p-4 bg-black rounded-2xl shadow-lg">
+                <div
+                  className="p-4 rounded-2xl shadow-lg"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                  }}
+                >
                   <FiBarChart2 className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-2">
+                  <h1
+                    className="text-4xl lg:text-5xl font-bold bg-clip-text text-transparent mb-2"
+                    style={{
+                      backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                    }}
+                  >
                     Lateness Analytics
                   </h1>
-                  <p className="text-gray-600 text-base sm:text-lg lg:text-xl">
+                  <p className="text-gray-600 text-lg lg:text-xl font-medium">
                     Track and analyze teacher lateness patterns and deductions
                   </p>
                 </div>
@@ -561,7 +600,12 @@ export default function AdminLatenessAnalyticsPage() {
             </div>
 
             {/* Controls */}
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200 sticky top-4 z-10">
+            <div
+              className="rounded-2xl p-6 border border-gray-100/50 sticky top-4 z-10 backdrop-blur-sm"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
+              }}
+            >
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
                 <div className="lg:col-span-4">
                   <label className="block text-sm font-bold text-black mb-3">
@@ -578,7 +622,10 @@ export default function AdminLatenessAnalyticsPage() {
                   <select
                     value={controllerId}
                     onChange={(e) => setControllerId(e.target.value)}
-                    className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                    className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                    style={{
+                      boxShadow: `0 0 0 2px ${primaryColor}40`,
+                    }}
                   >
                     <option value="">All Controllers</option>
                     {controllers.map((c) => (
@@ -592,10 +639,28 @@ export default function AdminLatenessAnalyticsPage() {
                   <div className="flex gap-3">
                     <button
                       onClick={() => window.location.reload()}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-4 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2"
+                      className="flex-1 px-4 py-4 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-white"
+                      style={{
+                        background: `linear-gradient(135deg, ${primaryColor}90, ${secondaryColor}90)`,
+                      }}
                     >
                       <FiRefreshCw className="h-4 w-4" />
                       Refresh
+                    </button>
+                    <button
+                      onClick={() =>
+                        exportToCSV(
+                          analytics?.dailyTrend || [],
+                          "lateness_analytics.csv"
+                        )
+                      }
+                      className="flex-1 text-white px-4 py-4 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                      style={{
+                        background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                      }}
+                    >
+                      <FiDownload className="h-4 w-4" />
+                      Export
                     </button>
                     <button
                       onClick={() =>
@@ -645,14 +710,24 @@ export default function AdminLatenessAnalyticsPage() {
           ) : analytics ? (
             <div className="space-y-8">
               {analytics.dailyTrend && analytics.dailyTrend.length > 0 && (
-                <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden">
-                  <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-200">
+                <div
+                  className="rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden backdrop-blur-sm"
+                  style={{
+                    background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+                  }}
+                >
+                  <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-100">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-black rounded-xl">
+                      <div
+                        className="p-3 rounded-xl shadow-lg"
+                        style={{
+                          background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                        }}
+                      >
                         <FiBarChart2 className="h-6 w-6 text-white" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-bold text-black">
+                        <h2 className="text-2xl font-bold text-gray-900">
                           Lateness & Deduction Trend
                         </h2>
                         <p className="text-gray-600">
@@ -723,15 +798,25 @@ export default function AdminLatenessAnalyticsPage() {
                 </div>
               )}
               {/* Per Controller Table */}
-              <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden">
-                <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-200">
+              <div
+                className="rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden backdrop-blur-sm"
+                style={{
+                  background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+                }}
+              >
+                <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-100">
                   <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-black rounded-xl">
+                      <div
+                        className="p-3 rounded-xl shadow-lg"
+                        style={{
+                          background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                        }}
+                      >
                         <FiUsers className="h-6 w-6 text-white" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-bold text-black">
+                        <h2 className="text-2xl font-bold text-gray-900">
                           Per Controller
                         </h2>
                         <p className="text-gray-600">
@@ -766,15 +851,20 @@ export default function AdminLatenessAnalyticsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="overflow-x-auto rounded-2xl shadow-lg border border-indigo-100 bg-white/95 backdrop-blur-md">
-                  <table className="min-w-full text-sm divide-y divide-indigo-100">
-                    <thead className="bg-indigo-50 sticky top-0 z-10">
+                <div className="overflow-x-auto rounded-2xl shadow-lg border border-gray-100/50 backdrop-blur-md">
+                  <table className="min-w-full text-sm divide-y divide-gray-100">
+                    <thead
+                      className="sticky top-0 z-10"
+                      style={{
+                        background: `linear-gradient(135deg, ${primaryColor}10 0%, ${secondaryColor}05 100%)`,
+                      }}
+                    >
                       <tr>
-                        <th className="px-4 py-3 text-left font-bold text-indigo-900 uppercase tracking-wider">
+                        <th className="px-4 py-3 text-left font-bold text-gray-900 uppercase tracking-wider">
                           Controller
                         </th>
                         <th
-                          className="px-4 py-3 text-left font-bold text-indigo-900 uppercase tracking-wider cursor-pointer"
+                          className="px-4 py-3 text-left font-bold text-gray-900 uppercase tracking-wider cursor-pointer"
                           onClick={() => {
                             setSortKey("Average Lateness");
                             setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -785,7 +875,7 @@ export default function AdminLatenessAnalyticsPage() {
                             (sortDir === "asc" ? "↑" : "↓")}
                         </th>
                         <th
-                          className="px-4 py-3 text-left font-bold text-indigo-900 uppercase tracking-wider cursor-pointer"
+                          className="px-4 py-3 text-left font-bold text-gray-900 uppercase tracking-wider cursor-pointer"
                           onClick={() => {
                             setSortKey("Total Deduction");
                             setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -967,8 +1057,13 @@ export default function AdminLatenessAnalyticsPage() {
               {/* Per Teacher Table */}
               <div className="mb-10">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
-                  <h2 className="text-lg font-semibold text-indigo-900 flex items-center gap-2">
-                    <FiUser className="w-5 h-5 text-indigo-500" /> Per Teacher
+                  <h2
+                    className="text-lg font-semibold bg-clip-text text-transparent flex items-center gap-2"
+                    style={{
+                      backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                    }}
+                  >
+                    <FiUser className="w-5 h-5" /> Per Teacher
                   </h2>
                   <div className="flex items-center gap-3 w-full sm:w-auto">
                     <div className="relative flex-1 sm:flex-none">
@@ -996,15 +1091,20 @@ export default function AdminLatenessAnalyticsPage() {
                     </select>
                   </div>
                 </div>
-                <div className="overflow-x-auto rounded-2xl shadow-lg border border-indigo-100 bg-white/95 backdrop-blur-md">
-                  <table className="min-w-full text-sm divide-y divide-indigo-100">
-                    <thead className="bg-indigo-50 sticky top-0 z-10">
+                <div className="overflow-x-auto rounded-2xl shadow-lg border border-gray-100/50 backdrop-blur-md">
+                  <table className="min-w-full text-sm divide-y divide-gray-100">
+                    <thead
+                      className="sticky top-0 z-10"
+                      style={{
+                        background: `linear-gradient(135deg, ${primaryColor}10 0%, ${secondaryColor}05 100%)`,
+                      }}
+                    >
                       <tr>
                         <th className="px-4 py-3 text-left font-bold text-indigo-900 uppercase tracking-wider">
                           Teacher
                         </th>
                         <th
-                          className="px-4 py-3 text-left font-bold text-indigo-900 uppercase tracking-wider cursor-pointer"
+                          className="px-4 py-3 text-left font-bold text-gray-900 uppercase tracking-wider cursor-pointer"
                           onClick={() => {
                             setSortKey("Average Lateness");
                             setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -1015,7 +1115,7 @@ export default function AdminLatenessAnalyticsPage() {
                             (sortDir === "asc" ? "↑" : "↓")}
                         </th>
                         <th
-                          className="px-4 py-3 text-left font-bold text-indigo-900 uppercase tracking-wider cursor-pointer"
+                          className="px-4 py-3 text-left font-bold text-gray-900 uppercase tracking-wider cursor-pointer"
                           onClick={() => {
                             setSortKey("Total Deduction");
                             setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -1519,15 +1619,25 @@ export default function AdminLatenessAnalyticsPage() {
           )}
 
           {/* Daily Lateness Management */}
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden">
-            <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-200">
+          <div
+            className="rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden backdrop-blur-sm"
+            style={{
+              background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+            }}
+          >
+            <div className="p-6 sm:p-8 lg:p-10 border-b border-gray-100">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-black rounded-xl">
+                  <div
+                    className="p-3 rounded-xl shadow-lg"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                    }}
+                  >
                     <FiClock className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-black">
+                    <h2 className="text-2xl font-bold text-gray-900">
                       Daily Lateness Management
                     </h2>
                     <p className="text-gray-600">
@@ -1555,12 +1665,18 @@ export default function AdminLatenessAnalyticsPage() {
                   type="date"
                   value={format(dailyDate, "yyyy-MM-dd")}
                   onChange={(e) => setDailyDate(new Date(e.target.value))}
-                  className="w-full sm:w-48 px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-black text-base"
+                  className="w-full sm:w-48 px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent text-base"
+                  style={{
+                    boxShadow: `0 0 0 2px ${primaryColor}40`,
+                  }}
                 />
                 <select
                   value={dailyControllerId}
                   onChange={(e) => setDailyControllerId(e.target.value)}
-                  className="w-full sm:w-48 px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-black text-base"
+                  className="w-full sm:w-48 px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent text-base"
+                  style={{
+                    boxShadow: `0 0 0 2px ${primaryColor}40`,
+                  }}
                 >
                   <option value="">All Controllers</option>
                   {controllers.map((c) => (
@@ -1572,7 +1688,10 @@ export default function AdminLatenessAnalyticsPage() {
                 <select
                   value={dailyTeacherId}
                   onChange={(e) => setDailyTeacherId(e.target.value)}
-                  className="w-full sm:w-48 px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-black text-base"
+                  className="w-full sm:w-48 px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent text-base"
+                  style={{
+                    boxShadow: `0 0 0 2px ${primaryColor}40`,
+                  }}
                 >
                   <option value="">All Teachers</option>
                   {filteredTeacherData.map((t: any) => (
@@ -1714,7 +1833,10 @@ export default function AdminLatenessAnalyticsPage() {
                             "lateness_daily_management.csv"
                           )
                         }
-                        className="bg-black hover:bg-gray-800 text-white px-4 py-3 rounded-xl font-bold transition-all hover:scale-105 flex items-center gap-2"
+                        className="text-white px-4 py-3 rounded-xl font-bold transition-all hover:scale-105 flex items-center gap-2 shadow-lg hover:shadow-xl"
+                        style={{
+                          background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                        }}
                       >
                         <FiDownload className="h-4 w-4" />
                         Export
@@ -1727,7 +1849,13 @@ export default function AdminLatenessAnalyticsPage() {
           </div>
 
           {/* Footer */}
-          <footer className="w-full text-center text-indigo-500 text-sm py-6 border-t border-indigo-100 bg-white/90 backdrop-blur-md mt-12">
+          <footer
+            className="w-full text-center text-sm py-6 border-t border-gray-100 backdrop-blur-md mt-12"
+            style={{
+              background: `linear-gradient(135deg, #ffffff90 0%, ${primaryColor}02 100%)`,
+              color: primaryColor,
+            }}
+          >
             © {new Date().getFullYear()} DarulKubra Admin Portal. All rights
             reserved.
           </footer>

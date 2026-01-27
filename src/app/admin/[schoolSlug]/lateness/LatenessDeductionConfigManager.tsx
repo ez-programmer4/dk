@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { useBranding } from "../layout";
 import {
   FiEdit,
   FiTrash2,
@@ -21,6 +22,11 @@ interface LatenessDeductionConfigManagerProps {
 export default function LatenessDeductionConfigManager({
   schoolSlug,
 }: LatenessDeductionConfigManagerProps) {
+  const branding = useBranding();
+
+  // Use branding colors with fallbacks
+  const primaryColor = branding?.primaryColor || "#4F46E5";
+  const secondaryColor = branding?.secondaryColor || "#7C3AED";
   const [configs, setConfigs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -156,16 +162,31 @@ export default function LatenessDeductionConfigManager({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <div
+      className="min-h-screen"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor}08 0%, ${secondaryColor}05 50%, #ffffff 100%)`,
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
           {/* Package Base Deductions Section */}
-          <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-200/50 p-6 sm:p-8 lg:p-10">
+          <div
+            className="rounded-2xl shadow-lg border border-gray-100/50 p-8 lg:p-10 backdrop-blur-sm"
+            style={{
+              background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+            }}
+          >
             <PackageDeductionManager type="lateness" schoolSlug={schoolSlug} />
           </div>
 
           {/* Lateness Deduction Configuration Section */}
-          <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-200/50 p-6 sm:p-8 lg:p-10">
+          <div
+            className="rounded-2xl shadow-lg border border-gray-100/50 p-8 lg:p-10 backdrop-blur-sm"
+            style={{
+              background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
+            }}
+          >
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
                 <FiX className="h-5 w-5" /> {error}
@@ -177,11 +198,21 @@ export default function LatenessDeductionConfigManager({
               </div>
             )}
             <div className="flex items-center gap-6 mb-8">
-              <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
+              <div
+                className="p-4 rounded-2xl shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
+              >
                 <FiSettings className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                <h3
+                  className="text-3xl font-bold bg-clip-text text-transparent mb-2"
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                  }}
+                >
                   Lateness Deduction Configuration
                 </h3>
                 <p className="text-gray-600 text-lg">
@@ -202,10 +233,20 @@ export default function LatenessDeductionConfigManager({
           className="grid grid-cols-1 lg:grid-cols-3 gap-6"
         >
           <div className="space-y-6">
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50">
+            <div
+              className="rounded-xl p-6 border border-gray-100/50 backdrop-blur-sm"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}03 0%, ${secondaryColor}02 100%)`,
+              }}
+            >
               <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FiSettings className="h-4 w-4 text-blue-600" />
+                <div
+                  className="p-2 rounded-lg"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}10)`,
+                  }}
+                >
+                  <FiSettings className="h-4 w-4 text-white" />
                 </div>
                 Basic Configuration
               </h4>
@@ -219,7 +260,10 @@ export default function LatenessDeductionConfigManager({
                   max={60}
                   value={form.excusedThreshold}
                   onChange={handleInputChange}
-                  className="mt-1 w-full border-2 border-blue-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  className="mt-1 w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:border-transparent bg-white"
+                  style={{
+                    boxShadow: `0 0 0 2px ${primaryColor}40`,
+                  }}
                   required
                 />
                 <span className="text-xs text-blue-600 mt-1 block">
@@ -235,7 +279,10 @@ export default function LatenessDeductionConfigManager({
                   min={1}
                   value={form.tier}
                   onChange={handleInputChange}
-                  className="mt-1 w-full border-2 border-blue-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  className="mt-1 w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:border-transparent bg-white"
+                  style={{
+                    boxShadow: `0 0 0 2px ${primaryColor}40`,
+                  }}
                   required
                 />
                 <span className="text-xs text-blue-600 mt-1 block">
@@ -246,10 +293,20 @@ export default function LatenessDeductionConfigManager({
           </div>
 
           <div className="space-y-4">
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50">
+            <div
+              className="rounded-xl p-6 border border-gray-100/50 backdrop-blur-sm"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}03 0%, ${secondaryColor}02 100%)`,
+              }}
+            >
               <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <FiClock className="h-4 w-4 text-green-600" />
+                <div
+                  className="p-2 rounded-lg"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}10)`,
+                  }}
+                >
+                  <FiClock className="h-4 w-4 text-white" />
                 </div>
                 Time Range
               </h4>
@@ -325,10 +382,20 @@ export default function LatenessDeductionConfigManager({
             </div>
           </div>
           <div className="space-y-6">
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50">
+            <div
+              className="rounded-xl p-6 border border-gray-100/50 backdrop-blur-sm"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}03 0%, ${secondaryColor}02 100%)`,
+              }}
+            >
               <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <FiDollarSign className="h-4 w-4 text-purple-600" />
+                <div
+                  className="p-2 rounded-lg"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}10)`,
+                  }}
+                >
+                  <FiDollarSign className="h-4 w-4 text-white" />
                 </div>
                 Deduction & Scope
               </h4>
@@ -392,7 +459,12 @@ export default function LatenessDeductionConfigManager({
             <div className="flex gap-3 mt-6">
               <button
                 type="submit"
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: submitting
+                    ? '#9CA3AF'
+                    : `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                }}
                 disabled={submitting}
               >
                 {submitting ? (
@@ -417,29 +489,34 @@ export default function LatenessDeductionConfigManager({
           </div>
         </form>
       </div>
-      <div className="overflow-x-auto rounded-lg shadow border border-gray-200">
-        <table className="min-w-full text-sm divide-y divide-gray-200/50">
-          <thead className="bg-gray-50/50 backdrop-blur-sm">
+      <div className="overflow-x-auto rounded-lg shadow border border-gray-100/50">
+        <table className="min-w-full text-sm divide-y divide-gray-100">
+          <thead
+            className="backdrop-blur-sm"
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor}10 0%, ${secondaryColor}05 100%)`,
+            }}
+          >
             <tr>
-              <th className="px-4 py-2 text-left font-bold text-blue-700">
+              <th className="px-4 py-2 text-left font-bold text-gray-900">
                 Tier
               </th>
-              <th className="px-4 py-2 text-left font-bold text-blue-700">
+              <th className="px-4 py-2 text-left font-bold text-gray-900">
                 Excused Threshold
               </th>
-              <th className="px-4 py-2 text-left font-bold text-blue-700">
+              <th className="px-4 py-2 text-left font-bold text-gray-900">
                 Start
               </th>
-              <th className="px-4 py-2 text-left font-bold text-blue-700">
+              <th className="px-4 py-2 text-left font-bold text-gray-900">
                 End
               </th>
-              <th className="px-4 py-2 text-left font-bold text-blue-700">
+              <th className="px-4 py-2 text-left font-bold text-gray-900">
                 Deduction (%)
               </th>
-              <th className="px-4 py-2 text-left font-bold text-blue-700">
+              <th className="px-4 py-2 text-left font-bold text-gray-900">
                 Scope
               </th>
-              <th className="px-4 py-2 text-left font-bold text-blue-700">
+              <th className="px-4 py-2 text-left font-bold text-gray-900">
                 Actions
               </th>
             </tr>
@@ -509,6 +586,10 @@ function PackageDeductionManager({
   type: "lateness" | "absence";
   schoolSlug: string;
 }) {
+  const branding = useBranding();
+  const primaryColor = branding?.primaryColor || "#4F46E5";
+  const secondaryColor = branding?.secondaryColor || "#7C3AED";
+  
   const [packageDeductions, setPackageDeductions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -632,19 +713,29 @@ function PackageDeductionManager({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 mb-6">
-        <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
-          <FiDollarSign className="h-6 w-6 text-white" />
+        <div className="flex items-center gap-4 mb-6">
+          <div
+            className="p-3 rounded-xl shadow-lg"
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+            }}
+          >
+            <FiDollarSign className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h3
+              className="text-xl font-bold bg-clip-text text-transparent"
+              style={{
+                backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+              }}
+            >
+              Package {type === "lateness" ? "Lateness" : "Absence"} Deductions
+            </h3>
+            <p className="text-sm text-gray-600">
+              Configure base deduction amounts for different packages
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-xl font-bold text-gray-900">
-            Package {type === "lateness" ? "Lateness" : "Absence"} Deductions
-          </h3>
-          <p className="text-sm text-gray-600">
-            Configure base deduction amounts for different packages
-          </p>
-        </div>
-      </div>
 
       {notification && (
         <div
