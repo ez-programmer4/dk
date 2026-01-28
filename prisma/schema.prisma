@@ -23,10 +23,10 @@ model School {
     secondaryColor String? @db.VarChar(7)
 
     // Status
-    status              String   @default("trial") // trial, active, inactive, suspended, expired, cancelled
-    statusReason        String?  @db.Text // Reason for status change
-    statusChangedAt     DateTime @default(now()) @updatedAt
-    statusChangedById   String? // Super admin who changed status
+    status            String   @default("trial") // trial, active, inactive, suspended, expired, cancelled
+    statusReason      String?  @db.Text // Reason for status change
+    statusChangedAt   DateTime @default(now()) @updatedAt
+    statusChangedById String? // Super admin who changed status
 
     // Configuration
     timezone        String @default("Africa/Addis_Ababa") @db.VarChar(50)
@@ -44,25 +44,46 @@ model School {
     createdById String? // Super admin who created
 
     // Relations
-    createdBy       SuperAdmin?             @relation("SuperAdminCreatedSchools", fields: [createdById], references: [id])
-    statusChangedBy SuperAdmin?             @relation("SuperAdminChangedSchoolStatus", fields: [statusChangedById], references: [id])
-    subscription    SchoolSubscription?     @relation("SchoolSubscription")
-    students     wpos_wpdatatable_23[]
-    teachers     wpos_wpdatatable_24[]
-    controllers  wpos_wpdatatable_28[]
-    registrals    wpos_wpdatatable_33[]
-    admins        admin[]
-    settings      SchoolSetting[]
-    payments      SchoolPayment[]
-    statusHistory SchoolStatusHistory[]
-    paymentRecords payment[]
-    permissionRequests permissionrequest[]
+    createdBy                SuperAdmin?                   @relation("SuperAdminCreatedSchools", fields: [createdById], references: [id])
+    statusChangedBy          SuperAdmin?                   @relation("SuperAdminChangedSchoolStatus", fields: [statusChangedById], references: [id])
+    subscription             SchoolSubscription?           @relation("SchoolSubscription")
+    students                 wpos_wpdatatable_23[]
+    teachers                 wpos_wpdatatable_24[]
+    controllers              wpos_wpdatatable_28[]
+    registrals               wpos_wpdatatable_33[]
+    admins                   admin[]
+    settings                 SchoolSetting[]
+    payments                 SchoolPayment[]
+    statusHistory            SchoolStatusHistory[]
+    paymentRecords           payment[]
+    permissionRequests       permissionrequest[]
     registralEarningsConfigs registralearningsconfig[]
-    teacherRatings teacherRating[]
-    studentStatuses StudentStatus[]
-    studentPackages StudentPackage[]
-    studentSubjects StudentSubject[]
-    studentDayPackages studentdaypackage[]
+    teacherRatings           teacherRating[]
+    studentStatuses          StudentStatus[]
+    studentPackages          StudentPackage[]
+    studentSubjects          StudentSubject[]
+    studentDayPackages       studentdaypackage[]
+    teacherSalaryPayments    teachersalarypayment[]
+    teacherChangeHistory     teacher_change_history[]
+    qualityAssessments       qualityassessment[]
+    bonusRecords             bonusrecord[]
+    teams                    wpos_teams[]
+    months                   months_table[]
+    attendanceProgress       student_attendance_progress[]
+    zoomLinks                wpos_zoom_links[]
+    absenceRecords           absencerecord[]
+    auditLogs                auditlog[]
+    notifications            notification[]
+    appSettings              setting[]
+    salaryCalculationCaches  SalaryCalculationCache[]
+    paymentTransactions      PaymentTransaction[]
+    salaryAdjustments        SalaryAdjustment[]
+    salaryReports            SalaryReport[]
+    subscriptionPackages     subscription_packages[]
+    studentSubscriptions     student_subscriptions[]
+    attendanceSubmissionLogs attendancesubmissionlog[]
+    latenessRecords          latenessrecord[]
+    paymentCheckouts         payment_checkout[]
 
     @@map("schools")
 }
@@ -84,29 +105,29 @@ model SuperAdmin {
     createdAt DateTime @default(now())
 
     // Relations - SuperAdmin can manage schools
-    createdSchools       School[]                    @relation("SuperAdminCreatedSchools")
-    changedSchoolStatuses School[]                   @relation("SuperAdminChangedSchoolStatus")
-    auditLogs            SuperAdminAuditLog[]        @relation("SuperAdminAuditLogs")
-    createdPricingPlans  PricingPlan[]               @relation("SuperAdminCreatedPricingPlans")
-    premiumFeatures      PremiumFeature[]            @relation("PremiumFeatureCreatedBy")
-    schoolStatusChanges  SchoolStatusHistory[]       @relation("SchoolStatusHistoryChangedBy")
+    createdSchools        School[]              @relation("SuperAdminCreatedSchools")
+    changedSchoolStatuses School[]              @relation("SuperAdminChangedSchoolStatus")
+    auditLogs             SuperAdminAuditLog[]  @relation("SuperAdminAuditLogs")
+    createdPricingPlans   PricingPlan[]         @relation("SuperAdminCreatedPricingPlans")
+    premiumFeatures       PremiumFeature[]      @relation("PremiumFeatureCreatedBy")
+    schoolStatusChanges   SchoolStatusHistory[] @relation("SchoolStatusHistoryChangedBy")
 
     @@map("super_admins")
 }
 
 model PricingPlan {
-    id          String   @id @default(cuid())
-    name        String   @db.VarChar(100)
-    description String?  @db.Text
-    slug        String   @unique @db.VarChar(100)
+    id          String  @id @default(cuid())
+    name        String  @db.VarChar(100)
+    description String? @db.Text
+    slug        String  @unique @db.VarChar(100)
 
     // Pricing structure
     baseSalaryPerStudent Decimal @db.Decimal(10, 2) // Base fee per active student
     currency             String  @default("ETB") @db.VarChar(10)
 
     // Status
-    isActive    Boolean  @default(true)
-    isDefault   Boolean  @default(false) // Default plan for new schools
+    isActive  Boolean @default(true)
+    isDefault Boolean @default(false) // Default plan for new schools
 
     // Metadata
     createdAt   DateTime @default(now())
@@ -114,26 +135,26 @@ model PricingPlan {
     updatedAt   DateTime @updatedAt
 
     // Relations
-    createdBy    SuperAdmin?      @relation("SuperAdminCreatedPricingPlans", fields: [createdById], references: [id])
-    planFeatures PlanFeature[]
+    createdBy     SuperAdmin?          @relation("SuperAdminCreatedPricingPlans", fields: [createdById], references: [id])
+    planFeatures  PlanFeature[]
     subscriptions SchoolSubscription[]
 
     @@map("pricing_plans")
 }
 
 model Feature {
-    id          String   @id @default(cuid())
-    name        String   @db.VarChar(100)
-    description String?  @db.Text
-    code        String   @unique @db.VarChar(50) // e.g., "teacher_payment", "zoom_integration"
+    id          String  @id @default(cuid())
+    name        String  @db.VarChar(100)
+    description String? @db.Text
+    code        String  @unique @db.VarChar(50) // e.g., "teacher_payment", "zoom_integration"
 
     // Feature properties
-    isCore      Boolean  @default(false) // Core features are always included
-    isActive    Boolean  @default(true)
+    isCore   Boolean @default(false) // Core features are always included
+    isActive Boolean @default(true)
 
     // Metadata
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     // Relations
     planFeatures PlanFeature[]
@@ -145,10 +166,10 @@ model PremiumFeature {
     id            String     @id @default(cuid())
     featureCode   String     @unique @db.VarChar(100) // References feature codes
     isEnabled     Boolean    @default(true) // Can disable premium gating
-    requiredPlans Json       // JSON array of required plan tiers
+    requiredPlans Json // JSON array of required plan tiers
     createdAt     DateTime   @default(now())
     updatedAt     DateTime   @updatedAt
-    createdById   String     // SuperAdmin who made it premium
+    createdById   String // SuperAdmin who made it premium
     createdBy     SuperAdmin @relation("PremiumFeatureCreatedBy", fields: [createdById], references: [id])
 
     @@map("premium_features")
@@ -160,8 +181,8 @@ model PlanFeature {
     featureId String
 
     // Pricing for this feature in this plan
-    price     Decimal  @db.Decimal(10, 2) // Additional cost for this feature
-    isEnabled Boolean  @default(true)     // Whether this feature is enabled in this plan
+    price     Decimal @db.Decimal(10, 2) // Additional cost for this feature
+    isEnabled Boolean @default(true) // Whether this feature is enabled in this plan
 
     // Metadata
     createdAt DateTime @default(now())
@@ -176,35 +197,35 @@ model PlanFeature {
 }
 
 model SchoolSubscription {
-    id        String   @id @default(cuid())
-    schoolId  String
-    planId    String
+    id       String @id @default(cuid())
+    schoolId String
+    planId   String
 
     // Subscription details
-    status           String   @default("trial") // trial, active, past_due, cancelled, suspended, expired
+    status             String    @default("trial") // trial, active, past_due, cancelled, suspended, expired
     currentPeriodStart DateTime?
     currentPeriodEnd   DateTime?
 
     // Billing information
-    billingCycle     String   @default("monthly") // monthly, yearly
-    nextBillingDate  DateTime?
-    lastBilledAt     DateTime?
+    billingCycle    String    @default("monthly") // monthly, yearly
+    nextBillingDate DateTime?
+    lastBilledAt    DateTime?
 
     // Usage tracking
-    activeStudentCount Int @default(0) // Current active students
+    activeStudentCount Int       @default(0) // Current active students
     lastCalculatedAt   DateTime?
 
     // Feature toggles (overrides plan defaults)
-    enabledFeatures   Json? // { teacher_payment: true, zoom_integration: false }
+    enabledFeatures Json? // { teacher_payment: true, zoom_integration: false }
 
     // Metadata
-    createdAt         DateTime @default(now())
-    updatedAt         DateTime @updatedAt
-    cancelledAt       DateTime?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    cancelledAt DateTime?
 
     // Relations
-    school       School                   @relation("SchoolSubscription", fields: [schoolId], references: [id], onDelete: Cascade)
-    plan         PricingPlan              @relation(fields: [planId], references: [id])
+    school School      @relation("SchoolSubscription", fields: [schoolId], references: [id], onDelete: Cascade)
+    plan   PricingPlan @relation(fields: [planId], references: [id])
 
     @@unique([schoolId]) // One subscription per school
     @@map("school_subscriptions")
@@ -257,23 +278,25 @@ model SchoolStatusHistory {
     oldStatus   String?
     newStatus   String
     reason      String?
-    changedById String   // SuperAdmin ID who made the change
+    changedById String // SuperAdmin ID who made the change
     changedAt   DateTime @default(now())
 
     // Relations
-    school      School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-    changedBy   SuperAdmin  @relation("SchoolStatusHistoryChangedBy", fields: [changedById], references: [id])
+    school    School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+    changedBy SuperAdmin @relation("SchoolStatusHistoryChangedBy", fields: [changedById], references: [id])
 
     @@index([schoolId])
     @@index([changedAt])
     @@map("school_status_history")
 }
 
-
 model wpos_teams {
-    id   Int    @id @default(autoincrement()) @db.UnsignedInt
-    name String @db.VarChar(255)
+    id       Int    @id @default(autoincrement()) @db.UnsignedInt
+    name     String @db.VarChar(255)
+    schoolId String
+    school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
+    @@index([schoolId])
     @@map("wpos_teams")
 }
 
@@ -414,6 +437,8 @@ model teacher_change_history {
     student_id      Int
     old_teacher_id  String?  @db.VarChar(255)
     new_teacher_id  String   @db.VarChar(255)
+    schoolId        String
+    school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     change_date     DateTime @default(now())
     change_reason   String?  @db.VarChar(500)
     time_slot       String   @db.VarChar(255)
@@ -493,6 +518,8 @@ model SuperAdminAuditLog {
 model months_table {
     id                  Int                 @id @default(autoincrement())
     studentid           Int
+    schoolId            String
+    school              School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     month               String?             @db.Char(7)
     paid_amount         Int
     payment_status      String              @db.VarChar(50)
@@ -510,12 +537,15 @@ model months_table {
     payment             payment?            @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
     @@index([studentid])
+    @@index([schoolId])
     @@index([paymentId])
 }
 
 model student_attendance_progress {
     id                  Int                 @id @default(autoincrement())
     student_id          Int
+    schoolId            String
+    school              School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     date                DateTime            @default(now()) @db.DateTime(0)
     attendance_status   String              @db.VarChar(255)
     surah               String?             @db.VarChar(255)
@@ -526,6 +556,7 @@ model student_attendance_progress {
     wpos_wpdatatable_23 wpos_wpdatatable_23 @relation(fields: [student_id], references: [wdt_ID])
 
     @@index([student_id], map: "idx_student_attendance_progress")
+    @@index([schoolId])
     @@index([date], map: "idx_date")
 }
 
@@ -561,12 +592,14 @@ model wpos_zoom_links {
     recording_started        Boolean?             @default(false)
     screen_share_started     Boolean?             @default(false)
     meeting_topic            String?              @db.VarChar(255)
-    schoolId                 String? // Multi-tenant field
+    schoolId                 String
+    school                   School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     wpos_wpdatatable_23      wpos_wpdatatable_23  @relation(fields: [studentid], references: [wdt_ID])
     wpos_wpdatatable_24      wpos_wpdatatable_24? @relation(fields: [ustazid], references: [ustazid])
 
     @@index([studentid], map: "idx_studentid")
     @@index([ustazid], map: "idx_ustazid")
+    @@index([schoolId])
     @@index([sent_time], map: "idx_sent_time")
     @@index([session_status], map: "idx_session_status")
     @@index([last_activity_at], map: "idx_last_activity")
@@ -604,6 +637,8 @@ model test {
 model absencerecord {
     id                        Int                  @id @default(autoincrement())
     teacherId                 String
+    schoolId                  String
+    school                    School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     classDate                 DateTime
     timeSlots                 String? // JSON string of affected time slots
     permitted                 Boolean
@@ -622,6 +657,7 @@ model absencerecord {
     @@index([adminId], map: "AbsenceRecord_admin_fkey")
     @@index([permissionRequestId], map: "AbsenceRecord_permissionRequestId_fkey")
     @@index([teacherId], map: "AbsenceRecord_teacherId_fkey")
+    @@index([schoolId])
     @@index([wpos_wpdatatable_28Wdt_ID], map: "AbsenceRecord_wpos_wpdatatable_28Wdt_ID_fkey")
     @@map("AbsenceRecord")
 }
@@ -629,6 +665,8 @@ model absencerecord {
 model attendancesubmissionlog {
     id                        Int                  @id @default(autoincrement())
     teacherId                 String
+    schoolId                  String
+    school                    School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     classDate                 DateTime
     submittedAt               DateTime
     isLate                    Boolean
@@ -641,6 +679,7 @@ model attendancesubmissionlog {
     wpos_wpdatatable_28       wpos_wpdatatable_28? @relation(fields: [wpos_wpdatatable_28Wdt_ID], references: [wdt_ID], map: "AttendanceSubmissionLog_wpos_wpdatatable_28Wdt_ID_fkey")
 
     @@index([adminId], map: "AttendanceSubmissionLog_admin_fkey")
+    @@index([schoolId])
     @@index([teacherId], map: "AttendanceSubmissionLog_teacherId_fkey")
     @@index([wpos_wpdatatable_28Wdt_ID], map: "AttendanceSubmissionLog_wpos_wpdatatable_28Wdt_ID_fkey")
     @@map("AttendanceSubmissionLog")
@@ -650,6 +689,8 @@ model auditlog {
     id                        Int                  @id @default(autoincrement())
     actionType                String
     adminId                   String?
+    schoolId                  String
+    school                    School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     targetId                  Int?
     details                   String
     createdAt                 DateTime             @default(now())
@@ -658,6 +699,7 @@ model auditlog {
     wpos_wpdatatable_28       wpos_wpdatatable_28? @relation(fields: [wpos_wpdatatable_28Wdt_ID], references: [wdt_ID], map: "AuditLog_wpos_wpdatatable_28Wdt_ID_fkey")
 
     @@index([adminId], map: "AuditLog_admin_fkey")
+    @@index([schoolId])
     @@index([wpos_wpdatatable_28Wdt_ID], map: "AuditLog_wpos_wpdatatable_28Wdt_ID_fkey")
     @@map("AuditLog")
 }
@@ -665,6 +707,8 @@ model auditlog {
 model bonusrecord {
     id                        Int                  @id @default(autoincrement())
     teacherId                 String
+    schoolId                  String
+    school                    School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     period                    String
     amount                    Float
     reason                    String
@@ -761,6 +805,8 @@ model latenessdeductionconfig {
 model latenessrecord {
     id                        Int                  @id @default(autoincrement())
     teacherId                 String
+    schoolId                  String
+    school                    School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     classDate                 DateTime
     scheduledTime             DateTime
     actualStartTime           DateTime
@@ -776,6 +822,7 @@ model latenessrecord {
 
     @@index([adminId], map: "LatenessRecord_admin_fkey")
     @@index([teacherId], map: "LatenessRecord_teacherId_fkey")
+    @@index([schoolId])
     @@index([wpos_wpdatatable_28Wdt_ID], map: "LatenessRecord_wpos_wpdatatable_28Wdt_ID_fkey")
     @@map("LatenessRecord")
 }
@@ -789,7 +836,10 @@ model notification {
     createdAt DateTime @default(now())
     userId    String   @db.VarChar(255)
     userRole  String   @db.VarChar(50)
+    schoolId  String
+    school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
+    @@index([schoolId])
     @@map("Notification")
 }
 
@@ -826,6 +876,8 @@ model payment_checkout {
     id          Int                 @id @default(autoincrement())
     txRef       String              @unique @db.VarChar(255)
     studentId   Int
+    schoolId    String
+    school      School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     provider    PaymentSource
     intent      PaymentIntent       @default(tuition)
     amount      Decimal             @db.Decimal(10, 2)
@@ -886,6 +938,8 @@ model permissionrequest {
 model qualityassessment {
     id                        Int                  @id @default(autoincrement())
     teacherId                 String
+    schoolId                  String
+    school                    School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     weekStart                 DateTime
     supervisorFeedback        String               @db.Text
     examinerRating            Float?
@@ -898,7 +952,6 @@ model qualityassessment {
     createdAt                 DateTime             @default(now())
     adminId                   String?
     wpos_wpdatatable_28Wdt_ID Int?
-    schoolId                  String? // Multi-tenant field
     admin                     admin?               @relation(fields: [adminId], references: [id], map: "QualityAssessment_admin_fkey")
     wpos_wpdatatable_24       wpos_wpdatatable_24  @relation(fields: [teacherId], references: [ustazid], map: "QualityAssessment_teacherId_fkey")
     wpos_wpdatatable_28       wpos_wpdatatable_28? @relation(fields: [wpos_wpdatatable_28Wdt_ID], references: [wdt_ID], map: "QualityAssessment_wpos_wpdatatable_28Wdt_ID_fkey")
@@ -927,9 +980,14 @@ model qualitydescription {
 
 model setting {
     id        Int      @id @default(autoincrement())
-    key       String   @unique(map: "Setting_key_key") @db.VarChar(64)
+    key       String   @db.VarChar(64)
+    schoolId  String?
+    school    School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     value     String?  @db.Text
     updatedAt DateTime @default(now())
+
+    @@unique([key, schoolId], map: "Setting_key_schoolId_key")
+    @@index([schoolId])
 }
 
 model registralearningsconfig {
@@ -946,6 +1004,8 @@ model teachersalarypayment {
     id                        Int                  @id @default(autoincrement())
     teacherId                 String               @db.VarChar(255)
     period                    String
+    schoolId                  String
+    school                    School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     status                    String
     paidAt                    DateTime?
     adminId                   String?
@@ -959,7 +1019,7 @@ model teachersalarypayment {
     wpos_wpdatatable_24       wpos_wpdatatable_24  @relation(fields: [teacherId], references: [ustazid], map: "TeacherSalaryPayment_teacherId_fkey")
     wpos_wpdatatable_28       wpos_wpdatatable_28? @relation(fields: [wpos_wpdatatable_28Wdt_ID], references: [wdt_ID], map: "TeacherSalaryPayment_wpos_wpdatatable_28Wdt_ID_fkey")
 
-    @@unique([teacherId, period], map: "TeacherSalaryPayment_teacherId_period_key")
+    @@unique([teacherId, period, schoolId], map: "TeacherSalaryPayment_teacherId_period_schoolId_key")
     @@index([adminId], map: "TeacherSalaryPayment_admin_fkey")
     @@index([teacherId, period], map: "TeacherSalaryPayment_teacherId_period_idx")
     @@index([wpos_wpdatatable_28Wdt_ID], map: "TeacherSalaryPayment_wpos_wpdatatable_28Wdt_ID_fkey")
@@ -1124,14 +1184,17 @@ model teacherRating {
 model SalaryCalculationCache {
     id              String   @id @default(cuid())
     teacherId       String   @db.VarChar(255)
+    schoolId        String
+    school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     period          String   @db.VarChar(7)
     calculationData Json
     expiresAt       DateTime
     createdAt       DateTime @default(now())
     updatedAt       DateTime
 
-    @@unique([teacherId, period])
+    @@unique([teacherId, period, schoolId])
     @@index([teacherId])
+    @@index([schoolId])
     @@index([period])
     @@index([expiresAt])
     @@map("salary_calculation_cache")
@@ -1140,6 +1203,8 @@ model SalaryCalculationCache {
 model PaymentTransaction {
     id            String   @id @default(cuid())
     teacherId     String   @db.VarChar(255)
+    schoolId      String
+    school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     amount        Decimal  @db.Decimal(10, 2)
     period        String   @db.VarChar(7)
     transactionId String   @unique @db.VarChar(255)
@@ -1148,6 +1213,7 @@ model PaymentTransaction {
     createdAt     DateTime @default(now())
 
     @@index([teacherId])
+    @@index([schoolId])
     @@index([period])
     @@index([status])
     @@index([processedAt])
@@ -1157,6 +1223,8 @@ model PaymentTransaction {
 model SalaryAdjustment {
     id             String   @id @default(cuid())
     teacherId      String   @db.VarChar(255)
+    schoolId       String
+    school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     period         String   @db.VarChar(7)
     adjustmentType String   @db.VarChar(20)
     amount         Decimal  @db.Decimal(10, 2)
@@ -1165,6 +1233,7 @@ model SalaryAdjustment {
     createdAt      DateTime @default(now())
 
     @@index([teacherId])
+    @@index([schoolId])
     @@index([period])
     @@index([adjustmentType])
     @@index([adminId])
@@ -1174,6 +1243,8 @@ model SalaryAdjustment {
 model SalaryReport {
     id          String    @id @default(cuid())
     reportType  String    @db.VarChar(20)
+    schoolId    String
+    school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     period      String    @db.VarChar(7)
     format      String    @db.VarChar(10)
     status      String    @default("pending") @db.VarChar(20)
@@ -1183,6 +1254,7 @@ model SalaryReport {
     createdAt   DateTime  @default(now())
 
     @@index([reportType])
+    @@index([schoolId])
     @@index([period])
     @@index([status])
     @@index([adminId])
@@ -1192,6 +1264,8 @@ model SalaryReport {
 model subscription_packages {
     id              Int                          @id @default(autoincrement())
     name            String                       @db.VarChar(100)
+    schoolId        String
+    school          School                       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     duration        Int
     price           Decimal                      @db.Decimal(10, 2)
     currency        String                       @db.VarChar(10)
@@ -1208,6 +1282,7 @@ model subscription_packages {
     taxTransactions tax_transactions[]
 
     @@index([isActive])
+    @@index([schoolId])
     @@index([configId])
     @@index([taxCode])
 }
@@ -1216,6 +1291,8 @@ model student_subscriptions {
     id                   Int       @id @default(autoincrement())
     studentId            Int
     packageId            Int
+    schoolId             String
+    school               School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     stripeSubscriptionId String    @unique @db.VarChar(255)
     stripeCustomerId     String    @db.VarChar(255)
     status               String    @db.VarChar(50)
@@ -1235,6 +1312,7 @@ model student_subscriptions {
     taxTransactions tax_transactions[]
 
     @@index([studentId])
+    @@index([schoolId])
     @@index([stripeSubscriptionId])
     @@index([status])
     @@index([taxEnabled])

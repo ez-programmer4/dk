@@ -8,10 +8,37 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user || (session.user as { role: string }).role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json(
+      { error: "School not found" },
+      { status: 404 }
+    );
+  }
+
+  // Verify admin has access to this school
+  const user = session.user as { id: string };
+  const admin = await prisma.admin.findUnique({
+    where: { id: user.id },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json(
+      { error: "Unauthorized access to school" },
+      { status: 403 }
+    );
   }
 
   try {
@@ -21,7 +48,7 @@ export async function GET(req: NextRequest) {
     const deductionType = url.searchParams.get("deductionType");
 
     // Build where clause
-    const where: any = {};
+    const where: any = { schoolId: school.id };
     if (teacherId) where.teacherId = teacherId;
     if (deductionType) where.deductionType = deductionType;
 
@@ -35,7 +62,7 @@ export async function GET(req: NextRequest) {
     // Get teacher names
     const teacherIds = [...new Set(waivers.map((w) => w.teacherId))];
     const teachers = await prisma.wpos_wpdatatable_24.findMany({
-      where: { ustazid: { in: teacherIds } },
+      where: { ustazid: { in: teacherIds }, schoolId: school.id },
       select: { ustazid: true, ustazname: true },
     });
 

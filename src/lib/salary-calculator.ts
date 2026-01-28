@@ -169,9 +169,10 @@ export class SalaryCalculator {
   async calculateTeacherSalary(
     teacherId: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
+    schoolId: string
   ): Promise<TeacherSalaryData> {
-    const cacheKey = `salary_${teacherId}_${fromDate.toISOString()}_${toDate.toISOString()}`;
+    const cacheKey = `salary_${teacherId}_${schoolId}_${fromDate.toISOString()}_${toDate.toISOString()}`;
 
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
@@ -190,14 +191,16 @@ export class SalaryCalculator {
       const students = await this.getTeacherStudents(
         teacherId,
         fromDate,
-        toDate
+        toDate,
+        schoolId
       );
 
       // Get teacher change periods from the new history system
       const teacherChangePeriods = await getTeacherChangePeriods(
         teacherId,
         fromDate,
-        toDate
+        toDate,
+        schoolId
       );
 
       // Get assignments (active + historical)
@@ -205,7 +208,8 @@ export class SalaryCalculator {
         teacherId,
         fromDate,
         toDate,
-        students
+        students,
+        schoolId
       );
 
       // Calculate deductions
@@ -217,14 +221,16 @@ export class SalaryCalculator {
         assignments,
         fromDate,
         toDate,
-        latenessDebugMode
+        latenessDebugMode,
+        schoolId
       );
 
       let absenceData = await this.calculateAbsenceDeductions(
         teacherId,
         assignments,
         fromDate,
-        toDate
+        toDate,
+        schoolId
       );
 
       // Ensure lateness and absence data have proper structure
@@ -242,14 +248,20 @@ export class SalaryCalculator {
       }
 
       // Calculate bonuses
-      const bonuses = await this.calculateBonuses(teacherId, fromDate, toDate);
+      const bonuses = await this.calculateBonuses(teacherId, fromDate, toDate, schoolId);
 
       // Get payment status
       const period = `${fromDate.getFullYear()}-${String(
         fromDate.getMonth() + 1
       ).padStart(2, "0")}`;
       const payment = await prisma.teachersalarypayment.findUnique({
-        where: { teacherId_period: { teacherId, period } },
+        where: {
+          teacherId_period_schoolId: {
+            teacherId,
+            period,
+            schoolId
+          }
+        },
         select: { status: true },
       });
 
@@ -260,7 +272,8 @@ export class SalaryCalculator {
         toDate,
         assignments,
         teacherChangePeriods,
-        teacherId
+        teacherId,
+        schoolId
       );
 
       if (!baseSalaryData) {
@@ -377,7 +390,8 @@ export class SalaryCalculator {
    */
   async calculateAllTeacherSalaries(
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
+    schoolId: string
   ): Promise<TeacherSalaryData[]> {
     // Get all teachers from main table
     const mainTableTeachers = await prisma.wpos_wpdatatable_24.findMany({
@@ -432,7 +446,8 @@ export class SalaryCalculator {
           return await this.calculateTeacherSalary(
             teacher.ustazid,
             fromDate,
-            toDate
+            toDate,
+            schoolId
           );
         } catch (error) {
           console.error(
@@ -454,7 +469,8 @@ export class SalaryCalculator {
   async getTeacherSalaryDetails(
     teacherId: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
+    schoolId: string
   ): Promise<{
     latenessRecords: any[];
     absenceRecords: any[];
@@ -463,13 +479,14 @@ export class SalaryCalculator {
     salaryData: TeacherSalaryData;
   }> {
     // Get current students with their packages first
-    const students = await this.getTeacherStudents(teacherId, fromDate, toDate);
+    const students = await this.getTeacherStudents(teacherId, fromDate, toDate, schoolId);
 
     const assignments = await this.getTeacherAssignments(
       teacherId,
       fromDate,
       toDate,
-      students
+      students,
+      schoolId
     );
 
     // Calculate lateness records
@@ -477,7 +494,8 @@ export class SalaryCalculator {
       teacherId,
       assignments,
       fromDate,
-      toDate
+      toDate,
+      schoolId
     );
 
     // Calculate absence records
@@ -485,13 +503,15 @@ export class SalaryCalculator {
       teacherId,
       assignments,
       fromDate,
-      toDate
+      toDate,
+      schoolId
     );
 
     // Get bonus records
     const bonusRecords = await prisma.bonusrecord.findMany({
       where: {
         teacherId,
+        schoolId,
         createdAt: { gte: fromDate, lte: toDate },
       },
       orderBy: { createdAt: "asc" },
@@ -501,14 +521,16 @@ export class SalaryCalculator {
     const unmatchedZoomLinks = await this.getUnmatchedZoomLinks(
       teacherId,
       fromDate,
-      toDate
+      toDate,
+      schoolId
     );
 
     // Get the complete salary data for this teacher
     const salaryData = await this.calculateTeacherSalary(
       teacherId,
       fromDate,
-      toDate
+      toDate,
+      schoolId
     );
 
     return {
@@ -645,7 +667,8 @@ export class SalaryCalculator {
     teacherId: string,
     fromDate: Date,
     toDate: Date,
-    students: any[]
+    students: any[],
+    schoolId: string
   ) {
     // Get active assignments
     const activeAssignments = await prisma.wpos_ustaz_occupied_times.findMany({
@@ -670,7 +693,8 @@ export class SalaryCalculator {
     const teacherChangePeriods = await getTeacherChangePeriods(
       teacherId,
       fromDate,
-      toDate
+      toDate,
+      schoolId
     );
 
     // Combine active assignments with historical periods
@@ -709,15 +733,17 @@ export class SalaryCalculator {
   public async getTeacherStudentsPublic(
     teacherId: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
+    schoolId: string
   ) {
-    return this.getTeacherStudents(teacherId, fromDate, toDate);
+    return this.getTeacherStudents(teacherId, fromDate, toDate, schoolId);
   }
 
   private async getTeacherStudents(
     teacherId: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
+    schoolId: string
   ) {
     // 🔧 CRITICAL FIX: Get teacher change periods FIRST to ensure we include
     // students who were taught by this teacher during their period, even if
@@ -1335,9 +1361,12 @@ export class SalaryCalculator {
     toDate: Date,
     assignments: any[] = [],
     teacherChangePeriods: any[] = [],
-    teacherId: string
+    teacherId: string,
+    schoolId: string
   ) {
-    const packageSalaries = await prisma.packageSalary.findMany();
+    const packageSalaries = await prisma.packageSalary.findMany({
+      where: { schoolId }
+    });
     const salaryMap: Record<string, number> = {};
     packageSalaries.forEach((pkg) => {
       salaryMap[pkg.packageName] = Number(pkg.salaryPerStudent);
@@ -2198,7 +2227,8 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
     assignments: any[],
     fromDate: Date,
     toDate: Date,
-    isDebugMode: boolean = false
+    isDebugMode: boolean = false,
+    schoolId: string
   ) {
     // Get teacher change history for this teacher
     const teacherChanges = await prisma.teacher_change_history.findMany({
@@ -2274,6 +2304,7 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
     // Get lateness config with tiers
     const latenessConfigs = await prisma.latenessdeductionconfig.findMany({
       where: {
+        schoolId,
         OR: [{ teacherId }, { isGlobal: true }],
       },
       orderBy: [{ tier: "asc" }, { startMinute: "asc" }],
@@ -2283,6 +2314,7 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
     const latenessWaivers = await prisma.deduction_waivers.findMany({
       where: {
         teacherId,
+        schoolId,
         deductionType: "lateness",
         deductionDate: {
           gte: fromDate,
@@ -2492,7 +2524,8 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
     teacherId: string,
     assignments: any[],
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
+    schoolId: string
   ) {
     try {
       // Don't process future dates
@@ -2543,6 +2576,7 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
         prisma.permissionrequest.findMany({
           where: {
             teacherId,
+            schoolId,
             requestedDate: {
               gte: format(fromDate, "yyyy-MM-dd"),
               lte: format(effectiveToDate, "yyyy-MM-dd"),
@@ -2554,6 +2588,7 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
         prisma.deduction_waivers.findMany({
           where: {
             teacherId,
+            schoolId,
             deductionType: "absence",
             deductionDate: {
               gte: fromDate,
@@ -2994,12 +3029,14 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
   private async calculateBonuses(
     teacherId: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
+    schoolId: string
   ) {
     // Get quality assessment bonuses
     const qualityBonuses = await prisma.qualityassessment.aggregate({
       where: {
         teacherId,
+        schoolId,
         weekStart: { gte: fromDate, lte: toDate },
         managerApproved: true,
       },
@@ -3030,7 +3067,8 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
     teacherId: string,
     assignments: any[],
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
+    schoolId: string
   ) {
     // Implementation for detailed lateness records
     return [];
@@ -3040,7 +3078,8 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
     teacherId: string,
     assignments: any[],
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
+    schoolId: string
   ) {
     // Implementation for detailed absence records
     return [];
@@ -3049,7 +3088,8 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
   private async getUnmatchedZoomLinks(
     teacherId: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
+    schoolId: string
   ) {
     // Implementation for unmatched zoom links
     return [];
@@ -3116,12 +3156,12 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
  * Factory function to create a configured salary calculator
  * Uses centralized configuration for consistency
  */
-export async function createSalaryCalculator(): Promise<SalaryCalculator> {
+export async function createSalaryCalculator(schoolId?: string): Promise<SalaryCalculator> {
   // Import centralized config loader
   const { getSalaryConfig } = await import("./salary-config");
 
   // Load configuration from centralized config
-  const salaryConfig = await getSalaryConfig();
+  const salaryConfig = await getSalaryConfig(schoolId);
 
   const config: SalaryCalculationConfig = {
     includeSundays: salaryConfig.includeSundays,

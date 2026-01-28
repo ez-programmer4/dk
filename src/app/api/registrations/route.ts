@@ -23,6 +23,24 @@ const prismaClient = globalPrisma;
 // Student slot limits per day package
 const MAX_SLOTS_PER_STUDENT = 2;
 
+// Helper function to get school by slug
+const getSchoolBySlug = async (schoolSlug: string) => {
+  let school = await prismaClient.school.findFirst({
+    where: { slug: schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  // Fallback for backward compatibility if slug doesn't match
+  if (!school && schoolSlug !== "darulkubra") {
+    school = await prismaClient.school.findUnique({
+      where: { id: schoolSlug },
+      select: { id: true, name: true },
+    });
+  }
+
+  return school;
+};
+
 const checkTeacherAvailability = async (
   selectedTime: string,
   selectedDayPackage: string,
@@ -514,6 +532,38 @@ export async function GET(request: NextRequest) {
         schoolId = newSchool.id;
       } else {
         schoolId = existingSchool.id;
+      }
+    }
+
+    // Handle day packages fetch request
+    if (schoolSlug && !id && !student) {
+      try {
+        const school = await getSchoolBySlug(schoolSlug);
+        if (!school) {
+          return NextResponse.json(
+            { message: "School not found" },
+            { status: 404 }
+          );
+        }
+
+        const dayPackages = await prismaClient.studentdaypackage.findMany({
+          where: {
+            isActive: true,
+            schoolId: school.id
+          },
+          orderBy: { name: "asc" },
+          select: { name: true }
+        });
+
+        return NextResponse.json({
+          dayPackages: dayPackages.map(dp => dp.name)
+        });
+      } catch (error) {
+        console.error("Error fetching day packages:", error);
+        return NextResponse.json(
+          { message: "Failed to fetch day packages" },
+          { status: 500 }
+        );
       }
     }
 

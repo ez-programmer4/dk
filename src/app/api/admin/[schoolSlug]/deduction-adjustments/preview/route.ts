@@ -12,10 +12,37 @@ export const revalidate = 0;
 
 const TZ = "Asia/Riyadh";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user || (session.user as { role: string }).role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json(
+      { error: "School not found" },
+      { status: 404 }
+    );
+  }
+
+  // Verify admin has access to this school
+  const user = session.user as { id: string };
+  const admin = await prisma.admin.findUnique({
+    where: { id: user.id },
+    select: { schoolId: true },
+  });
+
+  if (!admin || admin.schoolId !== school.id) {
+    return NextResponse.json(
+      { error: "Unauthorized access to school" },
+      { status: 403 }
+    );
   }
 
   try {
@@ -62,14 +89,16 @@ export async function POST(req: NextRequest) {
       // Use EXACT same logic as teacher payments API
       for (const teacherId of teacherIdsArray) {
         const teacher = await prisma.wpos_wpdatatable_24.findUnique({
-          where: { ustazid: teacherId },
+          where: { ustazid: teacherId, schoolId: school.id },
           select: { ustazname: true },
         });
 
         if (!teacher) continue;
 
         // Get package deduction rates (same as teacher payments)
-        const packageDeductions = await prisma.packageDeduction.findMany();
+        const packageDeductions = await prisma.packageDeduction.findMany({
+          where: { schoolId: school.id }
+        });
         const packageDeductionMap: Record<
           string,
           { lateness: number; absence: number }
@@ -94,6 +123,7 @@ export async function POST(req: NextRequest) {
                 occupiedTimes: {
                   some: {
                     ustaz_id: teacherId,
+                    schoolId: school.id,
                     occupied_at: { lte: endDate },
                     OR: [{ end_at: null }, { end_at: { gte: startDate } }],
                   },
@@ -105,6 +135,7 @@ export async function POST(req: NextRequest) {
                 occupiedTimes: {
                   some: {
                     ustaz_id: teacherId,
+                    schoolId: school.id,
                     occupied_at: { lte: endDate },
                     OR: [{ end_at: null }, { end_at: { gte: startDate } }],
                   },
@@ -116,6 +147,7 @@ export async function POST(req: NextRequest) {
             occupiedTimes: {
               where: {
                 ustaz_id: teacherId,
+                schoolId: school.id,
                 occupied_at: { lte: endDate },
                 OR: [{ end_at: null }, { end_at: { gte: startDate } }],
               },
@@ -150,6 +182,7 @@ export async function POST(req: NextRequest) {
         // Get teacher change history for proper assignment validation
         const teacherChanges = await prisma.teacher_change_history.findMany({
           where: {
+            schoolId: school.id,
             OR: [{ old_teacher_id: teacherId }, { new_teacher_id: teacherId }],
             change_date: {
               lte: endDate,
@@ -167,6 +200,7 @@ export async function POST(req: NextRequest) {
         const teacherAbsenceRecords = await prisma.absencerecord.findMany({
           where: {
             teacherId,
+            schoolId: school.id,
             classDate: { gte: startDate, lte: endDate },
           },
           orderBy: { classDate: "asc" },
@@ -176,6 +210,7 @@ export async function POST(req: NextRequest) {
         const absenceWaivers = await prisma.deduction_waivers.findMany({
           where: {
             teacherId,
+            schoolId: school.id,
             deductionType: "absence",
             deductionDate: { gte: startDate, lte: endDate },
           },
@@ -235,7 +270,7 @@ export async function POST(req: NextRequest) {
 
         // Get working days configuration
         const workingDaysConfig = await prisma.setting.findUnique({
-          where: { key: "include_sundays_in_salary" },
+          where: { key: "include_sundays_in_salary", schoolId: school.id },
         });
         const includeSundays = workingDaysConfig?.value === "true" || false;
 

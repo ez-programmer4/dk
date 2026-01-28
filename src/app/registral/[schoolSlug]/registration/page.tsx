@@ -1631,65 +1631,92 @@ function RegistrationContent() {
       >
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-t-4 border-teal-500">
           <div
-            className="p-6 text-white"
+            className="relative overflow-hidden p-8 text-white"
             style={{
-              background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
+              background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
             }}
           >
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex items-center">
-                <img
-                  src="https://darelkubra.com/wp-content/uploads/2024/06/cropped-%E1%8B%B3%E1%88%A9%E1%88%8D-%E1%88%8E%E1%8C%8E-150x150.png"
-                  alt={`${schoolName} Logo`}
-                  className="h-14 w-14 mr-4 rounded-full border-2 border-white/90 shadow-md"
-                />
-                <div>
-                  <h1 className="text-2xl font-bold tracking-tight">
+            {/* Background pattern overlay */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+            </div>
+
+            <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="flex items-center"
+              >
+                <div className="relative">
+                  <img
+                    src={logoUrl || "https://darelkubra.com/wp-content/uploads/2024/06/cropped-%E1%8B%B3%E1%88%A9%E1%88%8D-%E1%88%8E%E1%8C%8E-150x150.png"}
+                    alt={`${schoolName} Logo`}
+                    className="h-16 w-16 rounded-full border-3 border-white/90 shadow-lg"
+                  />
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 rounded-full border-2 border-white flex items-center justify-center">
+                    <FiCheck className="h-3 w-3 text-white" />
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <h1 className="text-3xl font-bold tracking-tight mb-1 drop-shadow-lg">
                     {schoolName}
                   </h1>
-                  <p className="text-sm text-teal-100 font-medium">
-                    Registration Portal
+                  <p className="text-sm text-white/90 font-medium flex items-center">
+                    <FiUserCheck className="mr-2 h-4 w-4" />
+                    Student Registration Portal
                   </p>
                 </div>
-              </div>
-              <div
-                className="bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 text-sm font-semibold flex items-center shadow-inner"
-                aria-label="Step Progress"
-              >
-                <span className="mr-3">Step {step} of 3</span>
-                <div className="flex space-x-1.5">
-                  {[1, 2, 3].map((i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      aria-label={`Go to step ${i}`}
-                      disabled={step === i || !canGoToStep(i)}
-                      onClick={() => canGoToStep(i) && setStep(i)}
-                      className={`h-3 w-3 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-teal-400 ${
-                        step >= i ? "bg-teal-300 shadow-md" : "bg-white/40"
-                      } ${step === i ? "ring-2 ring-teal-500" : ""}`}
-                      style={{
-                        cursor: canGoToStep(i) ? "pointer" : "not-allowed",
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          canGoToStep(i) && setStep(i);
-                        }
-                      }}
-                      tabIndex={step === i ? 0 : -1}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="mt-5 w-full bg-white/20 rounded-full h-2.5 shadow-inner">
+              </motion.div>
+
               <motion.div
-                className="bg-teal-300 h-2.5 rounded-full shadow-md"
-                initial={{ width: 0 }}
-                animate={{ width: `${(step / 3) * 100}%` }}
-                transition={{ duration: 0.9, ease: "easeInOut" }}
-              />
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex flex-col items-center gap-4"
+              >
+                <div
+                  className="bg-white/15 backdrop-blur-sm rounded-2xl px-6 py-3 text-sm font-semibold flex items-center shadow-lg border border-white/20"
+                  aria-label="Step Progress"
+                >
+                  <span className="mr-4 text-white/90">Progress</span>
+                  <span className="text-lg font-bold mr-4">{step} of 3</span>
+                  <div className="flex space-x-2">
+                    {[1, 2, 3].map((i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        aria-label={`Go to step ${i}`}
+                        disabled={step === i || !canGoToStep(i)}
+                        onClick={() => canGoToStep(i) && setStep(i)}
+                        className={`h-4 w-4 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/50 ${
+                          step >= i ? "bg-white shadow-md" : "bg-white/30"
+                        } ${step === i ? "ring-2 ring-white scale-110" : ""}`}
+                        style={{
+                          cursor: canGoToStep(i) ? "pointer" : "not-allowed",
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            canGoToStep(i) && setStep(i);
+                          }
+                        }}
+                        tabIndex={step === i ? 0 : -1}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="w-full bg-white/20 rounded-full h-3 shadow-inner overflow-hidden">
+                  <motion.div
+                    className="bg-white h-3 rounded-full shadow-md"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(step / 3) * 100}%` }}
+                    transition={{ duration: 0.9, ease: "easeInOut" }}
+                  />
+                </div>
+              </motion.div>
             </div>
           </div>
 
@@ -1733,35 +1760,59 @@ function RegistrationContent() {
                       <FiCalendar className="mr-2 text-teal-600" />
                       Day Package:
                     </label>
-                    <select
-                      {...register("daypackages", {
-                        required:
-                          session?.user?.role === "registral"
-                            ? false
-                            : "Day package is required",
-                      })}
-                      className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-2.5 focus:ring-2 focus:ring-teal-400 focus:border-teal-400 text-sm font-medium text-gray-800 w-full md:w-auto transition-all duration-200 hover:border-teal-500"
-                    >
-                      {dayPackages.length > 0 ? (
-                        dayPackages.map((pkg, index) => (
-                          <option
-                            key={index}
-                            value={pkg}
-                            className="text-gray-800"
-                          >
-                            {pkg}
-                          </option>
-                        ))
+                    <div className="relative w-full md:w-auto">
+                      {loadingDayPackages ? (
+                        <div className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-2.5 text-sm font-medium text-gray-500 flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-teal-500 mr-2"></div>
+                          Loading packages...
+                        </div>
                       ) : (
-                        <option value="" disabled className="text-gray-400">
-                          No options available
-                        </option>
+                        <select
+                          {...register("daypackages", {
+                            required:
+                              session?.user?.role === "registral"
+                                ? false
+                                : "Day package is required",
+                          })}
+                          className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-2.5 focus:ring-2 focus:ring-teal-400 focus:border-teal-400 text-sm font-medium text-gray-800 w-full md:w-64 transition-all duration-200 hover:border-teal-500 appearance-none"
+                          style={{
+                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                            backgroundPosition: 'right 0.5rem center',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: '1.5em 1.5em',
+                            paddingRight: '2.5rem'
+                          }}
+                        >
+                          <option value="" className="text-gray-400">
+                            Select a day package
+                          </option>
+                          {dayPackages.length > 0 ? (
+                            dayPackages.map((pkg, index) => (
+                              <option
+                                key={index}
+                                value={pkg}
+                                className="text-gray-800 py-1"
+                              >
+                                {pkg}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="" disabled className="text-gray-400">
+                              No packages available
+                            </option>
+                          )}
+                        </select>
                       )}
-                    </select>
-                    {dayPackages.length === 0 && (
-                      <p className="text-red-600 text-xs mt-2">
-                        Error: Day packages not loaded.
-                      </p>
+                    </div>
+                    {dayPackages.length === 0 && !loadingDayPackages && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-red-600 text-xs mt-2 ml-2 flex items-center"
+                      >
+                        <FiInfo className="mr-1" />
+                        Day packages not loaded. Please refresh the page.
+                      </motion.p>
                     )}
                   </div>
                   {/* Time slot grid */}

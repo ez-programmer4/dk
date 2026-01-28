@@ -158,11 +158,13 @@ export async function getTeacherChangeHistory(
 export async function getTeacherChangePeriods(
   teacherId: string,
   fromDate: Date,
-  toDate: Date
+  toDate: Date,
+  schoolId: string
 ): Promise<TeacherChangePeriod[]> {
   try {
     const changes = await prisma.teacher_change_history.findMany({
       where: {
+        schoolId,
         OR: [{ old_teacher_id: teacherId }, { new_teacher_id: teacherId }],
         change_date: {
           gte: fromDate,
