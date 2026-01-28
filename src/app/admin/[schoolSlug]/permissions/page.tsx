@@ -306,7 +306,7 @@ export default function AdminPermissionsPage() {
                 <h1
                   className="text-4xl lg:text-5xl font-bold bg-clip-text text-transparent mb-2"
                   style={{
-                    backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
                   }}
                 >
                   Permission Review

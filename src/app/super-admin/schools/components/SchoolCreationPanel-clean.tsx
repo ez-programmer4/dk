@@ -742,3 +742,4 @@ export function SchoolCreationPanel({ isOpen, onClose, onSuccess }: SchoolCreati
   );
 }
 
+

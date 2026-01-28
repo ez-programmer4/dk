@@ -236,3 +236,4 @@ export function StatusHistory({ schoolId, isOpen, onClose }: StatusHistoryProps)
   );
 }
 
+

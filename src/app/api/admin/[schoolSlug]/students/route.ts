@@ -24,13 +24,19 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
   const startDateTo = searchParams.get("startDateTo") || "";
   const feeMin = searchParams.get("feeMin") || "";
   const feeMax = searchParams.get("feeMax") || "";
+  const registralParam = searchParams.get("registral") || "";
 
   try {
     const session = await getToken({
       req,
       secret: process.env.NEXTAUTH_SECRET,
     });
-    if (!session || session.role !== "admin") {
+
+    // Allow admin users or registral users when registral parameter is provided
+    const isAdmin = session && session.role === "admin";
+    const isRegistral = session && (session.role === "registral" || session.role === "controller") && registralParam;
+
+    if (!session || (!isAdmin && !isRegistral)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -47,17 +53,29 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       );
     }
 
-    // Verify admin has access to this school
-    const admin = await prisma.admin.findUnique({
-      where: { id: session.id as string },
-      select: { schoolId: true },
-    });
+    // Verify user has access to this school
+    if (isAdmin) {
+      // For admin users, verify school association
+      const admin = await prisma.admin.findUnique({
+        where: { id: session.id as string },
+        select: { schoolId: true },
+      });
 
-    if (!admin || admin.schoolId !== school.id) {
-      return NextResponse.json(
-        { error: "Unauthorized access to school" },
-        { status: 403 }
-      );
+      if (!admin || admin.schoolId !== school.id) {
+        return NextResponse.json(
+          { error: "Unauthorized access to school" },
+          { status: 403 }
+        );
+      }
+    } else if (isRegistral) {
+      // For registral users, verify the registral parameter matches their session
+      const userName = session.name || session.username || "";
+      if (registralParam !== userName && registralParam !== session.username) {
+        return NextResponse.json(
+          { error: "Unauthorized registral access" },
+          { status: 403 }
+        );
+      }
     }
 
     const offset = (page - 1) * limit;

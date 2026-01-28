@@ -59,6 +59,10 @@ model School {
     permissionRequests permissionrequest[]
     registralEarningsConfigs registralearningsconfig[]
     teacherRatings teacherRating[]
+    studentStatuses StudentStatus[]
+    studentPackages StudentPackage[]
+    studentSubjects StudentSubject[]
+    studentDayPackages studentdaypackage[]
 
     @@map("schools")
 }
@@ -1011,26 +1015,41 @@ model PackageSalary {
 
 model StudentStatus {
     id        Int      @id @default(autoincrement())
-    name      String   @unique
+    name      String
+    schoolId  String
+    school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     isActive  Boolean  @default(true)
     createdAt DateTime @default(now())
     updatedAt DateTime @default(now())
+
+    @@unique([name, schoolId])
+    @@index([schoolId])
 }
 
 model StudentPackage {
     id        Int      @id @default(autoincrement())
-    name      String   @unique
+    name      String
+    schoolId  String
+    school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     isActive  Boolean  @default(true)
     createdAt DateTime @default(now())
     updatedAt DateTime @default(now())
+
+    @@unique([name, schoolId])
+    @@index([schoolId])
 }
 
 model StudentSubject {
     id        Int      @id @default(autoincrement())
-    name      String   @unique
+    name      String
+    schoolId  String
+    school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     isActive  Boolean  @default(true)
     createdAt DateTime @default(now())
     updatedAt DateTime @default(now())
+
+    @@unique([name, schoolId])
+    @@index([schoolId])
 }
 
 model PackageDeduction {
@@ -1062,10 +1081,15 @@ model user {
 
 model studentdaypackage {
     id        Int      @id @default(autoincrement())
-    name      String   @unique
+    name      String
+    schoolId  String
+    school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     isActive  Boolean  @default(true)
     createdAt DateTime @default(now())
     updatedAt DateTime @default(now())
+
+    @@unique([name, schoolId])
+    @@index([schoolId])
 }
 
 model deduction_waivers {

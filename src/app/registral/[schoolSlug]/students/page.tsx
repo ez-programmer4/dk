@@ -33,7 +33,7 @@ interface Student {
   name: string;
   phoneno: string;
   status: string;
-  startdate: string;
+  startDate: string;
   registrationdate: string;
   package: string;
   subject: string;
@@ -83,7 +83,7 @@ export default function RegistralStudentsPage() {
     phoneno: "",
     classfee: "",
     classfeeCurrency: "ETB",
-    startdate: "",
+    startDate: "",
     status: "active",
     package: "",
     subject: "",
@@ -132,7 +132,7 @@ export default function RegistralStudentsPage() {
       phoneno: "",
       classfee: "",
       classfeeCurrency: "ETB",
-      startdate: "",
+      startDate: "",
       status: "active",
       package: "",
       subject: "",
@@ -150,7 +150,7 @@ export default function RegistralStudentsPage() {
       phoneno: student.phoneno,
       classfee: student.classfee.toString(),
       classfeeCurrency: student.classfeeCurrency,
-      startdate: student.startdate,
+      startDate: student.startDate,
       status: student.status,
       package: student.package,
       subject: student.subject,
@@ -406,8 +406,8 @@ export default function RegistralStudentsPage() {
                   </label>
                   <input
                     type="date"
-                    value={formData.startdate}
-                    onChange={(e) => setFormData({ ...formData, startdate: e.target.value })}
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
                   />
                 </div>
@@ -627,7 +627,7 @@ export default function RegistralStudentsPage() {
                                 {student.name}
                               </div>
                               <div className="text-sm text-gray-500">
-                                Teacher: {student.ustazname || "Not assigned"}
+                                Teacher: {student.ustazName || "Not assigned"}
                               </div>
                             </div>
                           </div>
@@ -636,7 +636,7 @@ export default function RegistralStudentsPage() {
                           <div className="flex items-center">
                             <FiPhone className="text-gray-400 mr-2" size={14} />
                             <span className="text-sm text-gray-900">
-                              {student.phoneno}
+                              {student.phone}
                             </span>
                           </div>
                         </td>
@@ -662,10 +662,10 @@ export default function RegistralStudentsPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {student.startdate ? (
+                          {student.startDate ? (
                             <div className="flex items-center">
                               <FiCalendar className="text-gray-400 mr-2" size={14} />
-                              {new Date(student.startdate).toLocaleDateString()}
+                              {new Date(student.startDate).toLocaleDateString()}
                             </div>
                           ) : (
                             "Not set"
@@ -717,7 +717,7 @@ export default function RegistralStudentsPage() {
                                 <FiPhone className="text-teal-600 mt-1" size={16} />
                                 <div>
                                   <p className="text-sm font-medium text-gray-500">Phone Number</p>
-                                  <p className="text-base text-gray-900">{student.phoneno}</p>
+                                  <p className="text-base text-gray-900">{student.phone}</p>
                                 </div>
                               </div>
 
@@ -742,8 +742,8 @@ export default function RegistralStudentsPage() {
                                 <div>
                                   <p className="text-sm font-medium text-gray-500">Registration Date</p>
                                   <p className="text-base text-gray-900">
-                                    {student.registrationdate
-                                      ? new Date(student.registrationdate).toLocaleDateString()
+                                    {student.registrationDate
+                                      ? new Date(student.registrationDate).toLocaleDateString()
                                       : "Not available"}
                                   </p>
                                 </div>

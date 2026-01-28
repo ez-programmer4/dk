@@ -1441,7 +1441,7 @@ export default function StudentsPage() {
     if (!editingStudent) return;
 
     try {
-      const response = await fetch(`/api/admin/${schoolSlug}/students/${editingStudent.id}`, {
+      const response = await fetch(`/api/admin/students/${editingStudent.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -1684,7 +1684,7 @@ export default function StudentsPage() {
   const fetchGlobalStats = async () => {
     setStatsLoading(true);
     try {
-      const response = await fetch(`/api/admin/${schoolSlug}/students/stats`, {
+      const response = await fetch("/api/admin/students/stats", {
         credentials: "include",
         cache: "no-store",
       });
@@ -1715,7 +1715,7 @@ export default function StudentsPage() {
     setAlertsLoading(true);
     try {
       const response = await fetch(
-        `/api/admin/${schoolSlug}/students/alerts?months=${notSucceedMonths}`,
+        `/api/admin/students/alerts?months=${notSucceedMonths}`,
         {
           credentials: "include",
           cache: "no-store",
@@ -2587,11 +2587,11 @@ export default function StudentsPage() {
                   icon={FiUsers}
                   color="blue"
                   trend={
-                    parseFloat(stats?.growth?.registrationGrowthRate || "0") > 0
+                    parseFloat(stats.growth.registrationGrowthRate) > 0
                       ? "up"
                       : "down"
                   }
-                  trendValue={`${stats?.growth?.registrationGrowthRate || "0"}% MoM`}
+                  trendValue={`${stats.growth.registrationGrowthRate}% MoM`}
                   subtitle="All enrolled students"
                   description="Total number of students registered in the system across all statuses and programs."
                 />
@@ -2634,11 +2634,11 @@ export default function StudentsPage() {
                   icon={FiUserPlus}
                   color="green"
                   trend={
-                    parseFloat(stats?.growth?.registrationGrowthRate || "0") > 0
+                    parseFloat(stats.growth.registrationGrowthRate) > 0
                       ? "up"
                       : "down"
                   }
-                  trendValue={`${stats?.growth?.registrationGrowthRate || "0"}%`}
+                  trendValue={`${stats.growth.registrationGrowthRate}%`}
                   description="New students who registered this month"
                 />
                 <MetricCard
@@ -2647,11 +2647,11 @@ export default function StudentsPage() {
                   icon={FiUserCheck}
                   color="blue"
                   trend={
-                    parseFloat(stats?.growth?.activationGrowthRate || "0") > 0
+                    parseFloat(stats.growth.activationGrowthRate) > 0
                       ? "up"
                       : "down"
                   }
-                  trendValue={`${stats?.growth?.activationGrowthRate || "0"}%`}
+                  trendValue={`${stats.growth.activationGrowthRate}%`}
                   description="Students who began their classes this month"
                 />
                 <MetricCard
@@ -4701,7 +4701,7 @@ export default function StudentsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               <MetricCard
                 title="Avg. Registrations/Month"
-                value={stats?.growth?.avgRegistrationsPerMonth || "0"}
+                value={stats.growth.avgRegistrationsPerMonth}
                 icon={FiTrendingUp}
                 color="blue"
                 subtitle="12-month average"
@@ -4709,7 +4709,7 @@ export default function StudentsPage() {
               />
               <MetricCard
                 title="Avg. Activations/Month"
-                value={stats?.growth?.avgActivationsPerMonth || "0"}
+                value={stats.growth.avgActivationsPerMonth}
                 icon={FiTarget}
                 color="green"
                 subtitle="12-month average"
@@ -4753,18 +4753,18 @@ export default function StudentsPage() {
                         Last Month
                       </span>
                       <span className="font-black text-2xl text-gray-600">
-                        {stats?.growth?.lastMonthRegistered || 0}
+                        {stats.growth.lastMonthRegistered}
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg">
                       <span className="font-semibold">Growth Rate</span>
                       <span className="font-black text-2xl flex items-center gap-2">
-                        {parseFloat(stats?.growth?.registrationGrowthRate || "0") > 0 ? (
+                        {parseFloat(stats.growth.registrationGrowthRate) > 0 ? (
                           <FiTrendingUp className="h-6 w-6 text-green-300" />
                         ) : (
                           <FiTrendingDown className="h-6 w-6 text-red-300" />
                         )}
-                        {stats?.growth?.registrationGrowthRate || "0"}%
+                        {stats.growth.registrationGrowthRate}%
                       </span>
                     </div>
                   </div>
@@ -4830,7 +4830,7 @@ export default function StudentsPage() {
                   <p className="text-2xl font-black mb-2">
                     +
                     {Math.round(
-                      parseFloat(stats?.growth?.avgRegistrationsPerMonth || "0") * 1.1
+                      parseFloat(stats.growth.avgRegistrationsPerMonth) * 1.1
                     )}
                   </p>
                   <p className="text-sm text-blue-100">
@@ -5486,12 +5486,12 @@ export default function StudentsPage() {
                       {
                         metric: "Registrations",
                         "This Month": stats.monthly.registered,
-                        "Last Month": stats?.growth?.lastMonthRegistered || 0,
+                        "Last Month": stats.growth.lastMonthRegistered,
                       },
                       {
                         metric: "Activations",
                         "This Month": stats.monthly.started,
-                        "Last Month": stats?.growth?.lastMonthActive || 0,
+                        "Last Month": stats.growth.lastMonthActive,
                       },
                       {
                         metric: "Exits",

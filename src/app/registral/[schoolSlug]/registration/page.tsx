@@ -2893,84 +2893,10 @@ function RegistrationContent() {
                       )}
                     </div>
 
-                    {/* Referral Dropdown for Registral */}
-                    {session?.user?.role === "registral" && (
-                      <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-gray-800 flex items-center">
-                          <FiStar className="mr-2 text-teal-600" />
-                          Refer (Controller) - Optional
-                        </label>
-                        {loadingControllers ? (
-                          <div className="w-full px-5 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 text-sm">
-                            Loading controllers...
-                          </div>
-                        ) : controllersError ? (
-                          <div className="w-full px-5 py-3 rounded-xl border border-red-200 bg-red-50 text-red-500 text-sm">
-                            {controllersError}
-                          </div>
-                        ) : controllers.length > 0 ? (
-                          <select
-                            {...register("refer")}
-                            className="w-full px-5 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-400 focus:border-teal-400 text-sm font-medium transition-all duration-200 shadow-sm hover:border-teal-300"
-                            defaultValue=""
-                          >
-                            <option value="">
-                              Select controllers (optional)
-                            </option>
-                            {controllers.map((ctrl) => (
-                              <option key={ctrl.code} value={ctrl.code}>
-                                {ctrl.name} ({ctrl.code})
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <div className="w-full px-5 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 text-sm">
-                            Sorry, No controllers available
-                          </div>
-                        )}
-                      </div>
-                    )}
+                 
 
                     {/* Subscription Package Config - Optional */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-gray-800 flex items-center">
-                        <FiSettings className="mr-2 text-teal-600" />
-                        Subscription Package Config - Optional
-                      </label>
-                      {loadingSubscriptionConfigs ? (
-                        <div className="w-full px-5 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 text-sm">
-                          Loading configs...
-                        </div>
-                      ) : subscriptionConfigs.length > 0 ? (
-                        <select
-                          {...register("subscriptionPackageConfigId", {
-                            setValueAs: (value) =>
-                              value === "" ? undefined : parseInt(value),
-                          })}
-                          className="w-full px-5 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-400 focus:border-teal-400 text-sm font-medium transition-all duration-200 shadow-sm hover:border-teal-300"
-                          defaultValue=""
-                        >
-                          <option value="">Select config (optional)</option>
-                          {subscriptionConfigs.map((config) => (
-                            <option key={config.id} value={config.name}>
-                              {config.name}
-                              {config.description
-                                ? ` - ${config.description}`
-                                : ""}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className="w-full px-5 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 text-sm">
-                          No subscription package configs available
-                        </div>
-                      )}
-                      <p className="text-xs text-gray-500 mt-1">
-                        Assign a subscription package config to this student.
-                        This determines which subscription packages will be
-                        available to them.
-                      </p>
-                    </div>
+                   
                     {/* For other roles, hide or auto-fill refer field */}
                     {session?.user?.role !== "registral" && (
                       <input type="hidden" {...register("refer")} />

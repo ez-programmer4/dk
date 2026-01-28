@@ -846,29 +846,9 @@ export default function RegistralDashboard() {
                 <FiPlus className="mr-2" /> New Registration
               </Link>
 
-              <Link
-                href={`/registral/${schoolSlug}/earnings`}
-                className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white px-6 py-3 rounded-xl flex items-center shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <FiPlus className="mr-2" /> My earning
-              </Link>
-              <Link
-                href={`/us-student?schoolSlug=${schoolSlug}`}
-                className="relative bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl flex items-center shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <FiUser className="mr-2" /> US Students
-                {usStudentCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse shadow-lg">
-                    {usStudentCount}
-                  </span>
-                )}
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="bg-red-100 hover:bg-red-200 text-red-800 px-4 py-3 rounded-xl flex items-center shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <FiLogOut className="mr-2" /> Logout
-              </button>
+              
+             
+              
             </div>
           </div>
 

@@ -34,6 +34,7 @@ import {
   FiHeart,
   FiShield,
   FiTrendingDown,
+  FiX,
 } from "react-icons/fi";
 import { signOut } from "next-auth/react";
 
@@ -78,8 +79,8 @@ export default function RegistralLayout({
     }
 
     if (status === "authenticated" && session?.user) {
-      const userRole = session.user.role;
-      const userSchoolSlug = session.user.schoolSlug;
+      const userRole = (session.user as any).role;
+      const userSchoolSlug = (session.user as any).schoolSlug;
 
       // Only allow registral and controller roles
       if (userRole !== "registral" && userRole !== "controller") {
@@ -107,9 +108,7 @@ export default function RegistralLayout({
     if (schoolSlug) {
       const fetchBranding = async () => {
         try {
-          const brandingApi = userRole === "controller"
-            ? `/api/controller/${schoolSlug}/branding`
-            : `/api/registral/${schoolSlug}/branding`;
+          const brandingApi = `/api/registral/${schoolSlug}/branding`;
           const response = await fetch(brandingApi);
           if (response.ok) {
             const data = await response.json();
@@ -178,6 +177,10 @@ export default function RegistralLayout({
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [systemStatus, setSystemStatus] = useState("online");
+
+  // Enhanced sidebar state
+  const [sidebarSearchQuery, setSidebarSearchQuery] = useState("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Fetch sidebar stats
   useEffect(() => {
@@ -287,154 +290,588 @@ export default function RegistralLayout({
           icon: FiUsers,
           description: `${sidebarStats.totalStudents} Total Students`,
         },
-        {
-          href: `/registral/${schoolSlug}/analytics`,
-          label: "Performance",
-          icon: FiTrendingUp,
-          description: "Student Progress",
-        },
+       
       ],
     },
-    {
-      id: "business",
-      label: "Business",
-      icon: FiDollarSign,
-      defaultExpanded: false,
-      items: [
-        {
-          href: `/registral/${schoolSlug}/earnings`,
-          label: "Earnings",
-          icon: FiDollarSign,
-          description: `$${sidebarStats.monthlyEarnings} This Month`,
-        },
-        {
-          href: `/registral/${schoolSlug}/analytics`,
-          label: "Analytics",
-          icon: FiPieChart,
-          description: "Business Insights",
-        },
-      ],
-    },
-    {
-      id: "tools",
-      label: "Tools & Settings",
-      icon: FiSettings,
-      defaultExpanded: false,
-      items: [
-        {
-          href: `/registral/${schoolSlug}/settings`,
-          label: "Settings",
-          icon: FiSettings,
-          description: "Account & Preferences",
-        },
-      ],
-    },
+    
+   
   ];
 
-  // NavGroup Component
+  // Enhanced Navigation Search Component
+  const NavigationSearch = ({
+    searchQuery,
+    setSearchQuery,
+    primaryColor,
+    secondaryColor,
+  }: {
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
+    primaryColor: string;
+    secondaryColor: string;
+  }) => {
+    const [isFocused, setIsFocused] = useState(false);
+
+    return (
+      <div className="px-4 mb-4">
+        <div
+          className={`relative transition-all duration-300 rounded-xl overflow-hidden ${
+            isFocused ? "shadow-lg" : "shadow-sm"
+          }`}
+          style={{
+            background: isFocused
+              ? `linear-gradient(135deg, ${primaryColor}08, ${secondaryColor}06)`
+              : `linear-gradient(135deg, ${primaryColor}05, ${secondaryColor}03)`,
+            backdropFilter: "blur(12px)",
+            border: isFocused ? `1px solid ${primaryColor}20` : "1px solid rgba(255,255,255,0.2)",
+          }}
+        >
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <FiSearch
+              className={`w-4 h-4 transition-colors duration-300 ${
+                isFocused ? "text-gray-600" : "text-gray-400"
+              }`}
+            />
+          </div>
+          <input
+            type="text"
+            placeholder="Search navigation..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            className="w-full pl-12 pr-4 py-3 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none transition-all duration-300"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center"
+            >
+              <FiX className="w-4 h-4 text-gray-400 hover:text-gray-600 transition-colors" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Enhanced Quick Stats Component
+  const QuickStatsWidget = ({
+    stats,
+    primaryColor,
+    secondaryColor,
+  }: {
+    stats: {
+      totalStudents: number;
+      activeStudents: number;
+      monthlyEarnings: number;
+      pendingRegistrations: number;
+    };
+    primaryColor: string;
+    secondaryColor: string;
+  }) => {
+    const statItems = [
+      {
+        label: "Total Students",
+        value: stats.totalStudents,
+        icon: FiUsers,
+        color: "#0f766e",
+        trend: "+12%",
+        trendUp: true,
+      },
+      {
+        label: "Active Students",
+        value: stats.activeStudents,
+        icon: FiBookOpen,
+        color: "#06b6d4",
+        trend: "+8%",
+        trendUp: true,
+      },
+      
+      {
+        label: "Pending",
+        value: stats.pendingRegistrations,
+        icon: FiClock,
+        color: "#F59E0B",
+        trend: "-3%",
+        trendUp: false,
+      },
+    ];
+
+    return (
+      <div className="px-4 mb-6">
+        <div className="grid grid-cols-2 gap-3">
+          {statItems.map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1, duration: 0.3 }}
+              className="group relative overflow-hidden rounded-xl p-4 transition-all duration-300 hover:scale-105"
+              style={{
+                background: `linear-gradient(135deg, ${stat.color}10, ${stat.color}05)`,
+                border: `1px solid ${stat.color}20`,
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              {/* Animated background */}
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{
+                  background: `radial-gradient(circle at 70% 30%, ${stat.color}15 0%, transparent 70%)`,
+                }}
+              />
+
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center mr-3"
+                    style={{ backgroundColor: `${stat.color}20` }}
+                  >
+                    <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-600">{stat.label}</p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {stat.label === "Earnings" ? `$${stat.value}` : stat.value}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={`flex items-center text-xs font-medium ${
+                  stat.trendUp ? "text-green-600" : "text-red-600"
+                }`}>
+                  {stat.trendUp ? (
+                    <FiTrendingUp className="w-3 h-3 mr-1" />
+                  ) : (
+                    <FiTrendingDown className="w-3 h-3 mr-1" />
+                  )}
+                  {stat.trend}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Enhanced NavGroup Component - Ultra Modern & Interactive
   const NavGroup = ({
     group,
     pathname,
     primaryColor,
     secondaryColor,
     schoolSlug,
+    isCollapsed = false,
   }: {
     group: any;
     pathname: string;
     primaryColor: string;
     secondaryColor: string;
     schoolSlug: string;
+    isCollapsed?: boolean;
   }) => {
     const [isExpanded, setIsExpanded] = useState(group.defaultExpanded);
+    const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+    const [isGroupHovered, setIsGroupHovered] = useState(false);
 
     return (
-      <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-gray-200/50 overflow-hidden shadow-sm">
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50/50 transition-colors"
+      <div className="mb-4">
+        {/* Ultra-modern card container with glassmorphism */}
+        <div
+          className="relative overflow-hidden rounded-2xl border border-white/20 shadow-lg transition-all duration-500 group"
+          style={{
+            background: isGroupHovered
+              ? `linear-gradient(135deg, ${primaryColor}08 0%, ${secondaryColor}12 100%)`
+              : `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}08 100%)`,
+            backdropFilter: "blur(16px)",
+            boxShadow: isGroupHovered
+              ? `0 8px 32px -4px ${primaryColor}20, 0 4px 16px -2px ${secondaryColor}15`
+              : `0 4px 16px -2px ${primaryColor}10`,
+          }}
+          onMouseEnter={() => setIsGroupHovered(true)}
+          onMouseLeave={() => setIsGroupHovered(false)}
         >
-          <div className="flex items-center">
-            <group.icon
-              className="w-5 h-5 mr-3"
-              style={{ color: primaryColor }}
-            />
-            <span className="text-sm font-semibold text-gray-900">
-              {group.label}
-            </span>
-          </div>
-          {isExpanded ? (
-            <FiChevronDown className="w-4 h-4 text-gray-500" />
-          ) : (
-            <FiChevronRight className="w-4 h-4 text-gray-500" />
-          )}
-        </button>
+          {/* Animated background gradient */}
+          <div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+            style={{
+              background: `radial-gradient(circle at 50% 50%, ${primaryColor}15 0%, transparent 70%)`,
+            }}
+          />
 
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="border-t border-gray-100/50"
-            >
-              <div className="py-1">
-                {group.items.map((item: any) => {
-                  const isActive = pathname === item.href;
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`group relative flex items-center px-4 py-2.5 text-sm transition-all duration-200 ${
-                        isActive
-                          ? "bg-gradient-to-r text-white shadow-sm"
-                          : "text-gray-700 hover:bg-gray-100/70 hover:text-gray-900"
+          {/* Group header with enhanced interactions */}
+          {isCollapsed ? (
+            /* Collapsed: Just icon with tooltip */
+            <div className="relative group/collapsed mb-4">
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="relative w-full flex justify-center py-3 transition-all duration-300 group/header z-10"
+              >
+                <div className="relative">
+                  <div
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 transform ${
+                      isExpanded ? "scale-110 rotate-3" : "scale-100 rotate-0"
+                    }`}
+                    style={{
+                      background: isExpanded
+                        ? `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+                        : `linear-gradient(135deg, ${primaryColor}25, ${secondaryColor}20)`,
+                      boxShadow: isExpanded
+                        ? `0 8px 24px -4px ${primaryColor}50`
+                        : `0 4px 12px -2px ${primaryColor}20`,
+                    }}
+                  >
+                    <group.icon
+                      className={`w-6 h-6 transition-all duration-300 ${
+                        isExpanded
+                          ? "text-white scale-110"
+                          : "text-gray-600 group-hover/header:text-gray-800"
                       }`}
-                      style={
-                        isActive
-                          ? {
-                              background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                              boxShadow: `0 2px 4px -1px ${primaryColor}30`,
-                            }
-                          : {}
-                      }
-                    >
-                      <item.icon
-                        className={`w-4 h-4 mr-3 transition-colors ${
-                          isActive
-                            ? "text-white"
-                            : "text-gray-500 group-hover:text-gray-700"
-                        }`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div
-                          className={`font-medium truncate ${
-                            isActive ? "text-white" : "text-gray-900"
-                          }`}
-                        >
-                          {item.label}
-                        </div>
-                        {item.description && (
-                          <div
-                            className={`text-xs truncate ${
-                              isActive ? "text-white/80" : "text-gray-500"
-                            }`}
-                          >
-                            {item.description}
-                          </div>
-                        )}
-                      </div>
-                      {isActive && (
-                        <div className="w-2 h-2 bg-white rounded-full shadow-sm" />
-                      )}
-                    </Link>
-                  );
-                })}
+                    />
+                  </div>
+
+                  {/* Pulsing ring animation */}
+                  {isExpanded && (
+                    <div
+                      className="absolute inset-0 rounded-xl animate-ping"
+                      style={{
+                        background: `linear-gradient(135deg, ${primaryColor}30, ${secondaryColor}25)`,
+                      }}
+                    />
+                  )}
+                </div>
+              </button>
+
+              {/* Tooltip */}
+              <div className="absolute left-full ml-3 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover/collapsed:opacity-100 transition-opacity duration-200 pointer-events-none z-20 shadow-xl">
+                {group.label}
+                <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
               </div>
-            </motion.div>
+            </div>
+          ) : (
+            /* Expanded: Full header */
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="relative w-full flex items-center justify-between px-5 py-4 text-left transition-all duration-300 group/header z-10"
+            >
+              <div className="flex items-center">
+                {/* Icon container with pulsing effect */}
+                <div className="relative mr-4">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 transform ${
+                      isExpanded ? "scale-110 rotate-3" : "scale-100 rotate-0"
+                    }`}
+                    style={{
+                      background: isExpanded
+                        ? `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+                        : `linear-gradient(135deg, ${primaryColor}25, ${secondaryColor}20)`,
+                      boxShadow: isExpanded
+                        ? `0 8px 24px -4px ${primaryColor}50`
+                        : `0 4px 12px -2px ${primaryColor}20`,
+                    }}
+                  >
+                    <group.icon
+                      className={`w-5 h-5 transition-all duration-300 ${
+                        isExpanded
+                          ? "text-white scale-110"
+                          : "text-gray-600 group-hover/header:text-gray-800"
+                      }`}
+                    />
+                  </div>
+
+                  {/* Pulsing ring animation */}
+                  {isExpanded && (
+                    <div
+                      className="absolute inset-0 rounded-xl animate-ping"
+                      style={{
+                        background: `linear-gradient(135deg, ${primaryColor}30, ${secondaryColor}25)`,
+                      }}
+                    />
+                  )}
+                </div>
+
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-gray-900 group-hover/header:text-gray-800 transition-colors">
+                    {group.label}
+                  </span>
+                  <span className="text-xs text-gray-500 font-medium">
+                    {group.items.length} {group.items.length === 1 ? 'item' : 'items'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Enhanced chevron with rotation animation */}
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-gray-500 font-medium">
+                    {isExpanded ? "Active" : "Ready"}
+                  </span>
+                </div>
+                <motion.div
+                  animate={{ rotate: isExpanded ? 180 : 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
+                  <FiChevronRight className="w-5 h-5 text-gray-500 group-hover/header:text-gray-700 transition-colors" />
+                </motion.div>
+              </div>
+            </button>
           )}
-        </AnimatePresence>
+
+          {/* Enhanced expandable content */}
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{
+                  duration: 0.4,
+                  ease: [0.4, 0.0, 0.2, 1],
+                  opacity: { duration: 0.3 }
+                }}
+                className="relative border-t border-white/30"
+              >
+                {/* Subtle gradient overlay */}
+                <div
+                  className="absolute inset-0 opacity-50"
+                  style={{
+                    background: `linear-gradient(180deg, ${primaryColor}02 0%, transparent 100%)`,
+                  }}
+                />
+
+                <div className="relative py-3">
+                  {group.items.map((item: any, index: number) => {
+                    const isActive = pathname === item.href;
+                    const isHovered = hoveredItem === item.href;
+
+                    return (
+                      <motion.div
+                        key={item.href}
+                        initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        transition={{
+                          delay: index * 0.08,
+                          duration: 0.4,
+                          ease: [0.4, 0.0, 0.2, 1]
+                        }}
+                        onMouseEnter={() => setHoveredItem(item.href)}
+                        onMouseLeave={() => setHoveredItem(null)}
+                      >
+                        {isCollapsed ? (
+                          /* Collapsed: Icon only with tooltip */
+                          <div className="relative group/item-collapsed mb-2">
+                            <Link
+                              href={item.href}
+                              className={`group/item relative flex justify-center py-3 px-2 text-sm transition-all duration-300 rounded-xl overflow-hidden ${
+                                isActive
+                                  ? "text-white shadow-xl"
+                                  : "text-gray-700 hover:text-gray-900"
+                              }`}
+                              style={
+                                isActive
+                                  ? {
+                                      background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                                      boxShadow: `0 8px 32px -8px ${primaryColor}60, 0 4px 16px -4px ${secondaryColor}40`,
+                                    }
+                                  : isHovered
+                                  ? {
+                                      background: `linear-gradient(135deg, ${primaryColor}10, ${secondaryColor}08)`,
+                                      boxShadow: `0 4px 16px -4px ${primaryColor}20`,
+                                    }
+                                  : {
+                                      background: "transparent",
+                                    }
+                              }
+                            >
+                              {/* Active state glow effect */}
+                              {isActive && (
+                                <>
+                                  <div
+                                    className="absolute inset-0 opacity-30"
+                                    style={{
+                                      background: `linear-gradient(135deg, ${primaryColor}40, ${secondaryColor}30)`,
+                                    }}
+                                  />
+                                  <div
+                                    className="absolute left-0 top-0 bottom-0 w-1"
+                                    style={{ backgroundColor: secondaryColor }}
+                                  />
+                                </>
+                              )}
+
+                              {/* Icon with enhanced animations */}
+                              <div className="relative">
+                                <item.icon
+                                  className={`w-5 h-5 transition-all duration-300 ${
+                                    isActive
+                                      ? "text-white scale-110"
+                                      : isHovered
+                                      ? "text-gray-700 scale-105"
+                                      : "text-gray-500"
+                                  }`}
+                                />
+
+                                {/* Hover glow effect */}
+                                {isHovered && !isActive && (
+                                  <div
+                                    className="absolute inset-0 rounded-full blur-sm opacity-50"
+                                    style={{ backgroundColor: primaryColor }}
+                                  />
+                                )}
+                              </div>
+                            </Link>
+
+                            {/* Tooltip */}
+                            <div className="absolute left-full ml-3 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover/item-collapsed:opacity-100 transition-opacity duration-200 pointer-events-none z-20 shadow-xl">
+                              {item.label}
+                              <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Expanded: Full item */
+                          <Link
+                            href={item.href}
+                            className={`group/item relative flex items-center px-6 py-3.5 mx-2 mb-1 text-sm transition-all duration-300 rounded-xl overflow-hidden ${
+                              isActive
+                                ? "text-white shadow-xl"
+                                : "text-gray-700 hover:text-gray-900"
+                            }`}
+                            style={
+                              isActive
+                                ? {
+                                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                                    boxShadow: `0 8px 32px -8px ${primaryColor}60, 0 4px 16px -4px ${secondaryColor}40`,
+                                  }
+                                : isHovered
+                                ? {
+                                    background: `linear-gradient(135deg, ${primaryColor}10, ${secondaryColor}08)`,
+                                    boxShadow: `0 4px 16px -4px ${primaryColor}20`,
+                                  }
+                                : {
+                                    background: "transparent",
+                                  }
+                            }
+                          >
+                            {/* Animated background on hover */}
+                            <div
+                              className={`absolute inset-0 transition-opacity duration-300 ${
+                                isHovered && !isActive ? "opacity-100" : "opacity-0"
+                              }`}
+                              style={{
+                                background: `radial-gradient(circle at 30% 70%, ${primaryColor}15 0%, transparent 60%)`,
+                              }}
+                            />
+
+                            {/* Active state glow effect */}
+                            {isActive && (
+                              <>
+                                <div
+                                  className="absolute inset-0 opacity-30"
+                                  style={{
+                                    background: `linear-gradient(135deg, ${primaryColor}40, ${secondaryColor}30)`,
+                                  }}
+                                />
+                                <div
+                                  className="absolute left-0 top-0 bottom-0 w-1"
+                                  style={{ backgroundColor: secondaryColor }}
+                                />
+                              </>
+                            )}
+
+                            {/* Icon with enhanced animations */}
+                            <div className="relative mr-4">
+                              <item.icon
+                                className={`w-4 h-4 transition-all duration-300 ${
+                                  isActive
+                                    ? "text-white scale-110"
+                                    : isHovered
+                                    ? "text-gray-700 scale-105"
+                                    : "text-gray-500"
+                                }`}
+                              />
+
+                              {/* Hover glow effect */}
+                              {isHovered && !isActive && (
+                                <div
+                                  className="absolute inset-0 rounded-full blur-sm opacity-50"
+                                  style={{ backgroundColor: primaryColor }}
+                                />
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0 relative z-10">
+                              <div
+                                className={`font-semibold truncate transition-colors ${
+                                  isActive ? "text-white" : "text-gray-900"
+                                }`}
+                              >
+                                {item.label}
+                              </div>
+                              <div
+                                className={`text-xs mt-1 truncate transition-colors ${
+                                  isActive ? "text-white/90" : "text-gray-500"
+                                }`}
+                              >
+                                {item.description}
+                              </div>
+                            </div>
+
+                            {/* Enhanced hover indicator */}
+                            <div className="relative ml-3">
+                              <div
+                                className={`w-2 h-8 rounded-full transition-all duration-300 ${
+                                  isActive
+                                    ? "bg-white/40 scale-110"
+                                    : isHovered
+                                    ? "bg-gray-400 scale-105"
+                                    : "bg-transparent"
+                                }`}
+                              />
+
+                              {/* Animated particles on hover */}
+                              {isHovered && !isActive && (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div
+                                    className="w-1 h-1 rounded-full animate-bounce"
+                                    style={{
+                                      backgroundColor: primaryColor,
+                                      animationDelay: "0ms",
+                                    }}
+                                  />
+                                  <div
+                                    className="w-1 h-1 rounded-full animate-bounce ml-1"
+                                    style={{
+                                      backgroundColor: secondaryColor,
+                                      animationDelay: "100ms",
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Tooltip on hover */}
+                            {isHovered && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-20 shadow-xl"
+                              >
+                                {item.label}
+                                <div className="absolute left-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-l-gray-900"></div>
+                              </motion.div>
+                            )}
+                          </Link>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     );
   };
@@ -460,8 +897,32 @@ export default function RegistralLayout({
           "--secondary-color": secondaryColor,
         } as React.CSSProperties
       }
-    >
-      {/* Enhanced Header */}
+      >
+        {/* Custom Scrollbar Styles */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            .sidebar-scroll::-webkit-scrollbar {
+              width: 6px;
+            }
+            .sidebar-scroll::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            .sidebar-scroll::-webkit-scrollbar-thumb {
+              background: ${primaryColor}40;
+              border-radius: 3px;
+              transition: background 0.3s ease;
+            }
+            .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+              background: ${primaryColor}60;
+            }
+            .sidebar-scroll {
+              scrollbar-width: thin;
+              scrollbar-color: ${primaryColor}40 transparent;
+            }
+          `
+        }} />
+
+        {/* Enhanced Header */}
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -526,6 +987,20 @@ export default function RegistralLayout({
 
             {/* Right Section - Actions & User */}
             <div className="flex items-center space-x-3">
+              {/* Sidebar Toggle Button */}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200"
+                title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              >
+                <motion.div
+                  animate={{ rotate: sidebarCollapsed ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <FiChevronRight className="w-5 h-5" />
+                </motion.div>
+              </button>
+
               {/* Quick Actions */}
               <div className="hidden lg:flex items-center space-x-2">
                 <motion.button
@@ -617,7 +1092,7 @@ export default function RegistralLayout({
                     <div className="border-t border-gray-100 my-2"></div>
                     <button
                       onClick={() =>
-                        signOut({ callbackUrl: "/login", redirect: true })
+                        signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
                       }
                       className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
@@ -656,17 +1131,18 @@ export default function RegistralLayout({
         </div>
       </motion.header>
 
-      <div className="flex">
         {/* Enhanced Sidebar */}
         <motion.nav
           initial={{ x: -300 }}
           animate={{ x: 0 }}
-          className="w-80 bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 min-h-[calc(100vh-5rem)] sticky top-20 overflow-hidden"
+          className="w-80 bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 h-[calc(100vh-8rem)] fixed top-32 z-30"
           style={{
             background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}08 100%)`,
           }}
         >
-          {/* Sidebar Header with School Branding */}
+            {/* Entire Sidebar Content - Scrollable */}
+            <div className="h-full overflow-y-auto sidebar-scroll">
+              {/* Sidebar Header with School Branding */}
           <div
             className="relative p-6 border-b border-gray-200"
             style={{
@@ -686,81 +1162,150 @@ export default function RegistralLayout({
             </div>
 
             <div className="relative">
-              {/* School Logo & Info */}
-              <div className="flex items-center mb-4">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-lg ring-2 ring-white/50">
-                    <img
-                      src={logoUrl}
-                      alt={`${schoolName} Logo`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        if (e.currentTarget.src !== "/logo.svg") {
-                          e.currentTarget.src = "/logo.svg";
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white shadow-sm">
-                    <FiZap className="w-2.5 h-2.5 text-white m-0.5" />
-                  </div>
-                </div>
-                <div className="ml-3">
-                  <h2 className="text-lg font-bold text-gray-900 leading-tight">
-                    {schoolName}
-                  </h2>
-                  <p className="text-xs text-gray-600 font-medium">
-                    Registral Portal
-                  </p>
-                </div>
-              </div>
+              {/* Collapsed: Just Logo */}
+              {sidebarCollapsed ? (
+                <div className="flex justify-center">
+                  <div className="relative group">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg ring-2 ring-white/50">
+                      <img
+                        src={logoUrl}
+                        alt={`${schoolName} Logo`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          if (e.currentTarget.src !== "/logo.svg") {
+                            e.currentTarget.src = "/logo.svg";
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white shadow-sm">
+                      <FiZap className="w-2 h-2 text-white m-0.5" />
+                    </div>
 
-              {/* Quick Stats */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 shadow-sm border border-white/50">
-                  <div className="flex items-center">
-                    <FiUsers className="w-4 h-4 text-blue-500 mr-2" />
-                    <div>
-                      <p className="text-xs text-gray-600 font-medium">
-                        Students
-                      </p>
-                      <p className="text-sm font-bold text-gray-900">
-                        {sidebarStats.totalStudents}
-                      </p>
+                    {/* Tooltip on hover */}
+                    <div className="absolute left-full ml-3 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20 shadow-xl">
+                      {schoolName}
+                      <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
                     </div>
                   </div>
                 </div>
-                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 shadow-sm border border-white/50">
-                  <div className="flex items-center">
-                    <FiDollarSign className="w-4 h-4 text-green-500 mr-2" />
-                    <div>
+              ) : (
+                /* Expanded: Full Header */
+                <>
+                  {/* School Logo & Info */}
+                  <div className="flex items-center mb-4">
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden shadow-lg ring-2 ring-white/50">
+                        <img
+                          src={logoUrl}
+                          alt={`${schoolName} Logo`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            if (e.currentTarget.src !== "/logo.svg") {
+                              e.currentTarget.src = "/logo.svg";
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white shadow-sm">
+                        <FiZap className="w-2.5 h-2.5 text-white m-0.5" />
+                      </div>
+                    </div>
+                    <div className="ml-3">
+                      <h2 className="text-lg font-bold text-gray-900 leading-tight">
+                        {schoolName}
+                      </h2>
                       <p className="text-xs text-gray-600 font-medium">
-                        Earnings
-                      </p>
-                      <p className="text-sm font-bold text-gray-900">
-                        ${sidebarStats.monthlyEarnings}
+                        Registral Portal
                       </p>
                     </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
 
+          {/* Enhanced Quick Stats - Hidden when collapsed */}
+          {!sidebarCollapsed && (
+            <QuickStatsWidget
+              stats={sidebarStats}
+              primaryColor={primaryColor}
+              secondaryColor={secondaryColor}
+            />
+          )}
+
+          {/* Navigation Search - Hidden when collapsed */}
+          {!sidebarCollapsed && (
+            <NavigationSearch
+              searchQuery={sidebarSearchQuery}
+              setSearchQuery={setSidebarSearchQuery}
+              primaryColor={primaryColor}
+              secondaryColor={secondaryColor}
+            />
+          )}
+
           {/* Navigation Groups */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4 space-y-2">
-              {navGroups.map((group) => (
-                <NavGroup
-                  key={group.id}
-                  group={group}
-                  pathname={pathname}
-                  primaryColor={primaryColor}
-                  secondaryColor={secondaryColor}
-                  schoolSlug={schoolSlug}
-                />
-              ))}
-            </div>
+          <div className="px-4 pb-4 space-y-2">
+            {navGroups
+              .filter((group) => {
+                if (!sidebarSearchQuery) return true;
+                const groupMatches = group.label.toLowerCase().includes(sidebarSearchQuery.toLowerCase());
+                const itemMatches = group.items.some((item: any) =>
+                  item.label.toLowerCase().includes(sidebarSearchQuery.toLowerCase()) ||
+                  item.description.toLowerCase().includes(sidebarSearchQuery.toLowerCase())
+                );
+                return groupMatches || itemMatches;
+              })
+              .map((group) => {
+                // Filter items within groups if search query exists
+                const filteredGroup = sidebarSearchQuery
+                  ? {
+                      ...group,
+                      items: group.items.filter((item: any) =>
+                        item.label.toLowerCase().includes(sidebarSearchQuery.toLowerCase()) ||
+                        item.description.toLowerCase().includes(sidebarSearchQuery.toLowerCase()) ||
+                        group.label.toLowerCase().includes(sidebarSearchQuery.toLowerCase())
+                      ),
+                    }
+                  : group;
+
+                return (
+                  <NavGroup
+                    key={group.id}
+                    group={filteredGroup}
+                    pathname={pathname}
+                    primaryColor={primaryColor}
+                    secondaryColor={secondaryColor}
+                    schoolSlug={schoolSlug}
+                    isCollapsed={sidebarCollapsed}
+                  />
+                );
+              })}
+
+            {/* No results message */}
+            {sidebarSearchQuery && navGroups.every((group) =>
+              !group.label.toLowerCase().includes(sidebarSearchQuery.toLowerCase()) &&
+              !group.items.some((item: any) =>
+                item.label.toLowerCase().includes(sidebarSearchQuery.toLowerCase()) ||
+                item.description.toLowerCase().includes(sidebarSearchQuery.toLowerCase())
+              )
+            ) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-12 px-4"
+              >
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                  <FiSearch className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-sm font-medium text-gray-900 mb-2">
+                  No navigation items found
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Try adjusting your search query
+                </p>
+              </motion.div>
+            )}
           </div>
 
           {/* User Profile Section */}
@@ -781,7 +1326,7 @@ export default function RegistralLayout({
               </div>
               <button
                 onClick={() =>
-                  signOut({ callbackUrl: "/login", redirect: true })
+                  signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
                 }
                 className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
                 title="Logout"
@@ -790,15 +1335,21 @@ export default function RegistralLayout({
               </button>
             </div>
           </div>
-        </motion.nav>
+        </div>
+      </motion.nav>
 
-        {/* Main Content */}
-        <main className="flex-1 p-8">
-          <BrandingContext.Provider value={branding}>
-            <AnimatePresence mode="wait">{children}</AnimatePresence>
-          </BrandingContext.Provider>
-        </main>
-      </div>
+      {/* Main Content */}
+      <motion.main
+        animate={{
+          paddingLeft: sidebarCollapsed ? 72 : 320
+        }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="min-h-[calc(100vh-5rem)] p-8"
+      >
+        <BrandingContext.Provider value={branding}>
+          <AnimatePresence mode="wait">{children}</AnimatePresence>
+        </BrandingContext.Provider>
+      </motion.main>
     </div>
   );
 }

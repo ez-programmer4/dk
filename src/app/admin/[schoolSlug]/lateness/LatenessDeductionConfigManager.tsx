@@ -210,7 +210,7 @@ export default function LatenessDeductionConfigManager({
                 <h3
                   className="text-3xl font-bold bg-clip-text text-transparent mb-2"
                   style={{
-                    backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
                   }}
                 >
                   Lateness Deduction Configuration
@@ -726,7 +726,7 @@ function PackageDeductionManager({
             <h3
               className="text-xl font-bold bg-clip-text text-transparent"
               style={{
-                backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
               }}
             >
               Package {type === "lateness" ? "Lateness" : "Absence"} Deductions

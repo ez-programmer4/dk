@@ -362,3 +362,4 @@ export function SchoolStatusPanel({ isOpen, onClose, school, onSuccess }: School
   );
 }
 
+

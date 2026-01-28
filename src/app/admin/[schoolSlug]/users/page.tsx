@@ -25,26 +25,18 @@ import {
   FiUser,
   FiCheck,
   FiInfo,
-  FiActivity,
-  FiClock,
-  FiHeart,
 } from "react-icons/fi";
 import Modal from "@/app/components/Modal";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import { useDebounce } from "use-debounce";
-import { useBranding } from "../layout";
 
 // Schedule Generator Component
 const ScheduleGenerator = ({
   value,
   onChange,
-  primaryColor,
-  secondaryColor,
 }: {
   value: string;
   onChange: (value: string) => void;
-  primaryColor: string;
-  secondaryColor: string;
 }) => {
   const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
 
@@ -241,10 +233,7 @@ const ScheduleGenerator = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Enter manually with AM/PM: 6:00 AM, 2:30 PM, 8:00 PM or select from slots below"
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900"
-          style={{
-            boxShadow: `0 0 0 2px ${primaryColor}40`,
-          }}
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black bg-white text-gray-900"
         />
       </div>
 
@@ -253,10 +242,7 @@ const ScheduleGenerator = ({
         <button
           type="button"
           onClick={selectAllTimes}
-          className="flex-1 text-white px-4 py-3 rounded-xl font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-          style={{
-            background: 'linear-gradient(135deg, ' + primaryColor + ', ' + secondaryColor + ')',
-          }}
+          className="flex-1 bg-black hover:bg-gray-800 text-white px-4 py-3 rounded-xl font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
         >
           <FiCheck className="h-4 w-4" />
           Select All Time Slots
@@ -264,7 +250,7 @@ const ScheduleGenerator = ({
         <button
           type="button"
           onClick={deselectAllTimes}
-          className="flex-1 bg-white hover:bg-gray-50 text-gray-700 px-4 py-3 rounded-xl font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2 border border-gray-200"
+          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-xl font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
         >
           <FiX className="h-4 w-4" />
           Deselect All
@@ -312,10 +298,7 @@ const ScheduleGenerator = ({
                   <button
                     type="button"
                     onClick={() => selectPrayerPeriod(prayer)}
-                    className="px-3 py-1.5 text-white text-xs font-semibold rounded-lg transition-all hover:scale-105 flex items-center gap-1"
-                    style={{
-                      background: 'linear-gradient(135deg, ' + primaryColor + ', ' + secondaryColor + ')',
-                    }}
+                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-800 text-white text-xs font-semibold rounded-lg transition-all hover:scale-105 flex items-center gap-1"
                     title={`Select all ${prayer} time slots`}
                   >
                     <FiCheck className="h-3 w-3" />
@@ -371,12 +354,12 @@ interface User {
   code?: string;
 }
 
-const RoleBadge = ({ role, primaryColor, secondaryColor }: { role: UserRole; primaryColor: string; secondaryColor: string }) => {
+const RoleBadge = ({ role }: { role: UserRole }) => {
   const roleStyles: Record<UserRole, string> = {
-    admin: `bg-gradient-to-r from-purple-100 to-purple-50 text-purple-800 border-purple-200`,
-    controller: `bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 border-blue-200`,
-    teacher: `bg-gradient-to-r from-green-100 to-green-50 text-green-800 border-green-200`,
-    registral: `bg-gradient-to-r from-orange-100 to-orange-50 text-orange-800 border-orange-200`,
+    admin: "bg-purple-100 text-purple-800",
+    controller: "bg-blue-100 text-blue-800",
+    teacher: "bg-green-100 text-green-800",
+    registral: "bg-orange-100 text-orange-800",
   };
 
   if (!role) return null;
@@ -408,11 +391,6 @@ const roleIcons: Record<UserRole, any> = {
 export default function UserManagementPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
-  const branding = useBranding();
-
-  // Use branding colors with fallbacks
-  const primaryColor = branding?.primaryColor || "#4F46E5";
-  const secondaryColor = branding?.secondaryColor || "#7C3AED";
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -649,12 +627,7 @@ export default function UserManagementPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
           <div className="relative mb-8">
-            <div
-              className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200 mx-auto"
-              style={{
-                borderTopColor: primaryColor,
-              }}
-            ></div>
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200 border-t-blue-600 mx-auto"></div>
             <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-600 animate-spin mx-auto" style={{animationDirection: 'reverse', animationDuration: '1.5s'}}></div>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-3">Loading Users</h2>
@@ -674,37 +647,17 @@ export default function UserManagementPage() {
   }
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        background: `linear-gradient(135deg, ${primaryColor}08 0%, ${secondaryColor}05 50%, #ffffff 100%)`,
-      }}
-    >
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
         {/* Modern Header */}
-        <div
-          className="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-8 lg:p-10 backdrop-blur-sm"
-          style={{
-            background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
-          }}
-        >
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-8 lg:p-10 backdrop-blur-sm">
           <div className="flex flex-col lg:flex-row lg:items-center gap-8 mb-8">
             <div className="flex items-center gap-6">
-              <div
-                className="p-4 rounded-2xl shadow-lg"
-                style={{
-                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                }}
-              >
+              <div className="p-4 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-lg">
                 <FiUsers className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1
-                  className="text-4xl lg:text-5xl font-bold bg-clip-text text-transparent mb-2"
-                  style={{
-                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                  }}
-                >
+                <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
                   User Management
                 </h1>
                 <p className="text-gray-600 text-lg lg:text-xl font-medium">
@@ -715,12 +668,7 @@ export default function UserManagementPage() {
           </div>
 
           {/* Modern Controls */}
-          <div
-            className="rounded-2xl p-8 border border-gray-100/50"
-            style={{
-              background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}03 100%)`,
-            }}
-          >
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-2xl p-8 border border-gray-100/50">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
               <div className="lg:col-span-4">
                 <label className="block text-sm font-bold text-black mb-3">
@@ -732,10 +680,7 @@ export default function UserManagementPage() {
                   placeholder="Search by name or username..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
-                  style={{
-                    boxShadow: `0 0 0 2px ${primaryColor}40`,
-                  }}
+                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
                 />
               </div>
               <div className="lg:col-span-4">
@@ -746,10 +691,7 @@ export default function UserManagementPage() {
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
-                  style={{
-                    boxShadow: `0 0 0 2px ${primaryColor}40`,
-                  }}
+                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
                 >
                   <option value="">All Roles</option>
                   <option value="admin">Admin</option>
@@ -762,17 +704,14 @@ export default function UserManagementPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => window.location.reload()}
-                    className="flex-1 bg-white hover:bg-gray-50 text-gray-700 px-4 py-4 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2 border border-gray-200"
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-4 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2"
                   >
                     <FiRefreshCw className="h-4 w-4" />
                     Refresh
                   </button>
                   <button
                     onClick={openCreateModal}
-                    className="flex-1 text-white px-4 py-4 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-                    style={{
-                      background: 'linear-gradient(135deg, ' + primaryColor + ', ' + secondaryColor + ')',
-                    }}
+                    className="flex-1 bg-black hover:bg-gray-800 text-white px-4 py-4 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2"
                   >
                     <FiUserPlus className="h-4 w-4" />
                     Add User
@@ -793,9 +732,6 @@ export default function UserManagementPage() {
               <div
                 key={role}
                 className="bg-white rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden backdrop-blur-sm"
-                style={{
-                  background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}02 100%)`,
-                }}
               >
                 <div
                   className="p-8 border-b border-gray-100 cursor-pointer hover:bg-gradient-to-r hover:from-gray-50 hover:to-transparent transition-all duration-300 group"
@@ -803,12 +739,7 @@ export default function UserManagementPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-5">
-                      <div
-                        className="p-3 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300"
-                        style={{
-                          background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                        }}
-                      >
+                      <div className="p-3 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
                         <RoleIcon className="h-6 w-6 text-white" />
                       </div>
                       <div>
@@ -821,7 +752,7 @@ export default function UserManagementPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <RoleBadge role={role} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+                      <RoleBadge role={role} />
                       <div className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
                         {expandedRoles[role] ? (
                           <FiChevronDown className="h-6 w-6 text-gray-400" />
@@ -890,71 +821,56 @@ export default function UserManagementPage() {
                                 }`}
                               >
                                 <td className="px-6 py-4">
-                                  <div className="flex items-center gap-4">
-                                    <div
-                                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
-                                      style={{
-                                        background: 'linear-gradient(135deg, ' + primaryColor + ', ' + secondaryColor + ')',
-                                      }}
-                                    >
-                                      <span className="text-white font-bold text-lg">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
+                                      <span className="text-white font-bold">
                                         {user.name
                                           ? user.name.charAt(0).toUpperCase()
                                           : "?"}
                                       </span>
                                     </div>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="font-bold text-gray-900 text-base">
+                                    <div>
+                                      <div className="font-bold text-black">
                                         {user.name || "Unknown User"}
                                       </div>
                                       {user.username && (
-                                        <div className="text-sm text-gray-600 font-medium">
+                                        <div className="text-sm text-gray-500">
                                           @{user.username}
-                                        </div>
-                                      )}
-                                      {user.role === "teacher" && user.controlId && (
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          Controller: {controllers.find(c => c && c.id === user.controlId)?.name || "Unknown"}
                                         </div>
                                       )}
                                     </div>
                                   </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                  <div className="space-y-2">
+                                  <div className="space-y-1">
                                     {user.phone && (
-                                      <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                                        <div className="p-1 bg-blue-100 rounded">
-                                          <FiPhone className="h-4 w-4 text-blue-600" />
-                                        </div>
-                                        <span className="text-sm font-medium text-gray-700">{user.phone}</span>
+                                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                                        <FiPhone className="h-4 w-4" />
+                                        <span>{user.phone}</span>
                                         <button
                                           onClick={() =>
                                             copyToClipboard(user.phone!)
                                           }
-                                          className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
+                                          className="p-1 hover:bg-gray-200 rounded"
                                           title="Copy phone"
                                         >
-                                          <FiCopy className="h-3 w-3 text-gray-500" />
+                                          <FiCopy className="h-3 w-3" />
                                         </button>
                                       </div>
                                     )}
                                     {user.code && (
-                                      <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                                        <div className="p-1 bg-green-100 rounded">
-                                          <FiShield className="h-4 w-4 text-green-600" />
-                                        </div>
-                                        <span className="font-mono text-sm font-bold text-gray-700 bg-white px-2 py-1 rounded border">
+                                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                                        <span className="font-mono bg-gray-100 px-2 py-1 rounded">
                                           #{user.code}
                                         </span>
                                         <button
                                           onClick={() =>
                                             copyToClipboard(user.code!)
                                           }
-                                          className="p-1.5 hover:bg-green-100 rounded-lg transition-colors"
+                                          className="p-1 hover:bg-gray-200 rounded"
                                           title="Copy code"
                                         >
-                                          <FiCopy className="h-3 w-3 text-gray-500" />
+                                          <FiCopy className="h-3 w-3" />
                                         </button>
                                       </div>
                                     )}
@@ -963,107 +879,40 @@ export default function UserManagementPage() {
                                 {role === "teacher" && (
                                   <>
                                     <td className="px-6 py-4">
-                                      <div className="flex items-center gap-3">
-                                        <div
-                                          className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                          style={{
-                                            background: user.controlId
-                                              ? `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}20)`
-                                              : "#f3f4f6",
-                                          }}
-                                        >
-                                          <FiUsers
-                                            className={`h-4 w-4 ${
-                                              user.controlId ? "" : "text-gray-400"
-                                            }`}
-                                            style={{
-                                              color: user.controlId ? primaryColor : undefined,
-                                            }}
-                                          />
-                                        </div>
-                                        <div>
-                                          <div className={`text-sm font-medium ${
-                                            user.controlId ? "text-gray-900" : "text-gray-500"
-                                          }`}>
-                                            {user.controlId
-                                              ? controllers.find(
-                                                  (c) =>
-                                                    c && c.id === user.controlId
-                                                )?.name || "Unknown"
-                                              : "Not assigned"}
-                                          </div>
-                                          {user.controlId && (
-                                            <div className="text-xs text-gray-500">
-                                              Controller
-                                            </div>
-                                          )}
-                                        </div>
+                                      <div className="text-gray-700">
+                                        {user.controlId
+                                          ? controllers.find(
+                                              (c) =>
+                                                c && c.id === user.controlId
+                                            )?.name || "Unknown"
+                                          : "Not assigned"}
                                       </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                      <div className="flex items-center gap-3">
-                                        <div
-                                          className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                          style={{
-                                            background: user.schedule
-                                              ? `linear-gradient(135deg, ${secondaryColor}20, ${primaryColor}20)`
-                                              : "#f3f4f6",
-                                          }}
-                                        >
-                                          <FiCalendar
-                                            className={`h-4 w-4 ${
-                                              user.schedule ? "" : "text-gray-400"
-                                            }`}
-                                            style={{
-                                              color: user.schedule ? secondaryColor : undefined,
-                                            }}
-                                          />
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                          <div
-                                            className={`text-sm font-medium truncate max-w-xs ${
-                                              user.schedule ? "text-gray-900" : "text-gray-500"
-                                            }`}
-                                            title={user.schedule}
-                                          >
-                                            {user.schedule ? (
-                                              <span className="bg-white px-2 py-1 rounded border text-xs">
-                                                {user.schedule.split(",").length} time slots
-                                              </span>
-                                            ) : (
-                                              "No schedule"
-                                            )}
-                                          </div>
-                                          {user.schedule && (
-                                            <div className="text-xs text-gray-500 mt-1">
-                                              Teaching schedule
-                                            </div>
-                                          )}
-                                        </div>
+                                      <div
+                                        className="text-gray-700 max-w-xs truncate"
+                                        title={user.schedule}
+                                      >
+                                        {user.schedule || "No schedule"}
                                       </div>
                                     </td>
                                   </>
                                 )}
                                 <td className="px-6 py-4 text-right">
-                                  <div className="flex items-center justify-end gap-3">
+                                  <div className="flex items-center justify-end gap-2">
                                     <button
                                       onClick={() => openEditModal(user)}
-                                      className="p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md"
-                                      style={{
-                                        background: `linear-gradient(135deg, ${primaryColor}10, ${secondaryColor}10)`,
-                                        border: `1px solid ${primaryColor}20`,
-                                        color: primaryColor,
-                                      }}
+                                      className="p-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all hover:scale-105"
                                       title="Edit user"
                                     >
-                                      <FiEdit className="h-5 w-5" />
+                                      <FiEdit className="h-4 w-4" />
                                     </button>
                                     <button
                                       onClick={() => openDeleteModal(user)}
-                                      className="p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300"
+                                      className="p-2 border border-gray-300 text-red-600 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all hover:scale-105"
                                       title="Delete user"
                                     >
-                                      <FiTrash2 className="h-5 w-5" />
+                                      <FiTrash2 className="h-4 w-4" />
                                     </button>
                                   </div>
                                 </td>
@@ -1096,10 +945,7 @@ export default function UserManagementPage() {
                 <button
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="p-4 border border-gray-200 rounded-xl bg-white text-gray-600 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  style={{
-                    borderColor: currentPage === 1 ? undefined : primaryColor + '30',
-                  }}
+                  className="p-4 border border-gray-200 rounded-xl bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 hover:shadow-lg"
                 >
                   <FiChevronLeft className="h-6 w-6" />
                 </button>
@@ -1108,10 +954,7 @@ export default function UserManagementPage() {
                     setCurrentPage(Math.min(totalPages, currentPage + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="p-4 border border-gray-200 rounded-xl bg-white text-gray-600 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  style={{
-                    borderColor: currentPage === totalPages ? undefined : primaryColor + '30',
-                  }}
+                  className="p-4 border border-gray-200 rounded-xl bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 hover:shadow-lg"
                 >
                   <FiChevronRight className="h-6 w-6" />
                 </button>
@@ -1121,298 +964,131 @@ export default function UserManagementPage() {
         )}
 
         {/* Modern Side Drawer Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0">
-            {/* Backdrop - covers content area below header */}
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+          <div className="fixed inset-0 z-50 flex">
+            {/* Backdrop */}
             <div
-              className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300"
-              style={{
-                top: '80px', // Account for header height
-              }}
+              className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${
+                isModalOpen ? "opacity-100" : "opacity-0"
+              }`}
+              onClick={() => setIsModalOpen(false)}
             />
 
-            {/* Drawer - slides in from the right */}
+            {/* Drawer */}
             <div
-              className={`absolute right-0 h-full w-full max-w-5xl bg-white shadow-2xl transform transition-transform duration-300 ease-out z-50 rounded-l-2xl ${
+              className={`relative ml-auto h-full w-full max-w-4xl bg-white shadow-2xl transform transition-transform duration-300 ease-out ${
                 isModalOpen ? "translate-x-0" : "translate-x-full"
               }`}
-              style={{
-                top: '80px', // Account for header height (h-20 = 80px)
-                height: 'calc(100vh - 80px)', // Adjust height to not cover header
-              }}
             >
-              <div className="flex h-full overflow-hidden">
+              <div className="flex h-full">
                 {/* Left Sidebar */}
-                <div
-                  className="w-96 flex flex-col border-r border-white/20 shadow-2xl"
-                  style={{
-                    background: 'linear-gradient(145deg, ' + primaryColor + '95 0%, ' + primaryColor + '85 25%, ' + secondaryColor + '90 50%, ' + secondaryColor + '85 75%, ' + primaryColor + '90 100%)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.3)',
-                  }}
-                >
-                  {/* Fixed Header */}
-                  <div className="p-6 border-b border-white/20 relative overflow-hidden">
-                    {/* Subtle background pattern */}
-                    <div className="absolute inset-0 opacity-5">
-                      <div
-                        className="absolute top-0 right-0 w-32 h-32 rounded-full"
-                        style={{
-                          background: `radial-gradient(circle, ${primaryColor}, transparent)`,
-                        }}
-                      />
-                      <div
-                        className="absolute bottom-0 left-0 w-24 h-24 rounded-full"
-                        style={{
-                          background: `radial-gradient(circle, ${secondaryColor}, transparent)`,
-                        }}
-                      />
-                    </div>
-
-                    <div className="relative flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="p-3 rounded-xl backdrop-blur-sm shadow-lg border border-white/20"
-                          style={{
-                            background: `linear-gradient(135deg, ${primaryColor}40, ${secondaryColor}50)`,
-                          }}
-                        >
-                          <FiUserPlus className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <h2 className="text-lg font-bold text-white">
-                            {editingUser ? "Edit User" : "New User"}
-                          </h2>
-                          <p className="text-sm text-white/80 mt-1">
-                            {editingUser ? "Update details" : "Create account"}
-                          </p>
-                        </div>
+                <div className="w-80 bg-gradient-to-b from-slate-900 via-gray-900 to-black p-6 flex flex-col border-r border-gray-200/20">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm">
+                        <FiUserPlus className="h-5 w-5 text-white" />
                       </div>
-                      <button
-                        onClick={() => setIsModalOpen(false)}
-                        className="p-2 hover:bg-white/10 rounded-xl transition-all duration-200 hover:scale-105"
-                      >
-                        <FiX className="h-5 w-5 text-white" />
-                      </button>
-                    </div>
-
-                    {/* Quick Stats */}
-                    <div className="grid grid-cols-2 gap-3 mb-6">
-                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition-all duration-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div
-                            className="p-1 rounded-lg"
-                            style={{
-                              background: `linear-gradient(135deg, ${primaryColor}30, ${secondaryColor}40)`,
-                            }}
-                          >
-                            <FiUsers className="h-3 w-3 text-white" />
-                          </div>
-                          <span className="text-xs text-white/80 font-medium">Users</span>
-                        </div>
-                        <div className="text-xl font-bold text-white">{totalUsers}</div>
-                        <div className="text-xs text-white/60">Total registered</div>
-                      </div>
-                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition-all duration-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div
-                            className="p-1 rounded-lg"
-                            style={{
-                              background: `linear-gradient(135deg, ${secondaryColor}30, ${primaryColor}40)`,
-                            }}
-                          >
-                            <FiUser className="h-3 w-3 text-white" />
-                          </div>
-                          <span className="text-xs text-white/80 font-medium">Teachers</span>
-                        </div>
-                        <div className="text-xl font-bold text-white">{totalCounts.teacher}</div>
-                        <div className="text-xs text-white/60">Active teachers</div>
+                      <div>
+                        <h2 className="text-lg font-bold text-white">
+                          {editingUser ? "Edit User" : "New User"}
+                        </h2>
+                        <p className="text-sm text-white/70 mt-1">
+                          {editingUser ? "Update details" : "Create account"}
+                        </p>
                       </div>
                     </div>
+                    <button
+                      onClick={() => setIsModalOpen(false)}
+                      className="p-2 hover:bg-white/10 rounded-xl transition-all duration-200 hover:scale-105"
+                    >
+                      <FiX className="h-5 w-5 text-white" />
+                    </button>
                   </div>
 
-                  {/* Scrollable Content */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                    {/* Role Selection Section */}
-                    {!editingUser && (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div
-                            className="p-2 rounded-lg"
-                              style={{
-                                background: 'linear-gradient(135deg, ' + primaryColor + '20, ' + secondaryColor + '25)',
-                              }}
-                          >
-                            <FiShield className="h-4 w-4 text-white" />
-                          </div>
-                          <h3 className="text-white font-semibold">Select Role</h3>
-                        </div>
-
-                        <div className="space-y-3">
-                          {roleOrder.map((role) => {
-                            const RoleIcon = roleIcons[role];
-                            return (
-                              <label
-                                key={role}
-                                className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-105 ${
-                                  newUserRole === role
-                                    ? "bg-white text-gray-900 shadow-lg"
-                                    : "bg-white/10 backdrop-blur-sm hover:bg-white/20"
-                                }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name="role"
-                                  value={role}
-                                  checked={newUserRole === role}
-                                  onChange={(e) =>
-                                    setNewUserRole(e.target.value as UserRole)
-                                  }
-                                  className="sr-only"
-                                />
-                                <div
-                                  className="p-2 rounded-lg"
-                                  style={{
-                                    background: newUserRole === role
-                                      ? "#f3f4f6"
-                                      : `linear-gradient(135deg, ${primaryColor}30, ${secondaryColor}40)`,
-                                  }}
-                                >
-                                  <RoleIcon className="h-4 w-4" />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm">
-                                    {roleLabels[role]}
-                                  </div>
-                                  <div className="text-xs opacity-75 mt-1">
-                                    {role === 'admin' && 'Full system access'}
-                                    {role === 'controller' && 'Teacher management'}
-                                    {role === 'teacher' && 'Teaching & attendance'}
-                                    {role === 'registral' && 'Registration & records'}
-                                  </div>
-                                </div>
-                                {newUserRole === role && (
-                                  <FiCheck className="h-5 w-5" />
-                                )}
-                              </label>
-                            );
-                          })}
-                        </div>
-
-                        {/* Role Information */}
-                        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                          <h4 className="text-white font-medium text-sm mb-3">Role Information</h4>
-                          <div className="space-y-2 text-xs text-white/80">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-white/60"></div>
-                              <span>Each role has specific permissions and access levels</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-white/60"></div>
-                              <span>Teachers require controller assignment</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-white/60"></div>
-                              <span>Admins have full system access</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Edit User Info Section */}
-                    {editingUser && (
-                      <div>Edit User Content</div>
-                    )}
-
-                    {/* Edit User Info Section */}
-                    {editingUser && (
-                      <div className="space-y-6">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div
-                            className="p-2 rounded-lg"
-                            style={{
-                              background: 'linear-gradient(135deg, ' + primaryColor + '20, ' + secondaryColor + '25)',
-                            }}
-                          >
-                            <FiInfo className="h-4 w-4 text-white" />
-                          </div>
-                          <h3 className="text-white font-semibold">User Information</h3>
-                        </div>
-
-                        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                          <div className="flex items-center gap-4 mb-4">
-                            <div
-                              className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
-                              style={{
-                                background: 'linear-gradient(135deg, ' + primaryColor + ', ' + secondaryColor + ')',
-                              }}
+                  {/* Role Selection Sidebar */}
+                  {!editingUser && (
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold mb-6 flex items-center gap-2">
+                        <FiShield className="h-4 w-4" />
+                        Select Role
+                      </h3>
+                      <div className="space-y-3">
+                        {roleOrder.map((role) => {
+                          const RoleIcon = roleIcons[role];
+                          return (
+                            <label
+                              key={role}
+                              className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-105 ${
+                                newUserRole === role
+                                  ? "bg-white text-gray-900 shadow-lg"
+                                  : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm"
+                              }`}
                             >
-                              <span className="text-white font-bold text-lg">
-                                {editingUser.name.charAt(0).toUpperCase()}
+                              <input
+                                type="radio"
+                                name="role"
+                                value={role}
+                                checked={newUserRole === role}
+                                onChange={(e) =>
+                                  setNewUserRole(e.target.value as UserRole)
+                                }
+                                className="sr-only"
+                              />
+                              <div className={`p-2 rounded-lg ${
+                                newUserRole === role ? "bg-gray-100" : "bg-white/20"
+                              }`}>
+                                <RoleIcon className="h-4 w-4" />
+                              </div>
+                              <span className="font-medium flex-1">
+                                {roleLabels[role]}
                               </span>
-                            </div>
-                            <div>
-                              <div className="text-white font-semibold text-base">
-                                {editingUser.name}
-                              </div>
-                              <div className="text-white/70 text-sm">
-                                {roleLabels[editingUser.role]}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Quick Actions */}
-                        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                          <h4 className="text-white font-medium text-sm mb-3 flex items-center gap-2">
-                            <FiActivity className="h-4 w-4" />
-                            Quick Actions
-                          </h4>
-                          <div className="space-y-2">
-                            <button className="w-full text-left p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-sm text-white/80 hover:text-white">
-                              View user activity
-                            </button>
-                            <button className="w-full text-left p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-sm text-white/80 hover:text-white">
-                              Reset password
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Help & Tips Section */}
-                    <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                      <h4 className="text-white font-medium text-sm mb-3 flex items-center gap-2">
-                        <FiHeart className="h-4 w-4" />
-                        Tips & Help
-                      </h4>
-                      <div className="space-y-2 text-xs text-white/80">
-                        <div className="flex items-start gap-2">
-                          <FiCheck className="h-3 w-3 text-white/60 mt-0.5 flex-shrink-0" />
-                          <span>Use strong passwords for admin accounts</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <FiCheck className="h-3 w-3 text-white/60 mt-0.5 flex-shrink-0" />
-                          <span>Assign controllers before creating teachers</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <FiCheck className="h-3 w-3 text-white/60 mt-0.5 flex-shrink-0" />
-                          <span>Regular backup of user data recommended</span>
-                        </div>
+                              {newUserRole === role && (
+                                <FiCheck className="h-5 w-5" />
+                              )}
+                            </label>
+                          );
+                        })}
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Edit User Info for Editing Mode */}
+                  {editingUser && (
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold mb-6 flex items-center gap-2">
+                        <FiInfo className="h-4 w-4" />
+                        User Info
+                      </h3>
+                      <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                            <span className="text-gray-900 font-bold">
+                              {editingUser.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="text-white font-semibold">
+                              {editingUser.name}
+                            </div>
+                            <div className="text-white/70 text-sm">
+                              {roleLabels[editingUser.role]}
+                            </div>
+                          </div>
+                        </div>
+                        {editingUser.username && (
+                          <div className="text-white/70 text-sm">
+                            @{editingUser.username}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                <div className="flex-1 flex flex-col min-w-0">
                   {/* Header */}
-                  <div
-                    className="p-8 border-b border-gray-100 flex-shrink-0"
-                    style={{
-                      background: 'linear-gradient(135deg, ' + primaryColor + '05 0%, ' + secondaryColor + '03 100%)',
-                    }}
-                  >
+                  <div className="p-8 border-b border-gray-100 bg-gray-50/50">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">
                       {editingUser
                         ? "Update User Information"
@@ -1426,8 +1102,8 @@ export default function UserManagementPage() {
                   </div>
 
                   {/* Form Content */}
-                  <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="flex-1 overflow-y-auto p-8 pb-12">
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="p-8">
                       <form
                         id="user-form"
                         onSubmit={handleFormSubmit}
@@ -1436,16 +1112,8 @@ export default function UserManagementPage() {
                         {/* Basic Information */}
                         <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
                           <div className="flex items-center gap-3 mb-6">
-                            <div
-                              className="p-2 rounded-lg"
-                              style={{
-                                background: 'linear-gradient(135deg, ' + primaryColor + '10, ' + secondaryColor + '15)',
-                              }}
-                            >
-                              <FiUser
-                                className="h-5 w-5"
-                                style={{ color: primaryColor }}
-                              />
+                            <div className="p-2 bg-blue-50 rounded-lg">
+                              <FiUser className="h-5 w-5 text-blue-600" />
                             </div>
                             <h3 className="text-xl font-bold text-gray-900">
                               Basic Information
@@ -1460,10 +1128,7 @@ export default function UserManagementPage() {
                                 type="text"
                                 name="name"
                                 defaultValue={editingUser?.name}
-                                className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white transition-all duration-200 text-base"
-                                style={{
-                                  boxShadow: `0 0 0 2px ${primaryColor}40`,
-                                }}
+                                className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 text-base"
                                 placeholder="Enter full name"
                                 required
                               />
@@ -1487,10 +1152,7 @@ export default function UserManagementPage() {
                                   type="text"
                                   name="username"
                                   defaultValue={editingUser?.username}
-                                  className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white transition-all duration-200 text-base"
-                                style={{
-                                  boxShadow: `0 0 0 2px ${primaryColor}40`,
-                                }}
+                                  className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 text-base"
                                   placeholder="Enter username"
                                   required
                                 />
@@ -1506,10 +1168,7 @@ export default function UserManagementPage() {
                                 <input
                                   type="password"
                                   name="password"
-                                  className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white transition-all duration-200 text-base"
-                                style={{
-                                  boxShadow: `0 0 0 2px ${primaryColor}40`,
-                                }}
+                                  className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 text-base"
                                   placeholder={
                                     editingUser
                                       ? "Leave blank to keep current"
@@ -1529,17 +1188,7 @@ export default function UserManagementPage() {
                       {/* Controller Assignment */}
                       <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
                         <div className="flex items-center gap-3 mb-6">
-                          <div
-                            className="p-2 rounded-lg"
-                            style={{
-                              background: `linear-gradient(135deg, ${primaryColor}10, ${secondaryColor}15)`,
-                            }}
-                          >
-                            <FiUsers
-                              className="h-5 w-5"
-                              style={{ color: primaryColor }}
-                            />
-                          </div>
+                          <FiUsers className="h-5 w-5 text-gray-600" />
                           <h3 className="text-xl font-bold text-gray-900">
                             Controller Assignment
                           </h3>
@@ -1555,11 +1204,7 @@ export default function UserManagementPage() {
                               onChange={(e) =>
                                 setTeacherControlId(e.target.value)
                               }
-                              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 transition-all"
-                              style={{
-                                '--tw-ring-color': primaryColor + '40',
-                                borderColor: `var(--tw-ring-color)`,
-                              } as React.CSSProperties}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 transition-all"
                               required
                             >
                               <option value="">Select Controller</option>
@@ -1584,11 +1229,7 @@ export default function UserManagementPage() {
                               name="phone"
                               value={teacherPhone}
                               onChange={(e) => setTeacherPhone(e.target.value)}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 transition-all"
-                              style={{
-                                '--tw-ring-color': primaryColor + '40',
-                                borderColor: `var(--tw-ring-color)`,
-                              } as React.CSSProperties}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 transition-all"
                               placeholder="e.g. +251912345678"
                               required
                             />
@@ -1625,42 +1266,28 @@ export default function UserManagementPage() {
                       {/* Teaching Schedule */}
                       <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
                         <div className="flex items-center gap-3 mb-6">
-                          <div
-                            className="p-2 rounded-lg"
-                            style={{
-                              background: `linear-gradient(135deg, ${primaryColor}10, ${secondaryColor}15)`,
-                            }}
-                          >
-                            <FiCalendar
-                              className="h-5 w-5"
-                              style={{ color: primaryColor }}
-                            />
-                          </div>
-                          <div>
-                            <h3 className="text-xl font-bold text-gray-900">
-                              Teaching Schedule
-                            </h3>
-                            <span className="text-sm text-gray-500">
-                              Configure available time slots
-                            </span>
-                          </div>
+                          <FiCalendar className="h-5 w-5 text-gray-600" />
+                          <h3 className="text-xl font-bold text-gray-900">
+                            Teaching Schedule
+                          </h3>
+                          <span className="text-sm text-gray-500">
+                            Configure available time slots
+                          </span>
                         </div>
                         <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
                           <ScheduleGenerator
                             value={teacherSchedule}
                             onChange={setTeacherSchedule}
-                            primaryColor={primaryColor}
-                            secondaryColor={secondaryColor}
                           />
                         </div>
                       </div>
                     </>
                   )}
                 </form>
-                    </div>
+              </div>
 
-                    {/* Footer Actions */}
-                    <div className="flex-shrink-0 border-t border-gray-100 bg-gray-50/80 backdrop-blur-sm p-8">
+                        {/* Footer Actions */}
+                        <div className="p-8 border-t border-gray-100 bg-gray-50/80 backdrop-blur-sm">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 text-sm text-gray-600">
                               <FiAlertCircle className="h-4 w-4" />
@@ -1677,10 +1304,7 @@ export default function UserManagementPage() {
                               <button
                                 type="submit"
                                 form="user-form"
-                                className="px-8 py-3 text-white rounded-xl transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl"
-                                style={{
-                                  background: 'linear-gradient(135deg, ' + primaryColor + ', ' + secondaryColor + ')',
-                                }}
+                                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl"
                               >
                                 <FiUserPlus className="h-5 w-5" />
                                 {editingUser ? "Update" : "Create"} User
@@ -1693,7 +1317,7 @@ export default function UserManagementPage() {
             </div>
           </div>
           </div>
-        )}
+        </Modal>
 
         {/* Modern Generated Credentials Modal */}
         <Modal
@@ -1737,10 +1361,7 @@ export default function UserManagementPage() {
                   />
                   <button
                     onClick={() => copyToClipboard(generatedUsername)}
-                    className="px-4 py-3 text-white rounded-xl transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl"
-                    style={{
-                      background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                    }}
+                    className="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl"
                   >
                     <FiCopy className="h-5 w-5" />
                     Copy
@@ -1766,10 +1387,7 @@ export default function UserManagementPage() {
                   />
                   <button
                     onClick={() => copyToClipboard(generatedPassword)}
-                    className="px-4 py-3 text-white rounded-xl transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl"
-                    style={{
-                      background: `linear-gradient(135deg, ${secondaryColor}, ${primaryColor})`,
-                    }}
+                    className="px-4 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl"
                   >
                     <FiCopy className="h-5 w-5" />
                     Copy
@@ -1797,10 +1415,7 @@ export default function UserManagementPage() {
                 fetchUsers();
                 resetForm();
               }}
-              className="w-full mt-8 px-6 py-4 text-white rounded-xl transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl"
-              style={{
-                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-              }}
+              className="w-full mt-8 px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl"
             >
               Done
             </button>

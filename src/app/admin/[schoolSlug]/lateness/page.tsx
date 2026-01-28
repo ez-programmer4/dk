@@ -547,9 +547,9 @@ export default function AdminLatenessAnalyticsPage() {
               </button>
               <div>
                 <h1
-                  className="text-2xl font-bold bg-clip-text text-transparent"
+                  className="text-2xl font-bold bg-clip-text text-transparent "
                   style={{
-                    backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
                   }}
                 >
                   Lateness Analytics
@@ -587,7 +587,7 @@ export default function AdminLatenessAnalyticsPage() {
                   <h1
                     className="text-4xl lg:text-5xl font-bold bg-clip-text text-transparent mb-2"
                     style={{
-                      backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                      background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
                     }}
                   >
                     Lateness Analytics
@@ -1060,7 +1060,7 @@ export default function AdminLatenessAnalyticsPage() {
                   <h2
                     className="text-lg font-semibold bg-clip-text text-transparent flex items-center gap-2"
                     style={{
-                      backgroundImage: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                      background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
                     }}
                   >
                     <FiUser className="w-5 h-5" /> Per Teacher
