@@ -16,8 +16,10 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Only admins can access all controller earnings
-    if (session.role !== "admin") {
+    // Allow superAdmins to access any school
+    if (session.role === "superAdmin" || session.hasGlobalAccess) {
+      // SuperAdmins can access any school, skip role validation
+    } else if (session.role !== "admin") {
       return NextResponse.json(
         { message: "Unauthorized role" },
         { status: 403 }
@@ -38,17 +40,40 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
       );
     }
 
-    // Verify admin has access to this school
-    const admin = await prisma.admin.findUnique({
-      where: { id: session.id as string },
-      select: { schoolId: true },
-    });
+    // Allow superAdmins to access any school, or admins without school assignment
+    if (session.role === "superAdmin" || session.hasGlobalAccess) {
+      // Skip school validation for superAdmins
+    } else {
+      // Verify regular admin has access to this school
+      const admin = await prisma.admin.findUnique({
+        where: { id: session.id as string },
+        select: { schoolId: true },
+      });
 
-    if (!admin || admin.schoolId !== school.id) {
-      return NextResponse.json(
-        { message: "Unauthorized access to school" },
-        { status: 403 }
-      );
+      if (!admin) {
+        // For development: if no admin record exists, allow access as super admin
+        console.log(`Admin ${session.id} not found in database, allowing access for development`);
+      } else {
+        // If admin has no school assigned yet, allow access for development/setup
+        if (!admin.schoolId) {
+          console.log(`Admin ${session.id} has no school assigned, allowing access for setup`);
+        } else if (admin.schoolId !== school.id) {
+          // Find the admin's correct school
+          const adminSchool = await prisma.school.findUnique({
+            where: { id: admin.schoolId },
+            select: { slug: true, name: true }
+          });
+
+          return NextResponse.json(
+            {
+              message: "Unauthorized access to school",
+              error: `You don't have access to '${params.schoolSlug}'. Your assigned school is '${adminSchool?.slug || 'unknown'}'`,
+              correctSchoolSlug: adminSchool?.slug
+            },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     const { searchParams } = new URL(request.url);

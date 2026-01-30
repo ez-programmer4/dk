@@ -8,10 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Zap, Crown, ArrowRight } from 'lucide-react';
 
 interface UpgradePromptProps {
-  feature: PremiumFeature;
+  feature: PremiumFeature | string;
   size?: 'sm' | 'md' | 'lg';
   showDescription?: boolean;
   className?: string;
+  reason?: string;
+  upgradeOptions?: string[];
 }
 
 /**
@@ -21,17 +23,18 @@ export function UpgradePrompt({
   feature,
   size = 'md',
   showDescription = true,
-  className = ''
+  className = '',
+  reason,
+  upgradeOptions
 }: UpgradePromptProps) {
 
-  const { upgradeOptions, fallback } = useFeatureGate(feature);
-  const featureInfo = FEATURE_REGISTRY[feature];
+  const featureInfo = FEATURE_REGISTRY[feature as PremiumFeature];
 
   if (!featureInfo || featureInfo.is_core) {
     return null;
   }
 
-  const recommendedPlan = upgradeOptions?.find(opt => opt.recommended) || upgradeOptions?.[0];
+  const recommendedPlan = upgradeOptions?.length ? { plan: upgradeOptions[0] } : null;
 
   const handleUpgrade = (plan: string) => {
     // Navigate to upgrade page or open upgrade modal
@@ -47,13 +50,13 @@ export function UpgradePrompt({
           <p className="text-sm text-blue-800 font-medium">
             Upgrade to unlock {featureInfo.name}
           </p>
-          {recommendedPlan && (
+          {upgradeOptions && upgradeOptions.length > 0 && (
             <Button
               size="sm"
-              onClick={() => handleUpgrade(recommendedPlan.plan)}
+              onClick={() => handleUpgrade(upgradeOptions[0])}
               className="mt-2 bg-blue-600 hover:bg-blue-700"
             >
-              Upgrade to {recommendedPlan.plan}
+              Upgrade to Enable Feature
             </Button>
           )}
         </div>
@@ -80,37 +83,41 @@ export function UpgradePrompt({
         <CardContent className="space-y-4">
           {recommendedPlan && (
             <div className="text-center">
-              <Badge variant="outline" className="mb-4 text-blue-600 border-blue-300">
-                Recommended: {recommendedPlan.plan} Plan - ${recommendedPlan.price}/month
-              </Badge>
+              {upgradeOptions && upgradeOptions.length > 0 && (
+                <>
+                  <Badge variant="outline" className="mb-4 text-blue-600 border-blue-300">
+                    Premium Feature Required
+                  </Badge>
 
-              <div className="space-y-2">
-                <h4 className="font-medium text-gray-900">Includes:</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  {recommendedPlan.features.slice(0, 3).map(feature => (
-                    <li key={feature} className="flex items-center space-x-2">
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                      <span>{FEATURE_REGISTRY[feature]?.name || feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-900">Upgrade Options:</h4>
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      {upgradeOptions.map((option, index) => (
+                        <li key={index} className="flex items-center space-x-2">
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                          <span>{option}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
-              <Button
-                onClick={() => handleUpgrade(recommendedPlan.plan)}
-                className="mt-6 w-full bg-blue-600 hover:bg-blue-700"
-                size="lg"
-              >
-                Upgrade to {recommendedPlan.plan}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+                  <Button
+                    onClick={() => handleUpgrade(upgradeOptions[0])}
+                    className="mt-6 w-full bg-blue-600 hover:bg-blue-700"
+                    size="lg"
+                  >
+                    Enable Feature
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </>
+              )}
             </div>
           )}
 
           {upgradeOptions && upgradeOptions.length > 1 && (
             <div className="pt-4 border-t border-blue-200">
               <p className="text-sm text-blue-600 text-center">
-                Other plans available: {upgradeOptions.slice(1).map(opt => opt.plan).join(', ')}
+                Other options: {upgradeOptions.slice(1).join(', ')}
               </p>
             </div>
           )}
@@ -140,17 +147,17 @@ export function UpgradePrompt({
             </p>
           )}
 
-          {recommendedPlan && (
+          {upgradeOptions && upgradeOptions.length > 0 && (
             <div className="mt-4 flex items-center space-x-3">
               <Badge variant="outline" className="text-blue-600 border-blue-300">
-                {recommendedPlan.plan} Plan - ${recommendedPlan.price}/mo
+                Premium Feature
               </Badge>
 
               <Button
-                onClick={() => handleUpgrade(recommendedPlan.plan)}
+                onClick={() => handleUpgrade(upgradeOptions[0])}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                Upgrade Now
+                Enable Feature
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -160,5 +167,8 @@ export function UpgradePrompt({
     </div>
   );
 }
+
+
+
 
 

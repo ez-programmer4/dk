@@ -48,10 +48,14 @@ export default async function TeacherPaymentsPage({
     userRole: "admin"
   });
 
-  if (!featureAccess.access) {
+  if (featureAccess.access !== 'granted') {
     return (
       <div className="container mx-auto px-4 py-8">
-        <UpgradePrompt feature="teacher_payment" />
+        <UpgradePrompt
+          feature="teacher_payment"
+          reason={featureAccess.reason}
+          upgradeOptions={featureAccess.upgradeOptions}
+        />
       </div>
     );
   }

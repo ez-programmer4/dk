@@ -406,8 +406,7 @@ export default function AnalyticsDashboard() {
   }
 
   return (
-    <FeatureGate feature="advanced_analytics">
-      <div className="max-w-7xl mx-auto p-2 sm:p-6 bg-white min-h-screen">
+    <div className="max-w-7xl mx-auto p-2 sm:p-6 bg-white min-h-screen">
       <Toaster position="top-center" reverseOrder={false} />
 
       {/* Header */}

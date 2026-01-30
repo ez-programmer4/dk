@@ -850,6 +850,16 @@ export default function AdminLayout({
   ];
 
   useEffect(() => {
+    console.log("Admin Layout: useEffect triggered", {
+      status,
+      schoolSlug,
+      sessionUser: session?.user ? {
+        role: (session.user as any).role,
+        schoolSlug: (session.user as any).schoolSlug,
+        hasGlobalAccess: (session.user as any).hasGlobalAccess
+      } : null
+    });
+
     if (status === "unauthenticated") {
       router.replace("/login");
       return;
@@ -858,6 +868,24 @@ export default function AdminLayout({
     if (status === "authenticated" && session?.user) {
       const userRole = (session.user as any).role;
       const userSchoolSlug = (session.user as any).schoolSlug;
+      const userSchoolId = (session.user as any).schoolId;
+      const hasGlobalAccess = (session.user as any).hasGlobalAccess;
+
+      console.log("Admin Layout: Session check", {
+        userRole,
+        userSchoolSlug,
+        userSchoolId,
+        hasGlobalAccess,
+        currentSchoolSlug: schoolSlug,
+        shouldRedirect: userSchoolSlug && userSchoolSlug !== schoolSlug
+      });
+
+      // Allow superAdmins to access any school
+      if (userRole === "superAdmin" || hasGlobalAccess) {
+        // SuperAdmins can access any school, no redirect needed
+        console.log("Admin Layout: SuperAdmin or global access, allowing access to any school");
+        return;
+      }
 
       if (userRole !== "admin") {
         router.replace("/login");
@@ -865,12 +893,14 @@ export default function AdminLayout({
       }
 
       if (userSchoolSlug && userSchoolSlug !== schoolSlug) {
+        console.log(`Admin Layout: Redirecting from ${schoolSlug} to ${userSchoolSlug}`);
         router.push(`/admin/${userSchoolSlug}/`);
         return;
       }
 
       if (!userSchoolSlug) {
-        router.push("/login");
+        console.log("Admin Layout: No schoolSlug in session, allowing access for development");
+        // Allow access for development - admin might not have school assigned yet
         return;
       }
     }

@@ -18,6 +18,8 @@ import {
 } from "react-icons/fi";
 import { startOfWeek, format, addWeeks } from "date-fns";
 import { toast } from "@/components/ui/use-toast";
+import { useFeatureGate } from "@/lib/features/use-features";
+import { UpgradePrompt } from "@/components/features";
 
 // apiUrl will be constructed dynamically using schoolSlug
 const qualityLevels = ["Bad", "Good", "Better", "Excellent", "Exceptional"];
@@ -25,6 +27,10 @@ const qualityLevels = ["Bad", "Good", "Better", "Excellent", "Exceptional"];
 export default function AdminQualityReviewPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+
+  // Check premium feature access
+  const { canAccess: hasQualityReviewAccess, isLoading: featureLoading } = useFeatureGate('quality_review');
+
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +45,27 @@ export default function AdminQualityReviewPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Check feature access
+  if (featureLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!hasQualityReviewAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <UpgradePrompt
+          feature="quality_review"
+          size="lg"
+          className="max-w-md"
+        />
+      </div>
+    );
+  }
 
   useEffect(() => {
     fetchData();

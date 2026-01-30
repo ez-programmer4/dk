@@ -8,6 +8,8 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { DatePickerWithRange } from "../attendance/components/DateRangePicker";
 import Modal from "@/app/components/Modal";
+import { useFeatureGate } from "@/lib/features/use-features";
+import { UpgradePrompt } from "@/components/features";
 import {
   FiBarChart2,
   FiRefreshCw,
@@ -87,6 +89,31 @@ export default function AdminLatenessAnalyticsPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
   const branding = useBranding();
+
+  // Check premium feature access
+  const { canAccess: hasLatenessAccess, isLoading: featureLoading } = useFeatureGate('lateness_management');
+
+  // Show loading while checking feature access
+  if (featureLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Show upgrade prompt if no access
+  if (!hasLatenessAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <UpgradePrompt
+          feature="lateness_management"
+          size="lg"
+          className="max-w-md"
+        />
+      </div>
+    );
+  }
 
   // Use branding colors with fallbacks
   const primaryColor = branding?.primaryColor || "#4F46E5";

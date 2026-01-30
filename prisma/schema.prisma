@@ -43,47 +43,58 @@ model School {
     createdAt   DateTime @default(now())
     createdById String? // Super admin who created
 
+    // Self-registration
+    isSelfRegistered   Boolean @default(false)
+    registrationStatus String  @default("approved") // approved, pending, rejected
+    registrationData   Json? // Additional data from self-registration form
+
     // Relations
-    createdBy                SuperAdmin?                   @relation("SuperAdminCreatedSchools", fields: [createdById], references: [id])
-    statusChangedBy          SuperAdmin?                   @relation("SuperAdminChangedSchoolStatus", fields: [statusChangedById], references: [id])
-    subscription             SchoolSubscription?           @relation("SchoolSubscription")
-    students                 wpos_wpdatatable_23[]
-    teachers                 wpos_wpdatatable_24[]
-    controllers              wpos_wpdatatable_28[]
-    registrals               wpos_wpdatatable_33[]
-    admins                   admin[]
-    settings                 SchoolSetting[]
-    payments                 SchoolPayment[]
-    statusHistory            SchoolStatusHistory[]
-    paymentRecords           payment[]
-    permissionRequests       permissionrequest[]
-    registralEarningsConfigs registralearningsconfig[]
-    teacherRatings           teacherRating[]
-    studentStatuses          StudentStatus[]
-    studentPackages          StudentPackage[]
-    studentSubjects          StudentSubject[]
-    studentDayPackages       studentdaypackage[]
-    teacherSalaryPayments    teachersalarypayment[]
-    teacherChangeHistory     teacher_change_history[]
-    qualityAssessments       qualityassessment[]
-    bonusRecords             bonusrecord[]
-    teams                    wpos_teams[]
-    months                   months_table[]
-    attendanceProgress       student_attendance_progress[]
-    zoomLinks                wpos_zoom_links[]
-    absenceRecords           absencerecord[]
-    auditLogs                auditlog[]
-    notifications            notification[]
-    appSettings              setting[]
-    salaryCalculationCaches  SalaryCalculationCache[]
-    paymentTransactions      PaymentTransaction[]
-    salaryAdjustments        SalaryAdjustment[]
-    salaryReports            SalaryReport[]
-    subscriptionPackages     subscription_packages[]
-    studentSubscriptions     student_subscriptions[]
-    attendanceSubmissionLogs attendancesubmissionlog[]
-    latenessRecords          latenessrecord[]
-    paymentCheckouts         payment_checkout[]
+    createdBy                 SuperAdmin?                   @relation("SuperAdminCreatedSchools", fields: [createdById], references: [id])
+    statusChangedBy           SuperAdmin?                   @relation("SuperAdminChangedSchoolStatus", fields: [statusChangedById], references: [id])
+    pricingTier               PricingTier?                  @relation("SchoolPricingTier", fields: [pricingTierId], references: [id])
+    pricingTierId             String? // Reference to pricing tier
+    subscription              SchoolSubscription?           @relation("SchoolSubscription")
+    students                  wpos_wpdatatable_23[]
+    teachers                  wpos_wpdatatable_24[]
+    controllers               wpos_wpdatatable_28[]
+    registrals                wpos_wpdatatable_33[]
+    admins                    admin[]
+    settings                  SchoolSetting[]
+    payments                  SchoolPayment[]
+    statusHistory             SchoolStatusHistory[]
+    paymentRecords            payment[]
+    permissionRequests        permissionrequest[]
+    registralEarningsConfigs  registralearningsconfig[]
+    teacherRatings            teacherRating[]
+    studentStatuses           StudentStatus[]
+    studentPackages           StudentPackage[]
+    studentSubjects           StudentSubject[]
+    studentDayPackages        studentdaypackage[]
+    teacherSalaryPayments     teachersalarypayment[]
+    teacherChangeHistory      teacher_change_history[]
+    qualityAssessments        qualityassessment[]
+    bonusRecords              bonusrecord[]
+    teams                     wpos_teams[]
+    months                    months_table[]
+    attendanceProgress        student_attendance_progress[]
+    zoomLinks                 wpos_zoom_links[]
+    absenceRecords            absencerecord[]
+    auditLogs                 auditlog[]
+    notifications             notification[]
+    appSettings               setting[]
+    salaryCalculationCaches   SalaryCalculationCache[]
+    paymentTransactions       PaymentTransaction[]
+    salaryAdjustments         SalaryAdjustment[]
+    salaryReports             SalaryReport[]
+    subscriptionPackages      subscription_packages[]
+    studentSubscriptions      student_subscriptions[]
+    attendanceSubmissionLogs  attendancesubmissionlog[]
+    latenessRecords           latenessrecord[]
+    paymentCheckouts          payment_checkout[]
+    controllerEarningsConfigs controllerearningsconfig[]
+    controllerEarnings        controllerearning[]
+    premiumFeatures           SchoolPremiumFeature[]        @relation("SchoolPremiumFeatures")
+    premiumPackages           SchoolPremiumPackage[]        @relation("SchoolPremiumPackages")
 
     @@map("schools")
 }
@@ -108,124 +119,168 @@ model SuperAdmin {
     createdSchools        School[]              @relation("SuperAdminCreatedSchools")
     changedSchoolStatuses School[]              @relation("SuperAdminChangedSchoolStatus")
     auditLogs             SuperAdminAuditLog[]  @relation("SuperAdminAuditLogs")
-    createdPricingPlans   PricingPlan[]         @relation("SuperAdminCreatedPricingPlans")
-    premiumFeatures       PremiumFeature[]      @relation("PremiumFeatureCreatedBy")
     schoolStatusChanges   SchoolStatusHistory[] @relation("SchoolStatusHistoryChangedBy")
 
     @@map("super_admins")
 }
 
-model PricingPlan {
+// Simplified pricing tiers for realistic school management
+model PricingTier {
     id          String  @id @default(cuid())
-    name        String  @db.VarChar(100)
+    name        String  @db.VarChar(50) // "Free", "Basic", "Pro", "Enterprise"
+    slug        String  @unique @db.VarChar(50)
     description String? @db.Text
-    slug        String  @unique @db.VarChar(100)
 
-    // Pricing structure
-    baseSalaryPerStudent Decimal @db.Decimal(10, 2) // Base fee per active student
-    currency             String  @default("ETB") @db.VarChar(10)
+    // Simple pricing
+    monthlyFee  Decimal @db.Decimal(10, 2) // Fixed monthly fee
+    maxStudents Int? // Student limit (null = unlimited)
+    currency    String  @default("ETB") @db.VarChar(10)
+
+    // Features included (JSON array of feature codes)
+    features Json // ["basic_reports", "teacher_management", etc.]
 
     // Status
     isActive  Boolean @default(true)
-    isDefault Boolean @default(false) // Default plan for new schools
+    isDefault Boolean @default(false) // Default for new schools
+    sortOrder Int     @default(0) // Display order
 
-    // Metadata
-    createdAt   DateTime @default(now())
-    createdById String?
-    updatedAt   DateTime @updatedAt
-
-    // Relations
-    createdBy     SuperAdmin?          @relation("SuperAdminCreatedPricingPlans", fields: [createdById], references: [id])
-    planFeatures  PlanFeature[]
-    subscriptions SchoolSubscription[]
-
-    @@map("pricing_plans")
-}
-
-model Feature {
-    id          String  @id @default(cuid())
-    name        String  @db.VarChar(100)
-    description String? @db.Text
-    code        String  @unique @db.VarChar(50) // e.g., "teacher_payment", "zoom_integration"
-
-    // Feature properties
-    isCore   Boolean @default(false) // Core features are always included
-    isActive Boolean @default(true)
+    // Trial settings
+    trialDays Int @default(14) // Trial period in days
 
     // Metadata
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     // Relations
-    planFeatures PlanFeature[]
+    schools School[] @relation("SchoolPricingTier")
 
-    @@map("features")
+    @@map("pricing_tiers")
 }
 
 model PremiumFeature {
-    id            String     @id @default(cuid())
-    featureCode   String     @unique @db.VarChar(100) // References feature codes
-    isEnabled     Boolean    @default(true) // Can disable premium gating
-    requiredPlans Json // JSON array of required plan tiers
-    createdAt     DateTime   @default(now())
-    updatedAt     DateTime   @updatedAt
-    createdById   String // SuperAdmin who made it premium
-    createdBy     SuperAdmin @relation("PremiumFeatureCreatedBy", fields: [createdById], references: [id])
+    id          String  @id @default(cuid())
+    code        String  @unique @db.VarChar(50) // "teacher_payment", "student_mini_app", etc.
+    name        String  @db.VarChar(100)
+    description String? @db.Text
+    category    String  @db.VarChar(50) // "payment", "analytics", "management", etc.
+
+    // Pricing
+    basePricePerStudent Decimal @db.Decimal(10, 2) // Base price per active student
+    currency            String  @default("ETB") @db.VarChar(10)
+
+    // Status
+    isActive   Boolean @default(true)
+    isRequired Boolean @default(false) // If true, cannot be disabled
+    sortOrder  Int     @default(0)
+
+    // Metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    schoolFeatures SchoolPremiumFeature[] @relation("PremiumFeatureSchools")
 
     @@map("premium_features")
 }
 
-model PlanFeature {
-    id        String @id @default(cuid())
-    planId    String
-    featureId String
+model PremiumPackage {
+    id          String  @id @default(cuid())
+    name        String  @db.VarChar(100) // "All Premium Features Package"
+    description String? @db.Text
 
-    // Pricing for this feature in this plan
-    price     Decimal @db.Decimal(10, 2) // Additional cost for this feature
-    isEnabled Boolean @default(true) // Whether this feature is enabled in this plan
+    // Pricing for all features combined
+    packagePricePerStudent Decimal @db.Decimal(10, 2) // Total price for all features per student
+    currency               String  @default("ETB") @db.VarChar(10)
+
+    // Status
+    isActive  Boolean @default(true)
+    sortOrder Int     @default(0)
 
     // Metadata
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     // Relations
-    plan    PricingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-    feature Feature     @relation(fields: [featureId], references: [id], onDelete: Cascade)
+    schoolPackages SchoolPremiumPackage[] @relation("PremiumPackageSchools")
 
-    @@unique([planId, featureId])
-    @@map("plan_features")
+    @@map("premium_packages")
 }
 
+model SchoolPremiumPackage {
+    id        String @id @default(cuid())
+    schoolId  String
+    packageId String
+
+    // Configuration
+    isEnabled  Boolean   @default(false)
+    enabledAt  DateTime?
+    disabledAt DateTime?
+
+    // Custom pricing (optional override)
+    customPricePerStudent Decimal? @db.Decimal(10, 2)
+
+    // When enabled, all individual features are automatically enabled
+    // Metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    school  School         @relation("SchoolPremiumPackages", fields: [schoolId], references: [id], onDelete: Cascade)
+    package PremiumPackage @relation("PremiumPackageSchools", fields: [packageId], references: [id], onDelete: Cascade)
+
+    @@unique([schoolId, packageId])
+    @@map("school_premium_packages")
+}
+
+model SchoolPremiumFeature {
+    id        String @id @default(cuid())
+    schoolId  String
+    featureId String
+
+    // Configuration
+    isEnabled  Boolean   @default(false)
+    enabledAt  DateTime?
+    disabledAt DateTime?
+
+    // Custom pricing (optional override)
+    customPricePerStudent Decimal? @db.Decimal(10, 2)
+
+    // Metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    school  School         @relation("SchoolPremiumFeatures", fields: [schoolId], references: [id], onDelete: Cascade)
+    feature PremiumFeature @relation("PremiumFeatureSchools", fields: [featureId], references: [id], onDelete: Cascade)
+
+    @@unique([schoolId, featureId])
+    @@map("school_premium_features")
+}
+
+// Simplified subscription tracking
 model SchoolSubscription {
     id       String @id @default(cuid())
     schoolId String
-    planId   String
 
-    // Subscription details
-    status             String    @default("trial") // trial, active, past_due, cancelled, suspended, expired
-    currentPeriodStart DateTime?
-    currentPeriodEnd   DateTime?
+    // Simple status tracking
+    status       String    @default("trial") // trial, active, suspended, cancelled
+    trialEndsAt  DateTime? // When trial expires
+    subscribedAt DateTime? // When they became paying customer
+    cancelledAt  DateTime?
 
-    // Billing information
+    // Billing (optional - for future expansion)
     billingCycle    String    @default("monthly") // monthly, yearly
     nextBillingDate DateTime?
-    lastBilledAt    DateTime?
 
     // Usage tracking
-    activeStudentCount Int       @default(0) // Current active students
-    lastCalculatedAt   DateTime?
-
-    // Feature toggles (overrides plan defaults)
-    enabledFeatures Json? // { teacher_payment: true, zoom_integration: false }
+    currentStudents Int @default(0) // Current active students
 
     // Metadata
-    createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @updatedAt
-    cancelledAt DateTime?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     // Relations
-    school School      @relation("SchoolSubscription", fields: [schoolId], references: [id], onDelete: Cascade)
-    plan   PricingPlan @relation(fields: [planId], references: [id])
+    school School @relation("SchoolSubscription", fields: [schoolId], references: [id], onDelete: Cascade)
 
     @@unique([schoolId]) // One subscription per school
     @@map("school_subscriptions")
@@ -731,9 +786,12 @@ model controllerearning {
     studentId          Int
     paymentId          Int
     amount             Decimal  @db.Decimal(10, 2)
+    schoolId           String
+    school             School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     createdAt          DateTime @default(now())
     paidOut            Boolean  @default(false)
 
+    @@index([schoolId])
     @@map("controllerEarning")
 }
 
@@ -746,6 +804,8 @@ model controllerearningsconfig {
     unpaidPenaltyMultiplier   Float                @default(2)
     referralBonusMultiplier   Float                @default(4)
     targetEarnings            Float                @default(3000)
+    schoolId                  String
+    school                    School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
     effectiveFrom             DateTime             @default(now())
     isActive                  Boolean              @default(true)
     createdAt                 DateTime             @default(now())
@@ -756,6 +816,7 @@ model controllerearningsconfig {
     wpos_wpdatatable_28       wpos_wpdatatable_28? @relation(fields: [wpos_wpdatatable_28Wdt_ID], references: [wdt_ID], map: "ControllerEarningsConfig_wpos_wpdatatable_28Wdt_ID_fkey")
 
     @@index([adminId], map: "ControllerEarningsConfig_admin_fkey")
+    @@index([schoolId])
     @@index([wpos_wpdatatable_28Wdt_ID], map: "ControllerEarningsConfig_wpos_wpdatatable_28Wdt_ID_fkey")
     @@map("ControllerEarningsConfig")
 }

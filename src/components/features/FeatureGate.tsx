@@ -2,11 +2,81 @@
 
 import { ReactNode } from 'react';
 import { useFeatureGate } from '@/lib/features/use-features';
-import { FeatureCode } from '@/lib/features/feature-registry';
+import { FeatureCode } from '@/lib/features/hybrid-feature-gate';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { UpgradePrompt } from './UpgradePrompt';
 import { DisabledFeature } from './DisabledFeature';
 import { LimitedFeature } from './LimitedFeature';
+
+/**
+ * Generic Feature Gate - Works with any feature code (dynamic)
+ *
+ * USAGE:
+ * 1. Import: import { GenericFeatureGate } from '@/components/features';
+ * 2. Wrap: <GenericFeatureGate feature="your_feature_code">content</GenericFeatureGate>
+ * 3. Feature must exist in database via /super-admin/dynamic-features
+ *
+ * EXAMPLES:
+ *
+ * // Basic usage
+ * <GenericFeatureGate feature="ai_assistant">
+ *   <AIAssistantComponent />
+ * </GenericFeatureGate>
+ *
+ * // Hide when no access
+ * <GenericFeatureGate feature="advanced_reports" fallback="hide">
+ *   <ReportsButton />
+ * </GenericFeatureGate>
+ *
+ * // Custom fallback component
+ * <GenericFeatureGate feature="custom_dashboard" fallback={<CustomUpgrade />}>
+ *   <Dashboard />
+ * </GenericFeatureGate>
+ */
+export function GenericFeatureGate({
+  feature,
+  children,
+  fallback = 'upgrade',
+}: {
+  feature: string;
+  children: ReactNode;
+  fallback?: 'hide' | 'disabled' | 'limited' | 'upgrade' | ReactNode;
+}) {
+  const { canAccess, isLoading } = useFeatureGate(feature as FeatureCode);
+
+  // Show loading state
+  if (isLoading) {
+    return <LoadingSpinner size="sm" />;
+  }
+
+  // Feature is accessible
+  if (canAccess) {
+    return <>{children}</>;
+  }
+
+  // Feature not accessible - handle fallback
+  if (typeof fallback === 'string') {
+    switch (fallback) {
+      case 'hide':
+        return null;
+
+      case 'upgrade':
+        return <UpgradePrompt feature={feature} />;
+
+      case 'disabled':
+        return <DisabledFeature feature={feature as FeatureCode}>{children}</DisabledFeature>;
+
+      case 'limited':
+        return <LimitedFeature feature={feature as FeatureCode}>{children}</LimitedFeature>;
+
+      default:
+        return <UpgradePrompt feature={feature} />;
+    }
+  }
+
+  // Custom fallback component
+  return <>{fallback}</>;
+}
 
 interface FeatureGateProps {
   feature: FeatureCode;
@@ -126,5 +196,8 @@ export function FeatureBadge({ feature, className = '' }: FeatureBadgeProps) {
     </span>
   );
 }
+
+
+
 
 

@@ -77,7 +77,7 @@ import {
   FiBarChart,
   FiFileText,
 } from "react-icons/fi";
-import { FeatureGate } from "@/components/features";
+import { FeatureGate, GenericFeatureGate } from "@/components/features";
 import { format, parseISO } from "date-fns";
 
 interface Student {
@@ -5115,10 +5115,11 @@ export default function StudentsPage() {
           </div>
         )}
 
-        {/* Performance Section */}
+        {/* Performance Section - Student Analytics */}
         {activeSection === "performance" && (
-          <FeatureGate
-            feature="advanced_analytics"
+          <GenericFeatureGate feature="student_analytics">
+            <FeatureGate
+              feature="advanced_analytics"
             fallback={
               <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-8 border-2 border-yellow-200">
                 <div className="text-center">
@@ -5552,7 +5553,8 @@ export default function StudentsPage() {
               </ChartContainer>
             </div>
           </div>
-          </FeatureGate>
+            </FeatureGate>
+          </GenericFeatureGate>
         )}
 
         {/* Students Table Section */}

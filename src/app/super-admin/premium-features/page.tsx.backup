@@ -1,0 +1,1344 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
+import { motion } from "framer-motion";
+import {
+  Crown,
+  Plus,
+  Settings,
+  ToggleLeft,
+  ToggleRight,
+  DollarSign,
+  Users,
+  Building2,
+  Edit,
+  Search,
+  MoreHorizontal,
+  Trash2,
+  Eye,
+  BarChart3,
+  Shield,
+  Package,
+  CheckCircle,
+  XCircle,
+  TrendingUp,
+  Activity,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/components/ui/use-toast";
+import DynamicFeaturePanel from "@/components/super-admin/DynamicFeaturePanel";
+
+interface PremiumFeature {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  category: string;
+  basePricePerStudent: number;
+  currency: string;
+  isActive: boolean;
+  isRequired: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface SchoolPremiumFeature {
+  id: string;
+  schoolId: string;
+  featureId: string;
+  isEnabled: boolean;
+  customPricePerStudent?: number;
+  enabledAt?: string;
+  disabledAt?: string;
+  feature: PremiumFeature;
+}
+
+interface SchoolPackage {
+  id: string;
+  name: string;
+  description?: string;
+  packagePricePerStudent: number;
+  currency: string;
+  isEnabled: boolean;
+  customPricePerStudent?: number;
+  enabledAt?: string;
+  disabledAt?: string;
+  monthlyCost: number;
+}
+
+interface School {
+  id: string;
+  name: string;
+  activeStudents: number;
+  features: SchoolPremiumFeature[];
+  packages: SchoolPackage[];
+  summary: {
+    totalFeatures: number;
+    enabledFeatures: number;
+    disabledFeatures: number;
+    totalMonthlyCost: number;
+    currency: string;
+  };
+}
+
+const PREDEFINED_FEATURES = [
+  {
+    code: "teacher_payment",
+    name: "Teacher Payment System",
+    description: "Complete salary management and payment processing for teachers",
+    category: "payment",
+    basePricePerStudent: 25,
+  },
+  {
+    code: "student_mini_app",
+    name: "Student Mini App",
+    description: "Mobile app access for students with personalized dashboard",
+    category: "engagement",
+    basePricePerStudent: 15,
+  },
+  {
+    code: "student_analytics",
+    name: "Student Analytics Dashboard",
+    description: "Advanced analytics and insights for student performance",
+    category: "analytics",
+    basePricePerStudent: 20,
+  },
+  {
+    code: "lateness_management",
+    name: "Lateness Management System",
+    description: "Automated tracking and management of student lateness",
+    category: "management",
+    basePricePerStudent: 10,
+  },
+  {
+    code: "quality_review",
+    name: "Quality Review System",
+    description: "Teacher performance evaluation and quality assurance",
+    category: "assessment",
+    basePricePerStudent: 18,
+  },
+];
+
+export default function PremiumFeaturesPage() {
+  const [features, setFeatures] = useState<PremiumFeature[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSchool, setSelectedSchool] = useState<string>("");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPackageDialogOpen, setIsPackageDialogOpen] = useState(false);
+  const [isSchoolDialogOpen, setIsSchoolDialogOpen] = useState(false);
+  const [editingFeature, setEditingFeature] = useState<PremiumFeature | null>(null);
+  const [editingPackage, setEditingPackage] = useState<any | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [packages, setPackages] = useState<any[]>([]);
+
+  // Form states
+  const [newFeature, setNewFeature] = useState({
+    code: "",
+    name: "",
+    description: "",
+    category: "",
+    basePricePerStudent: "",
+    currency: "ETB",
+    isRequired: false,
+  });
+
+  const [editFeature, setEditFeature] = useState({
+    id: "",
+    code: "",
+    name: "",
+    description: "",
+    category: "",
+    basePricePerStudent: "",
+    currency: "ETB",
+    isRequired: false,
+  });
+
+  const [newPackage, setNewPackage] = useState({
+    name: "",
+    description: "",
+    packagePricePerStudent: "",
+    currency: "ETB",
+  });
+
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchFeatures();
+    fetchPackages();
+    fetchSchools();
+  }, []);
+
+  const fetchFeatures = async () => {
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      if (!token) return;
+
+      const response = await fetch("/api/super-admin/premium-features/manage", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFeatures(data.features);
+      }
+    } catch (error) {
+      console.error("Failed to fetch features:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load premium features",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchPackages = async () => {
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      if (!token) return;
+
+      const response = await fetch("/api/super-admin/premium-packages", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPackages(data.packages);
+      }
+    } catch (error) {
+      console.error("Failed to fetch packages:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load premium packages",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchSchools = async () => {
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      if (!token) return;
+
+      const response = await fetch("/api/super-admin/schools", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // For now, just set basic school data - we'll load detailed premium feature status when needed
+        setSchools(data.schools.map((school: any) => ({
+          id: school.id,
+          name: school.name,
+          activeStudents: school._count?.students || 0,
+          features: [],
+          packages: [],
+          summary: {
+            totalFeatures: 0,
+            enabledFeatures: 0,
+            disabledFeatures: 0,
+            totalMonthlyCost: 0,
+            currency: "ETB",
+          },
+        })));
+      }
+    } catch (error) {
+      console.error("Failed to fetch schools:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createFeature = async () => {
+    if (!newFeature.code || !newFeature.name || !newFeature.category || !newFeature.basePricePerStudent) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      if (!token) return;
+
+      const response = await fetch("/api/super-admin/premium-features/manage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...newFeature,
+          basePricePerStudent: parseFloat(newFeature.basePricePerStudent),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFeatures(prev => [...prev, data.feature]);
+        setIsCreateDialogOpen(false);
+        setNewFeature({
+          code: "",
+          name: "",
+          description: "",
+          category: "",
+          basePricePerStudent: "",
+          currency: "ETB",
+          isRequired: false,
+        });
+        toast({
+          title: "Success",
+          description: "Premium feature created successfully",
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to create feature",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create feature",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditDialog = (feature: PremiumFeature) => {
+    setEditingFeature(feature);
+    setEditFeature({
+      id: feature.id,
+      code: feature.code,
+      name: feature.name,
+      description: feature.description || "",
+      category: feature.category,
+      basePricePerStudent: feature.basePricePerStudent.toString(),
+      currency: feature.currency,
+      isRequired: feature.isRequired,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const updateFeature = async () => {
+    if (!editFeature.name || !editFeature.category || !editFeature.basePricePerStudent) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      if (!token) return;
+
+      const response = await fetch(`/api/super-admin/premium-features/manage/${editFeature.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: editFeature.name,
+          description: editFeature.description,
+          category: editFeature.category,
+          basePricePerStudent: parseFloat(editFeature.basePricePerStudent),
+          currency: editFeature.currency,
+          isRequired: editFeature.isRequired,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFeatures(prev => prev.map(f => f.id === editFeature.id ? data.feature : f));
+        setIsEditDialogOpen(false);
+        setEditingFeature(null);
+        toast({
+          title: "Success",
+          description: "Premium feature updated successfully",
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to update feature",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update feature",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePackageSubmit = async () => {
+    if (!newPackage.name || !newPackage.packagePricePerStudent) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      if (!token) return;
+
+      const isEditing = !!editingPackage;
+      const method = isEditing ? "PUT" : "POST";
+      const url = isEditing
+        ? `/api/super-admin/premium-packages/${editingPackage.id}`
+        : "/api/super-admin/premium-packages";
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: newPackage.name,
+          description: newPackage.description,
+          packagePricePerStudent: parseFloat(newPackage.packagePricePerStudent),
+          currency: newPackage.currency,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (isEditing) {
+          setPackages(prev => prev.map(p => p.id === editingPackage.id ? data.package : p));
+        } else {
+          setPackages(prev => [...prev, data.package]);
+        }
+        setIsPackageDialogOpen(false);
+        setEditingPackage(null);
+        setNewPackage({
+          name: "",
+          description: "",
+          packagePricePerStudent: "",
+          currency: "ETB",
+        });
+        toast({
+          title: "Success",
+          description: `Premium package ${isEditing ? 'updated' : 'created'} successfully`,
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.error || `Failed to ${isEditing ? 'update' : 'create'} package`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${editingPackage ? 'update' : 'create'} package`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditFeature = (feature: PremiumFeature) => {
+    setEditingFeature(feature);
+    setEditFeature({
+      id: feature.id,
+      code: feature.code,
+      name: feature.name,
+      description: feature.description || "",
+      category: feature.category,
+      basePricePerStudent: feature.basePricePerStudent.toString(),
+      currency: feature.currency,
+      isRequired: feature.isRequired,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const openEditPackage = (pkg: any) => {
+    setEditingPackage(pkg);
+    setNewPackage({
+      name: pkg.name,
+      description: pkg.description || "",
+      packagePricePerStudent: pkg.packagePricePerStudent.toString(),
+      currency: pkg.currency,
+    });
+    setIsPackageDialogOpen(true);
+  };
+
+  const toggleSchoolFeature = async (schoolId: string, featureId: string, currentStatus: boolean) => {
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      if (!token) return;
+
+      const response = await fetch(`/api/super-admin/premium-features/school/${schoolId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          featureId,
+          isEnabled: !currentStatus,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: "Success",
+          description: data.message,
+        });
+
+        // Refresh the school data if it's currently selected
+        if (selectedSchool === schoolId) {
+          loadSchoolFeatures(schoolId);
+        }
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to update feature",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update feature",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadSchoolFeatures = async (schoolId: string) => {
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      if (!token) return;
+
+      const response = await fetch(`/api/super-admin/premium-features/school/${schoolId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSchools(prev => prev.map(school =>
+          school.id === schoolId
+            ? { ...school, ...data.school, features: data.features, summary: data.summary }
+            : school
+        ));
+      }
+    } catch (error) {
+      console.error("Failed to load school features:", error);
+    }
+  };
+
+  const loadSchoolPackages = async (schoolId: string) => {
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      if (!token) return;
+
+      const response = await fetch(`/api/super-admin/premium-packages/school/${schoolId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSchools(prev => prev.map(school =>
+          school.id === schoolId
+            ? { ...school, packages: data.packages }
+            : school
+        ));
+      }
+    } catch (error) {
+      console.error("Failed to load school packages:", error);
+    }
+  };
+
+  const toggleSchoolPackage = async (schoolId: string, packageId: string, currentStatus: boolean) => {
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      if (!token) return;
+
+      const response = await fetch(`/api/super-admin/premium-packages/school/${schoolId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          packageId,
+          isEnabled: !currentStatus,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: "Success",
+          description: data.message,
+        });
+
+        // Refresh both features and packages for this school
+        loadSchoolFeatures(schoolId);
+        loadSchoolPackages(schoolId);
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to update package",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update package",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredFeatures = features.filter(feature => {
+    const matchesSearch = feature.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         feature.code.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === "all" || feature.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  const categories = [...new Set(features.map(f => f.category))];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Premium Features Management</h1>
+          <p className="text-gray-600 mt-1">
+            Configure and manage premium features for schools
+          </p>
+        </div>
+        <div className="flex space-x-3">
+          <Button
+            variant="outline"
+            className="flex items-center space-x-2"
+            onClick={() => setIsPackageDialogOpen(true)}
+          >
+            <Crown className="w-4 h-4" />
+            <span>Create Package</span>
+          </Button>
+
+          <Dialog open={isSchoolDialogOpen} onOpenChange={setIsSchoolDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center space-x-2">
+                <Building2 className="w-4 h-4" />
+                <span>Manage School Features</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>School Premium Features</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="school-select">Select School</Label>
+                  <Select value={selectedSchool} onValueChange={(schoolId) => {
+                    setSelectedSchool(schoolId);
+                    if (schoolId) {
+                      loadSchoolFeatures(schoolId);
+                      loadSchoolPackages(schoolId);
+                    }
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a school" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schools.map(school => (
+                        <SelectItem key={school.id} value={school.id}>
+                          {school.name} ({school.activeStudents} students)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedSchool && (
+                  <div className="space-y-6">
+                    {/* Premium Packages Section */}
+                    <div>
+                      <h4 className="text-lg font-semibold mb-4 flex items-center">
+                        <Crown className="w-5 h-5 mr-2 text-purple-600" />
+                        Premium Packages
+                      </h4>
+                      <div className="space-y-3">
+                        {schools.find(s => s.id === selectedSchool)?.packages.map(pkg => (
+                            <Card key={pkg.id} className="border-purple-200 bg-purple-50">
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-purple-900">{pkg.name}</h4>
+                                    <p className="text-sm text-purple-700">{pkg.description}</p>
+                                    <div className="flex items-center space-x-4 mt-2 text-sm">
+                                      <span className="text-purple-600 font-medium">
+                                        {formatCurrency(pkg.packagePricePerStudent, pkg.currency)}/student
+                                      </span>
+                                      <span className="text-purple-600">
+                                        Monthly: {formatCurrency(pkg.monthlyCost, pkg.currency)}
+                                      </span>
+                                      {pkg.customPricePerStudent && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          Custom pricing
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Switch
+                                      checked={pkg.isEnabled}
+                                      onCheckedChange={() =>
+                                        toggleSchoolPackage(selectedSchool, pkg.id, pkg.isEnabled)
+                                      }
+                                    />
+                                    <Badge className="bg-purple-100 text-purple-800">Recommended</Badge>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Individual Features Section */}
+                    <div>
+                      <h4 className="text-lg font-semibold mb-4 flex items-center">
+                        <Settings className="w-5 h-5 mr-2 text-blue-600" />
+                        Individual Premium Features
+                      </h4>
+                      <div className="space-y-3">
+                        {schools.find(s => s.id === selectedSchool)?.features.map(feature => (
+                          <Card key={feature.id}>
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold">{feature.name}</h4>
+                                  <p className="text-sm text-gray-600">{feature.description}</p>
+                                  <div className="flex items-center space-x-4 mt-2 text-sm">
+                                    <span className="text-green-600">
+                                      {formatCurrency(feature.basePricePerStudent, feature.currency)}/student
+                                    </span>
+                                    <span className="text-blue-600">
+                                      Monthly: {formatCurrency(feature.monthlyCost, feature.currency)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Switch
+                                    checked={feature.isEnabled}
+                                    onCheckedChange={() =>
+                                      toggleSchoolFeature(selectedSchool, feature.id, feature.isEnabled)
+                                    }
+                                    disabled={feature.isRequired}
+                                  />
+                                  {feature.isRequired && (
+                                    <Badge variant="secondary" className="text-xs">Required</Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Summary */}
+                    <Card className="bg-gray-50">
+                      <CardContent className="p-4">
+                        <div className="text-center">
+                          <h4 className="font-semibold text-gray-900 mb-2">Monthly Cost Summary</h4>
+                          <div className="text-2xl font-bold text-green-600">
+                            {formatCurrency(
+                              schools.find(s => s.id === selectedSchool)?.summary.totalMonthlyCost || 0
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            For {schools.find(s => s.id === selectedSchool)?.activeStudents || 0} active students
+                          </p>
+                          {schools.find(s => s.id === selectedSchool)?.packages.some(p => p.isEnabled) && (
+                            <Badge className="mt-2 bg-purple-100 text-purple-800">
+                              Premium Package Active
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Premium Feature
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Create Premium Feature</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="code">Feature Code</Label>
+                  <Input
+                    id="code"
+                    placeholder="teacher_payment"
+                    value={newFeature.code}
+                    onChange={(e) => setNewFeature(prev => ({ ...prev, code: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="name">Feature Name</Label>
+                  <Input
+                    id="name"
+                    placeholder="Teacher Payment System"
+                    value={newFeature.name}
+                    onChange={(e) => setNewFeature(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    placeholder="Complete salary management..."
+                    value={newFeature.description}
+                    onChange={(e) => setNewFeature(prev => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Select
+                    value={newFeature.category}
+                    onValueChange={(value) => setNewFeature(prev => ({ ...prev, category: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="payment">Payment</SelectItem>
+                      <SelectItem value="analytics">Analytics</SelectItem>
+                      <SelectItem value="management">Management</SelectItem>
+                      <SelectItem value="engagement">Engagement</SelectItem>
+                      <SelectItem value="assessment">Assessment</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="price">Base Price per Student (ETB)</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    placeholder="25.00"
+                    value={newFeature.basePricePerStudent}
+                    onChange={(e) => setNewFeature(prev => ({ ...prev, basePricePerStudent: e.target.value }))}
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={createFeature}>
+                    Create Feature
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Feature Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogTrigger asChild>
+              <div style={{ display: 'none' }} />
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Edit Premium Feature</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="edit-code">Feature Code</Label>
+                  <Input
+                    id="edit-code"
+                    value={editFeature.code}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Feature code cannot be changed</p>
+                </div>
+                <div>
+                  <Label htmlFor="edit-name">Feature Name</Label>
+                  <Input
+                    id="edit-name"
+                    value={editFeature.name}
+                    onChange={(e) => setEditFeature(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Input
+                    id="edit-description"
+                    value={editFeature.description}
+                    onChange={(e) => setEditFeature(prev => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-category">Category</Label>
+                  <Select
+                    value={editFeature.category}
+                    onValueChange={(value) => setEditFeature(prev => ({ ...prev, category: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="payment">Payment</SelectItem>
+                      <SelectItem value="analytics">Analytics</SelectItem>
+                      <SelectItem value="management">Management</SelectItem>
+                      <SelectItem value="engagement">Engagement</SelectItem>
+                      <SelectItem value="assessment">Assessment</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-price">Base Price per Student (ETB)</Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    value={editFeature.basePricePerStudent}
+                    onChange={(e) => setEditFeature(prev => ({ ...prev, basePricePerStudent: e.target.value }))}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="edit-required"
+                    checked={editFeature.isRequired}
+                    onChange={(e) => setEditFeature(prev => ({ ...prev, isRequired: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <Label htmlFor="edit-required">Required feature (cannot be disabled)</Label>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={updateFeature}>
+                    Update Feature
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Create Package Dialog */}
+          <Dialog open={isPackageDialogOpen} onOpenChange={(open) => {
+            setIsPackageDialogOpen(open);
+            if (!open) {
+              setEditingPackage(null);
+              setNewPackage({
+                name: "",
+                description: "",
+                packagePricePerStudent: "",
+                currency: "ETB",
+              });
+            }
+          }}>
+            <DialogTrigger asChild>
+              <div style={{ display: 'none' }} />
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingPackage ? 'Edit Premium Package' : 'Create Premium Package'}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="package-name">Package Name</Label>
+                  <Input
+                    id="package-name"
+                    placeholder="All Premium Features Package"
+                    value={newPackage.name}
+                    onChange={(e) => setNewPackage(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="package-description">Description</Label>
+                  <Input
+                    id="package-description"
+                    placeholder="Complete access to all premium features"
+                    value={newPackage.description}
+                    onChange={(e) => setNewPackage(prev => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="package-price">Package Price per Student (ETB)</Label>
+                  <Input
+                    id="package-price"
+                    type="number"
+                    placeholder="75.00"
+                    value={newPackage.packagePricePerStudent}
+                    onChange={(e) => setNewPackage(prev => ({ ...prev, packagePricePerStudent: e.target.value }))}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Total price for all premium features combined
+                  </p>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsPackageDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handlePackageSubmit}>
+                    {editingPackage ? 'Update Package' : 'Create Package'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Quick Setup */}
+      <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+        <CardHeader>
+          <CardTitle className="flex items-center text-purple-900">
+            <Settings className="w-5 h-5 mr-2" />
+            Quick Setup - Add Default Premium Features
+          </CardTitle>
+          <p className="text-purple-700">
+            Add the most commonly requested premium features to get started quickly
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {PREDEFINED_FEATURES.map(feature => {
+              const exists = features.some(f => f.code === feature.code);
+              return (
+                <Card key={feature.code} className={`border-2 ${exists ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-semibold text-sm">{feature.name}</h4>
+                      {exists ? (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-gray-400" />
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-600 mb-2">{feature.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-green-600">
+                        {formatCurrency(feature.basePricePerStudent)}/student
+                      </span>
+                      {!exists && (
+                        <Button
+                          size="sm"
+                          onClick={() => createFeatureFromTemplate(feature)}
+                          className="text-xs"
+                        >
+                          Add
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Features Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center">
+              <Crown className="w-5 h-5 mr-2" />
+              Premium Features ({features.length})
+            </span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Search features..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-64"
+                />
+              </div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-40">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Feature</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Price/Student</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredFeatures.map(feature => (
+                <TableRow key={feature.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{feature.name}</div>
+                      <div className="text-sm text-gray-500">{feature.code}</div>
+                      {feature.description && (
+                        <div className="text-xs text-gray-400 mt-1">{feature.description}</div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {feature.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-medium text-green-600">
+                      {formatCurrency(feature.basePricePerStudent, feature.currency)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant={feature.isActive ? "default" : "secondary"}>
+                        {feature.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                      {feature.isRequired && (
+                        <Badge variant="destructive">Required</Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(feature)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Feature
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Settings className="w-4 h-4 mr-2" />
+                          Configure Pricing
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {filteredFeatures.length === 0 && (
+            <div className="text-center py-12">
+              <Crown className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Premium Features</h3>
+              <p className="text-gray-600 mb-4">
+                {features.length === 0
+                  ? "No premium features have been created yet"
+                  : "No features match your search criteria"
+                }
+              </p>
+              {features.length === 0 && (
+                <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create First Feature
+                </Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Packages Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center">
+              <Package className="w-5 h-5 mr-2" />
+              Premium Packages ({packages.length})
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Package Name</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Price/Student</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {packages.map(pkg => (
+                <TableRow key={pkg.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{pkg.name}</div>
+                      {pkg.description && (
+                        <div className="text-sm text-gray-500 mt-1">{pkg.description}</div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-gray-600">{pkg.description || 'No description'}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-medium text-green-600">
+                      {formatCurrency(pkg.packagePricePerStudent, pkg.currency)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={pkg.isActive ? "default" : "secondary"}>
+                      {pkg.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditPackage(pkg)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Package
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Settings className="w-4 h-4 mr-2" />
+                          Configure Pricing
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {packages.length === 0 && (
+            <div className="text-center py-12">
+              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Premium Packages</h3>
+              <p className="text-gray-600 mb-4">
+                No premium packages have been created yet
+              </p>
+              <Button onClick={() => setIsPackageDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Create First Package
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  function formatCurrency(amount: number, currency: string = "ETB") {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency === "ETB" ? "ETB" : currency,
+      minimumFractionDigits: 0,
+    }).format(amount);
+  }
+
+  function createFeatureFromTemplate(feature: typeof PREDEFINED_FEATURES[0]) {
+    setNewFeature({
+      code: feature.code,
+      name: feature.name,
+      description: feature.description,
+      category: feature.category,
+      basePricePerStudent: feature.basePricePerStudent.toString(),
+      currency: "ETB",
+      isRequired: false,
+    });
+    setIsCreateDialogOpen(true);
+  }
+}

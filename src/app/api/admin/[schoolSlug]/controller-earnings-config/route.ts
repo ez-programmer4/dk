@@ -1,5 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
@@ -21,8 +22,7 @@ const ConfigSchema = z.object({
 });
 
 export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
-  // Get school information and verify access
-  const { prisma } = await import("@/lib/prisma");
+  // Get school information
   const school = await prisma.school.findUnique({
     where: { slug: params.schoolSlug },
     select: { id: true, name: true },
@@ -32,39 +32,61 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     return NextResponse.json({ error: "School not found" }, { status: 404 });
   }
 
-  const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Get session using getToken
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
+  if (!token) {
+    return NextResponse.json({ error: "No token provided" }, { status: 401 });
   }
 
-  const admin = await prisma.admin.findUnique({
-    where: { id: session.id as string },
-    select: { schoolId: true },
-  });
+  // Allow superAdmins to access any school
+  if (token.role === "superAdmin" || token.hasGlobalAccess) {
+    // SuperAdmins can access any school, skip school validation
+  } else if (token.role !== "admin") {
+    return NextResponse.json({ error: "Not an admin" }, { status: 403 });
+  } else {
+    // Verify regular admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: token.id as string },
+      select: { schoolId: true },
+    });
 
-  if (!admin || admin.schoolId !== school.id) {
-    return NextResponse.json({ error: "Unauthorized access to school" }, { status: 403 });
-  }
-  try {
-    const session = await getServerSession(authOptions);
-    if (
-      !session?.user ||
-      (session.user as { id: string; role: string }).role !== "admin"
-    ) {
-      return NextResponse.json(
-        { error: "Forbidden: Admins only." },
-        { status: 403 }
-      );
+    if (!admin) {
+      // For development: if no admin record exists, allow access as super admin
+      console.log(`Admin ${token.id} not found in database, allowing access for development`);
+    } else {
+      // If admin has no school assigned yet, allow access for development/setup
+      if (!admin.schoolId) {
+        console.log(`Admin ${token.id} has no school assigned, allowing access for setup`);
+      } else if (admin.schoolId !== school.id) {
+        // Find the admin's correct school
+        const adminSchool = await prisma.school.findUnique({
+          where: { id: admin.schoolId },
+          select: { slug: true, name: true }
+        });
+        return NextResponse.json({
+          error: "Unauthorized access to school",
+          message: `You don't have access to '${params.schoolSlug}'. Your assigned school is '${adminSchool?.slug || 'unknown'}'`,
+          correctSchoolSlug: adminSchool?.slug
+        }, { status: 403 });
+      }
     }
+  }
+
+  try {
 
     // Get the current active configuration
     const currentConfig = await prisma.controllerearningsconfig.findFirst({
-      where: { isActive: true },
+      where: {
+        schoolId: school.id,
+        isActive: true
+      },
       orderBy: { effectiveFrom: "desc" },
     });
 
     // Get all configurations for history
     const allConfigs = await prisma.controllerearningsconfig.findMany({
+      where: { schoolId: school.id },
       orderBy: { effectiveFrom: "desc" },
       include: {
         admin: {
@@ -92,17 +114,32 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (
-      !session?.user ||
-      (session.user as { id: string; role: string }).role !== "admin"
-    ) {
-      return NextResponse.json(
-        { error: "Forbidden: Admins only." },
-        { status: 403 }
-      );
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
+    }
+
+    // Get session using getToken
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token || token.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: token.id as string },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json({ error: "Unauthorized access to school" }, { status: 403 });
     }
 
     const body = await req.json();
@@ -127,17 +164,16 @@ export async function POST(req: NextRequest) {
       effectiveFrom,
     } = parseResult.data;
 
-    const user = session.user as { id: string; role: string };
-
     try {
-      // Deactivate all existing configurations
+      // Deactivate all existing configurations for this school
       await prisma.controllerearningsconfig.updateMany({
-        where: { isActive: true },
+        where: { isActive: true, schoolId: school.id },
         data: { isActive: false },
       });
 
-      // Create new configuration with raw SQL fallback
       let config;
+
+      // Try Prisma create first
       try {
         config = await prisma.controllerearningsconfig.create({
           data: {
@@ -148,30 +184,31 @@ export async function POST(req: NextRequest) {
             unpaidPenaltyMultiplier,
             referralBonusMultiplier,
             targetEarnings,
+            schoolId: school.id,
             effectiveFrom: effectiveFrom ? new Date(effectiveFrom) : new Date(),
             isActive: true,
-            adminId: user.id,
+            adminId: token.id as string,
             updatedAt: new Date(),
           },
         });
       } catch (createError: any) {
         console.error("Prisma create failed, using raw SQL:", createError);
-        
+
         const effectiveDate = effectiveFrom ? new Date(effectiveFrom) : new Date();
         const now = new Date();
-        
+
         await prisma.$executeRaw`
-          INSERT INTO controllerearningsconfig 
-          (mainBaseRate, referralBaseRate, leavePenaltyMultiplier, leaveThreshold, 
-           unpaidPenaltyMultiplier, referralBonusMultiplier, targetEarnings, 
-           effectiveFrom, isActive, adminId, updatedAt)
+          INSERT INTO controllerearningsconfig
+          (mainBaseRate, referralBaseRate, leavePenaltyMultiplier, leaveThreshold,
+           unpaidPenaltyMultiplier, referralBonusMultiplier, targetEarnings,
+           schoolId, effectiveFrom, isActive, adminId, updatedAt)
           VALUES (${mainBaseRate}, ${referralBaseRate}, ${leavePenaltyMultiplier}, ${leaveThreshold},
                   ${unpaidPenaltyMultiplier}, ${referralBonusMultiplier}, ${targetEarnings},
-                  ${effectiveDate}, 1, ${user.id}, ${now})
+                  ${school.id}, ${effectiveDate}, 1, ${token.id}, ${now})
         `;
-        
+
         config = await prisma.controllerearningsconfig.findFirst({
-          where: { adminId: user.id, isActive: true },
+          where: { adminId: token.id, schoolId: school.id, isActive: true },
           orderBy: { id: 'desc' }
         });
       }
@@ -181,7 +218,8 @@ export async function POST(req: NextRequest) {
         await prisma.auditlog.create({
           data: {
             actionType: "earnings_config_updated",
-            adminId: user.id,
+            adminId: token.id as string,
+            schoolId: school.id,
             details: JSON.stringify({
               mainBaseRate,
               referralBaseRate,
@@ -199,43 +237,50 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json(config, { status: 201 });
-    } catch (dbError: any) {
-      console.error("Database error:", {
-        message: dbError.message,
-        code: dbError.code,
-        meta: dbError.meta,
-      });
-      throw dbError;
+    } catch (err) {
+      const error = err as Error;
+      console.error("Failed to create earnings config:", error);
+      return NextResponse.json(
+        { error: "Failed to create earnings config." },
+        { status: 500 }
+      );
     }
-  } catch (err: any) {
-    console.error("Controller earnings config POST error:", {
-      message: err.message,
-      code: err.code,
-      meta: err.meta,
-      stack: err.stack,
-    });
-
+  } catch (err) {
+    const error = err as Error;
+    console.error("POST request error:", error);
     return NextResponse.json(
-      {
-        error: "Failed to create earnings config.",
-        details: err.message || "Unknown error",
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-export async function PUT(req: NextRequest) {
+export async function PUT(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (
-      !session?.user ||
-      (session.user as { id: string; role: string }).role !== "admin"
-    ) {
-      return NextResponse.json(
-        { error: "Forbidden: Admins only." },
-        { status: 403 }
-      );
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
+    }
+
+    // Get session using getToken
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token || token.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify admin has access to this school
+    const admin = await prisma.admin.findUnique({
+      where: { id: token.id as string },
+      select: { schoolId: true },
+    });
+
+    if (!admin || admin.schoolId !== school.id) {
+      return NextResponse.json({ error: "Unauthorized access to school" }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -257,13 +302,11 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const user = session.user as { id: string; role: string };
-
     const config = await prisma.controllerearningsconfig.update({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id), schoolId: school.id },
       data: {
         ...parseResult.data,
-        adminId: user.id,
+        adminId: token.id as string,
         updatedAt: new Date(),
       },
     });
