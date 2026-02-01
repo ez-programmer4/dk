@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Inter } from "next/font/google";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
@@ -33,7 +34,7 @@ export default function RootLayout({
             __html: `
               window.addEventListener('error', function(e) {
                 if (e.message.includes('ChunkLoadError') || e.message.includes('Loading chunk')) {
-              
+
                   setTimeout(() => {
                     window.location.reload();
                   }, 1000);
@@ -43,13 +44,20 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
-        <ErrorBoundary>
-          <SessionProvider>
-            <Toaster position="top-center" />
-            {children}
-          </SessionProvider>
-        </ErrorBoundary>
+      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ErrorBoundary>
+            <SessionProvider>
+              <Toaster position="top-center" />
+              {children}
+            </SessionProvider>
+          </ErrorBoundary>
+        </ThemeProvider>
       </body>
     </html>
   );

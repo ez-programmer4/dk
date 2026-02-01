@@ -129,3 +129,4 @@ seedDynamicFeatures()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
