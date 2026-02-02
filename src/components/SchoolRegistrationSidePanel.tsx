@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FiX, FiArrowRight, FiMail, FiLock, FiUser, FiPhone, FiMapPin, FiHome } from "react-icons/fi";
+import { FiX, FiArrowRight, FiMail, FiLock, FiUser, FiPhone, FiMapPin, FiHome, FiCheckCircle, FiRefreshCw } from "react-icons/fi";
 
 interface SchoolRegistrationSidePanelProps {
   isOpen: boolean;
@@ -10,6 +10,12 @@ interface SchoolRegistrationSidePanelProps {
 
 export default function SchoolRegistrationSidePanel({ isOpen, onClose }: SchoolRegistrationSidePanelProps) {
   const [step, setStep] = useState(1);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [isEmailSent, setIsEmailSent] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verificationError, setVerificationError] = useState("");
+
   const [formData, setFormData] = useState({
     schoolName: "",
     adminName: "",
@@ -37,10 +43,96 @@ export default function SchoolRegistrationSidePanel({ isOpen, onClose }: SchoolR
     if (step > 1) setStep(step - 1);
   };
 
-  const handleSubmit = () => {
-    // Handle form submission
-    console.log("Form submitted:", formData);
-    onClose();
+  const sendVerificationEmail = async () => {
+    if (!formData.adminEmail) return;
+
+    setIsVerifying(true);
+    try {
+      // Simulate API call to send verification email
+      const response = await fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.adminEmail,
+          schoolName: formData.schoolName,
+          adminName: formData.adminName,
+        }),
+      });
+
+      if (response.ok) {
+        setIsEmailSent(true);
+        setVerificationError("");
+      } else {
+        setVerificationError("Failed to send verification email. Please try again.");
+      }
+    } catch (error) {
+      setVerificationError("Network error. Please check your connection and try again.");
+    }
+    setIsVerifying(false);
+  };
+
+  const verifyEmailCode = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      setVerificationError("Please enter a valid 6-digit verification code.");
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      // Simulate API call to verify code
+      const response = await fetch('/api/auth/verify-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.adminEmail,
+          code: verificationCode,
+        }),
+      });
+
+      if (response.ok) {
+        setEmailVerified(true);
+        setVerificationError("");
+      } else {
+        setVerificationError("Invalid verification code. Please check and try again.");
+      }
+    } catch (error) {
+      setVerificationError("Verification failed. Please try again.");
+    }
+    setIsVerifying(false);
+  };
+
+  const handleSubmit = async () => {
+    if (!emailVerified) {
+      setVerificationError("Please verify your email address before submitting.");
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      // Final registration submission
+      const response = await fetch('/api/schools/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        console.log("School registration successful:", formData);
+        onClose();
+        // You might want to show a success message or redirect
+      } else {
+        setVerificationError("Registration failed. Please try again.");
+      }
+    } catch (error) {
+      setVerificationError("Network error. Please check your connection and try again.");
+    }
+    setIsVerifying(false);
   };
 
   return (
@@ -83,7 +175,7 @@ export default function SchoolRegistrationSidePanel({ isOpen, onClose }: SchoolR
               <div className="flex justify-between text-xs text-gray-500">
                 <span>School Info</span>
                 <span>Admin Account</span>
-                <span>Verification</span>
+                <span>Email Verify</span>
               </div>
             </div>
 
@@ -262,30 +354,111 @@ export default function SchoolRegistrationSidePanel({ isOpen, onClose }: SchoolR
               {step === 3 && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-black mb-2">Review & Verify</h3>
-                    <p className="text-sm text-gray-600 mb-4">Please review your information before submitting</p>
+                    <h3 className="text-lg font-semibold text-black mb-2">Email Verification</h3>
+                    <p className="text-sm text-gray-600 mb-4">Verify your email address to complete registration</p>
                   </div>
 
-                  <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-black mb-2">School Information</h4>
-                      <p className="text-sm text-gray-600"><strong>Name:</strong> {formData.schoolName}</p>
-                      <p className="text-sm text-gray-600"><strong>Address:</strong> {formData.address}, {formData.city}, {formData.country}</p>
+                  {/* Email Verification Section */}
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <FiMail className="w-4 h-4 text-gray-600" />
+                          <span className="text-sm font-medium text-gray-900">{formData.adminEmail}</span>
+                        </div>
+                        {isEmailSent && !emailVerified && (
+                          <FiCheckCircle className="w-5 h-5 text-green-600" />
+                        )}
+                      </div>
+
+                      {!isEmailSent ? (
+                        <button
+                          onClick={sendVerificationEmail}
+                          disabled={isVerifying}
+                          className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center disabled:opacity-50"
+                        >
+                          {isVerifying ? (
+                            <>
+                              <FiRefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <FiMail className="w-4 h-4 mr-2" />
+                              Send Verification Email
+                            </>
+                          )}
+                        </button>
+                      ) : emailVerified ? (
+                        <div className="text-center py-4">
+                          <FiCheckCircle className="w-12 h-12 text-green-600 mx-auto mb-2" />
+                          <p className="text-sm font-medium text-green-700">Email Verified Successfully!</p>
+                          <p className="text-xs text-gray-600 mt-1">You can now complete your registration.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <p className="text-sm text-gray-700">
+                            We've sent a 6-digit verification code to your email address.
+                          </p>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Verification Code
+                            </label>
+                            <input
+                              type="text"
+                              value={verificationCode}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                setVerificationCode(value);
+                              }}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-center text-2xl font-mono tracking-widest"
+                              placeholder="000000"
+                              maxLength={6}
+                            />
+                          </div>
+
+                          <div className="flex space-x-3">
+                            <button
+                              onClick={verifyEmailCode}
+                              disabled={isVerifying || verificationCode.length !== 6}
+                              className="flex-1 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isVerifying ? "Verifying..." : "Verify Code"}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setIsEmailSent(false);
+                                setVerificationCode("");
+                                setVerificationError("");
+                              }}
+                              className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                              Resend
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div>
-                      <h4 className="font-medium text-black mb-2">Administrator</h4>
-                      <p className="text-sm text-gray-600"><strong>Name:</strong> {formData.adminName}</p>
-                      <p className="text-sm text-gray-600"><strong>Email:</strong> {formData.adminEmail}</p>
-                      <p className="text-sm text-gray-600"><strong>Phone:</strong> {formData.adminPhone}</p>
-                    </div>
-                  </div>
+                    {verificationError && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p className="text-sm text-red-800">{verificationError}</p>
+                      </div>
+                    )}
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800">
-                      <strong>Note:</strong> After submission, you'll receive an email with verification instructions.
-                      Our team will review your application within 24 hours.
-                    </p>
+                    {/* Information Summary */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-medium text-blue-900 mb-2">Registration Summary</h4>
+                      <div className="space-y-1 text-sm text-blue-800">
+                        <p><strong>School:</strong> {formData.schoolName}</p>
+                        <p><strong>Admin:</strong> {formData.adminName}</p>
+                        <p><strong>Email:</strong> {formData.adminEmail}</p>
+                      </div>
+                      <p className="text-xs text-blue-700 mt-3">
+                        Complete email verification to finalize your school registration.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -316,9 +489,20 @@ export default function SchoolRegistrationSidePanel({ isOpen, onClose }: SchoolR
                 ) : (
                   <button
                     onClick={handleSubmit}
-                    className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                    disabled={!emailVerified || isVerifying}
+                    className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
-                    Create School
+                    {isVerifying ? (
+                      <>
+                        <FiRefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <FiCheckCircle className="w-4 h-4 mr-2" />
+                        Complete Registration
+                      </>
+                    )}
                   </button>
                 )}
               </div>

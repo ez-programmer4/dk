@@ -22,3 +22,5 @@ async function checkSchools() {
 
 checkSchools();
 
+
+
