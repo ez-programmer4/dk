@@ -391,7 +391,7 @@ const roleIcons: Record<UserRole, any> = {
 export default function UserManagementPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([] as User[]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -413,7 +413,7 @@ export default function UserManagementPage() {
       registral: true,
     }
   );
-  const [controllers, setControllers] = useState<User[]>([]);
+  const [controllers, setControllers] = useState<User[]>([] as User[]);
   const [teacherSchedule, setTeacherSchedule] = useState("");
   const [teacherControlId, setTeacherControlId] = useState("");
   const [teacherPhone, setTeacherPhone] = useState("");
@@ -441,8 +441,8 @@ export default function UserManagementPage() {
       if (!res.ok) throw new Error("Failed to fetch users");
 
       const data = await res.json();
-      setUsers(data.users);
-      setTotalPages(Math.ceil(data.total / itemsPerPage));
+      setUsers(data.users || []);
+      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -460,8 +460,13 @@ export default function UserManagementPage() {
       const res = await fetch(`/api/admin/${schoolSlug}/users/counts`);
       if (!res.ok) throw new Error("Failed to fetch counts");
       const data = await res.json();
-      setTotalCounts(data.counts);
-      setTotalUsers(data.total);
+      setTotalCounts(data.counts || {
+        admin: 0,
+        controller: 0,
+        teacher: 0,
+        registral: 0,
+      });
+      setTotalUsers(data.total || 0);
     } catch (err: any) {
       console.error("Error fetching counts:", err);
     }
@@ -472,7 +477,7 @@ export default function UserManagementPage() {
       const res = await fetch(`/api/admin/${schoolSlug}/users?role=controller&limit=100`);
       if (!res.ok) throw new Error("Failed to fetch controllers");
       const data = await res.json();
-      setControllers(data.users);
+      setControllers(data.users || []);
     } catch (err: any) {
       console.error("Error fetching controllers:", err);
     }
@@ -618,7 +623,7 @@ export default function UserManagementPage() {
   };
 
   const groupedUsers = roleOrder.reduce((acc, role) => {
-    acc[role] = users.filter((user) => user.role === role);
+    acc[role] = (users || []).filter((user) => user.role === role);
     return acc;
   }, {} as Record<UserRole, User[]>);
 
@@ -1208,7 +1213,7 @@ export default function UserManagementPage() {
                               required
                             >
                               <option value="">Select Controller</option>
-                              {controllers
+                              {(controllers || [])
                                 .filter(
                                   (ctrl) =>
                                     ctrl && ctrl.code && ctrl.code !== "0"

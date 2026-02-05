@@ -1,90 +1,77 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-
-// Force dynamic rendering
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-export async function GET(request: NextRequest, { params }: { params: { schoolSlug: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
-    const session = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    if (!session || session.role !== "admin") {
+    // Check admin authentication
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user as any)?.role !== 'admin') {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get school information
+    const { schoolSlug } = params;
+
+    // Find school
     const school = await prisma.school.findUnique({
-      where: { slug: params.schoolSlug },
-      select: { id: true, name: true },
+      where: { slug: schoolSlug },
+      include: {
+        settings: true,
+      },
     });
 
     if (!school) {
-      return NextResponse.json(
-        { error: "School not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
-    // Verify admin has access to this school
-    const admin = await prisma.admin.findUnique({
-      where: { id: session.id as string },
-      select: { schoolId: true },
+    // Check if admin belongs to this school
+    const admin = await prisma.admin.findFirst({
+      where: {
+        schoolId: school.id,
+        email: (session.user as any)?.email,
+        isActive: true,
+      },
     });
 
-    if (!admin || admin.schoolId !== school.id) {
-      return NextResponse.json(
-        { error: "Unauthorized access to school" },
-        { status: 403 }
-      );
+    if (!admin) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // Get registrar learning settings
-    const learningSettings = await prisma.registralearningsconfig.findMany({
-      where: {
-        key: {
-          in: ['reading_reward', 'hifz_reward']
-        },
-        schoolId: school.id
+    // Get branding settings
+    const brandingSettings = school.settings.find(s => s.key === 'branding');
+    let settings = {
+      primaryColor: "#1f2937",
+      secondaryColor: "#6b7280",
+      accentColor: "#3b82f6",
+      schoolName: school.name,
+      isSetupComplete: false,
+    };
+
+    if (brandingSettings && brandingSettings.value) {
+      try {
+        const parsed = JSON.parse(brandingSettings.value);
+        settings = { ...settings, ...parsed };
+      } catch (error) {
+        console.error('Error parsing branding settings:', error);
       }
-    });
-
-    // Get general settings
-    const generalSettings = await prisma.setting.findMany({
-      where: {
-        key: {
-          in: ['include_sundays_in_salary', 'teacher_salary_visible']
-        },
-        schoolId: school.id
-      }
-    });
-
-    const learningMap = learningSettings.reduce((acc, setting) => {
-      acc[setting.key] = parseFloat(setting.value);
-      return acc;
-    }, {} as Record<string, number>);
-
-    const generalMap = generalSettings.reduce((acc, setting) => {
-      acc[setting.key] = setting.value === 'true';
-      return acc;
-    }, {} as Record<string, boolean>);
+    }
 
     return NextResponse.json({
-      settings: [
-        { key: 'reading_reward', value: String(learningMap.reading_reward || 50) },
-        { key: 'hifz_reward', value: String(learningMap.hifz_reward || 100) },
-        { key: 'include_sundays_in_salary', value: String(generalMap.include_sundays_in_salary || false) },
-        { key: 'teacher_salary_visible', value: String(generalMap.teacher_salary_visible || false) },
-      ]
+      success: true,
+      settings,
+      school: {
+        id: school.id,
+        name: school.name,
+        slug: school.slug,
+      },
     });
 
   } catch (error) {
-    console.error("Error fetching settings:", error);
+    console.error("Settings fetch error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -92,47 +79,104 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { schoolSlug: string } }
+) {
   try {
-    const session = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    if (!session || session.role !== "admin") {
+    // Check admin authentication
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user as any)?.role !== 'admin') {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { key, value } = await request.json();
+    const { schoolSlug } = params;
+    const settingsData = await req.json();
 
-    if (!key || value == null) {
-      return NextResponse.json({ error: "Key and value are required" }, { status: 400 });
+    // Find school
+    const school = await prisma.school.findUnique({
+      where: { slug: schoolSlug },
+    });
+
+    if (!school) {
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
-    const stringValue = String(value);
+    // Check if admin belongs to this school
+    const admin = await prisma.admin.findFirst({
+      where: {
+        schoolId: school.id,
+        email: (session.user as any)?.email,
+        isActive: true,
+      },
+    });
 
-    // Handle different setting types
-    if (key === 'reading_reward' || key === 'hifz_reward') {
-      await prisma.registralearningsconfig.upsert({
-        where: { key },
-        update: { value: stringValue },
-        create: { key, value: stringValue }
-      });
-    } else {
-      // Handle general settings
-      await prisma.setting.upsert({
-        where: { key },
-        update: { value: stringValue, updatedAt: new Date() },
-        create: { key, value: stringValue, updatedAt: new Date() }
-      });
+    if (!admin) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    return NextResponse.json({ success: true });
+    // Validate required fields
+    if (!settingsData.schoolName?.trim()) {
+      return NextResponse.json(
+        { error: "School name is required" },
+        { status: 400 }
+      );
+    }
+
+    // Prepare branding settings
+    const brandingSettings = {
+      primaryColor: settingsData.primaryColor || "#1f2937",
+      secondaryColor: settingsData.secondaryColor || "#6b7280",
+      accentColor: settingsData.accentColor || "#3b82f6",
+      schoolName: settingsData.schoolName.trim(),
+      tagline: settingsData.tagline?.trim() || "",
+      logoUrl: settingsData.logoUrl || "",
+      isSetupComplete: settingsData.isSetupComplete || false,
+    };
+
+    // Save settings using upsert
+    await prisma.schoolSetting.upsert({
+      where: {
+        schoolId_key: {
+          schoolId: school.id,
+          key: 'branding',
+        },
+      },
+      update: {
+        value: JSON.stringify(brandingSettings),
+        type: 'json',
+        category: 'branding',
+      },
+      create: {
+        schoolId: school.id,
+        key: 'branding',
+        value: JSON.stringify(brandingSettings),
+        type: 'json',
+        category: 'branding',
+      },
+    });
+
+    // Log the settings update
+    await prisma.auditlog.create({
+      data: {
+        actionType: "UPDATE_SCHOOL_BRANDING",
+        adminId: admin.id,
+        schoolId: school.id,
+        targetId: school.id,
+        details: "School branding settings updated",
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Branding settings saved successfully",
+      settings: brandingSettings,
+    });
 
   } catch (error) {
-    console.error("Error updating settings:", error);
+    console.error("Settings update error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to save settings" },
       { status: 500 }
     );
   }

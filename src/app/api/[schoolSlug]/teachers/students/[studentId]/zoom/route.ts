@@ -318,24 +318,23 @@ export async function POST(
       });
     } else     if (!skipNotification) {
       // Send Telegram notification (only for manual links)
-      // Use global Telegram bot token for centralized bot
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      // Use global Telegram bot token from super admin settings
 
       console.log("Telegram notification setup:", {
-        botToken: botToken ? "PRESENT" : "MISSING",
+        botToken: "FROM_SUPER_ADMIN_SETTINGS",
         studentChatId: student.chatId ? "PRESENT" : "MISSING",
         schoolSlug,
         schoolId,
         skipNotification
       });
 
-      // Send Telegram notification using centralized bot manager
+      // Send Telegram notification using global bot token from super admin settings
       if (student.chatId) {
         try {
-          const { getBotManager } = await import('@/lib/telegram/bot-manager');
-          const botManager = getBotManager();
+          const { getGlobalBotToken } = await import('@/lib/bot-token');
+          const botToken = await getGlobalBotToken();
 
-          if (botManager) {
+          if (botToken) {
             const classInfo = `Date: ${localTime.toLocaleDateString("en-US", {
               weekday: "long",
               year: "numeric",
@@ -372,6 +371,7 @@ export async function POST(
 
         // Fallback to direct Telegram API if bot manager fails
         if (!notificationSent && student.chatId && botToken) {
+          const telegramBotToken = botToken;
           try {
             const message = `📅 Class Details:
 • Date: ${localTime.toLocaleDateString("en-US", {
@@ -419,7 +419,7 @@ Click the button below to join your online class session.
           while (retryCount < maxRetries) {
             try {
               telegramResponse = await fetch(
-                `https://api.telegram.org/bot${botToken}/sendMessage`,
+                `https://api.telegram.org/bot${telegramBotToken}/sendMessage`,
                 {
                   method: "POST",
                   headers: {

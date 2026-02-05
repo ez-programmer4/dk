@@ -527,11 +527,13 @@ model wpos_wpdatatable_33 {
 
 model admin {
     id                       String                     @id @default(cuid())
-    name                     String                     @unique @db.VarChar(120)
+    name                     String                     @db.VarChar(120)
     username                 String?                    @unique @db.VarChar(120)
+    email                    String?                    @unique @db.VarChar(255)
     passcode                 String                     @db.VarChar(120)
     phoneno                  String?                    @db.VarChar(32)
     role                     String?                    @default("admin") @db.VarChar(20)
+    isActive                 Boolean                    @default(false) // For approval workflow
     schoolId                 String? // Multi-tenant field: null for darulkubra, set for new schools
     chat_id                  String                     @unique
     createdAt                DateTime                   @default(now())

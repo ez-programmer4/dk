@@ -1,10 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   Crown,
   Shield,
   Settings,
+  Bot,
+  Users,
+  Building2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,10 +26,12 @@ export default function SuperAdminDashboard() {
               <p className="text-gray-600 mt-1">Welcome to your platform control center</p>
             </div>
             <div className="flex space-x-3">
-              <Button variant="outline">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
+              <Link href="/super-admin/settings">
+                <Button variant="outline">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -101,6 +107,71 @@ export default function SuperAdminDashboard() {
                   <h3 className="font-medium text-sm mb-1">System</h3>
                   <p className="text-xs text-gray-600">Running</p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-8"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Link href="/super-admin/settings">
+                  <div className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer">
+                    <div className="flex items-center space-x-3">
+                      <Bot className="w-8 h-8 text-blue-600" />
+                      <div>
+                        <h3 className="font-medium text-gray-900">Bot Settings</h3>
+                        <p className="text-sm text-gray-600">Configure Telegram bot</p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/super-admin/school-registrations">
+                  <div className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors cursor-pointer">
+                    <div className="flex items-center space-x-3">
+                      <Building2 className="w-8 h-8 text-green-600" />
+                      <div>
+                        <h3 className="font-medium text-gray-900">School Approvals</h3>
+                        <p className="text-sm text-gray-600">Review registrations</p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/super-admin/schools">
+                  <div className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors cursor-pointer">
+                    <div className="flex items-center space-x-3">
+                      <Users className="w-8 h-8 text-purple-600" />
+                      <div>
+                        <h3 className="font-medium text-gray-900">Manage Schools</h3>
+                        <p className="text-sm text-gray-600">School administration</p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/super-admin/payments">
+                  <div className="p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors cursor-pointer">
+                    <div className="flex items-center space-x-3">
+                      <Shield className="w-8 h-8 text-orange-600" />
+                      <div>
+                        <h3 className="font-medium text-gray-900">Payments</h3>
+                        <p className="text-sm text-gray-600">Revenue management</p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
               </div>
             </CardContent>
           </Card>
