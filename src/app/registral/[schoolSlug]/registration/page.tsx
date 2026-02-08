@@ -1311,7 +1311,7 @@ function RegistrationContent() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 md:p-8 font-sans overflow-x-hidden"
+      className="min-h-screen flex items-center justify-center p-3 sm:p-4 lg:p-6 xl:p-8 font-sans overflow-x-hidden"
       style={{
         background: `linear-gradient(to bottom right, ${primaryColor}10, ${secondaryColor}10)`,
       }}
@@ -1648,22 +1648,22 @@ function RegistrationContent() {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full max-w-3xl md:max-w-5xl lg:max-w-6xl"
+        className="w-full max-w-sm sm:max-w-2xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto"
       >
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-t-4 border-teal-500">
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border-t-4 border-teal-500">
           <div
-            className="relative overflow-hidden p-8 text-white"
+            className="relative overflow-hidden p-4 sm:p-6 lg:p-8 text-white"
             style={{
               background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
             }}
           >
             {/* Background pattern overlay */}
             <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+              <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-white rounded-full -translate-y-12 sm:-translate-y-16 translate-x-12 sm:translate-x-16"></div>
+              <div className="absolute bottom-0 left-0 w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-full translate-y-8 sm:translate-y-12 -translate-x-8 sm:-translate-x-12"></div>
             </div>
 
-            <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -1695,15 +1695,15 @@ function RegistrationContent() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
-                className="flex flex-col items-center gap-4"
+                className="flex flex-col items-center gap-3 sm:gap-4"
               >
                 <div
-                  className="bg-white/15 backdrop-blur-sm rounded-2xl px-6 py-3 text-sm font-semibold flex items-center shadow-lg border border-white/20"
+                  className="bg-white/15 backdrop-blur-sm rounded-xl sm:rounded-2xl px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold flex items-center shadow-lg border border-white/20"
                   aria-label="Step Progress"
                 >
-                  <span className="mr-4 text-white/90">Progress</span>
-                  <span className="text-lg font-bold mr-4">{step} of 3</span>
-                  <div className="flex space-x-2">
+                  <span className="mr-2 sm:mr-4 text-white/90 hidden sm:inline">Progress</span>
+                  <span className="text-base sm:text-lg font-bold mr-2 sm:mr-4">{step} of 3</span>
+                  <div className="flex space-x-1 sm:space-x-2">
                     {[1, 2, 3].map((i) => (
                       <button
                         key={i}
@@ -2286,7 +2286,7 @@ function RegistrationContent() {
                   exit={{ opacity: 0, x: 30 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                   onSubmit={handleSubmit(onSubmit)}
-                  className="space-y-8"
+                  className="space-y-6 sm:space-y-8"
                 >
                   <button
                     type="button"
@@ -2360,7 +2360,7 @@ function RegistrationContent() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-2">
                       <label className="block text-sm font-semibold text-gray-800 flex items-center">
                         <FiUser className="mr-2 text-teal-600" />
