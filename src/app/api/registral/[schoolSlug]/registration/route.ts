@@ -154,6 +154,7 @@ export async function POST(
 
     // Determine schoolId - create school if it doesn't exist for non-darulkubra
     let schoolId = userSchoolSlug === "darulkubra" ? null : userSchoolSlug;
+    console.log('🎓 Registral API - Initial schoolId setup:', { userSchoolSlug, initialSchoolId: schoolId });
 
     if (schoolId && userSchoolSlug !== "darulkubra") {
       // Check if school exists, create if not
@@ -161,6 +162,8 @@ export async function POST(
         where: { slug: userSchoolSlug },
         select: { id: true, name: true },
       });
+
+      console.log('🎓 Registral API - School lookup result:', { userSchoolSlug, existingSchool });
 
       if (!existingSchool) {
         // Create the school automatically
@@ -174,10 +177,14 @@ export async function POST(
           },
         });
         schoolId = newSchool.id;
+        console.log('🎓 Registral API - Created new school:', { newSchoolId: schoolId, newSchoolName: newSchool.name });
       } else {
         schoolId = existingSchool.id;
+        console.log('🎓 Registral API - Using existing school:', { schoolId, schoolName: existingSchool.name });
       }
     }
+
+    console.log('🎓 Registral API - Final schoolId:', schoolId);
 
     const body = await request.json();
     const {
@@ -260,6 +267,27 @@ export async function POST(
     let timeToMatch: string = "",
       timeSlot: string = "";
 
+    console.log('🔍 Status check:', {
+      status,
+      statusType: typeof status,
+      isNotOnProgress: status !== "On Progress",
+      isNotOnProgressLower: status !== "on progress",
+      hasSelectedTime: !!selectedTime,
+      hasUstaz: !!ustaz,
+      overallCondition: status !== "On Progress" && status !== "on progress" && selectedTime && ustaz
+    });
+
+    // Always convert time if provided (needed for occupied time creation)
+    if (selectedTime && validateTime(selectedTime)) {
+      timeToMatch = to24Hour(selectedTime);
+      timeSlot = to12Hour(timeToMatch);
+      console.log('⏰ Time converted for occupied times:', {
+        selectedTime,
+        timeToMatch,
+        timeSlot
+      });
+    }
+
     // Only validate time and check availability if not "On Progress"
     if (
       status !== "On Progress" &&
@@ -267,16 +295,15 @@ export async function POST(
       selectedTime &&
       ustaz
     ) {
-      // Validate time format
-      if (!validateTime(selectedTime)) {
+      console.log('🎯 TIME VALIDATION BLOCK EXECUTED FOR AVAILABILITY CHECK!');
+
+      // Time already converted above, just validate it was successful
+      if (!timeSlot) {
         return NextResponse.json(
           { message: `Invalid time format: ${selectedTime}` },
           { status: 400 }
         );
       }
-
-      timeToMatch = to24Hour(selectedTime);
-      timeSlot = to12Hour(timeToMatch);
 
       // Check teacher availability
       const availability = await checkTeacherAvailability(
@@ -441,18 +468,40 @@ export async function POST(
       }
 
       // Create occupied time record if teacher and time are assigned
+      console.log('🔍 Checking occupied time creation conditions:', {
+        ustaz: !!ustaz,
+        selectedTime: !!selectedTime,
+        timeSlot: !!timeSlot,
+        ustaz_value: ustaz,
+        selectedTime_value: selectedTime,
+        timeSlot_value: timeSlot,
+        allTruthy: !!(ustaz && selectedTime && timeSlot)
+      });
+
       if (ustaz && selectedTime && timeSlot) {
+        console.log('🎯 Registral API - Creating occupied time entry:', {
+          ustaz_id: ustaz,
+          student_id: registration.wdt_ID,
+          time_slot: timeSlot,
+          daypackage: selectedDayPackage,
+          schoolId: schoolId,
+        });
+
         await tx.wpos_ustaz_occupied_times.create({
           data: {
             ustaz_id: ustaz,
             student_id: registration.wdt_ID,
             time_slot: timeSlot,
-            daypackage: selectedDayPackage,
+            daypackage: selectedDayPackage || "",
             occupied_at: new Date(),
             end_at: null,
             schoolId: schoolId,
           },
         });
+
+        console.log('✅ Registral API - Occupied time entry created successfully');
+      } else {
+        console.log('⚠️ Registral API - Skipping occupied time creation:', { ustaz, selectedTime, timeSlot });
       }
 
       return registration;

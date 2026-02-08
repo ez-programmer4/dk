@@ -142,10 +142,24 @@ export default function RegistralDashboard() {
       ]);
 
       if (!regResponse.ok) {
-        throw new Error(`HTTP error! Status: ${regResponse.status}`);
+        console.error('❌ RegResponse not ok:', regResponse.status, regResponse.statusText);
+        const errorText = await regResponse.text();
+        console.error('❌ Error response:', errorText);
+        throw new Error(`HTTP error! Status: ${regResponse.status} - ${errorText}`);
       }
+
       const data = await regResponse.json();
+      console.log('📥 Dashboard received data:', data);
+      console.log('📥 Data type:', typeof data, 'Is array:', Array.isArray(data));
+
+      // Check if it's an error response
+      if (data.error) {
+        console.error('❌ API returned error:', data.error, data.details);
+        throw new Error(data.error || "API returned an error");
+      }
+
       if (!Array.isArray(data)) {
+        console.error('❌ Expected array but got:', data);
         throw new Error("Expected an array of registrations");
       }
 

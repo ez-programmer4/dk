@@ -45,6 +45,7 @@ import {
 interface SchoolBranding {
   primaryColor: string;
   secondaryColor: string;
+  accentColor?: string;
   logo: string;
   name: string;
   theme: string;
@@ -60,6 +61,7 @@ export const useBranding = () => {
     return {
       primaryColor: "#4F46E5",
       secondaryColor: "#7C3AED",
+      accentColor: "#3B82F6",
       logo: "/logo.svg",
       name: "Admin Portal",
       theme: "light",
@@ -821,12 +823,7 @@ export default function AdminLayout({
           icon: FiCalendar,
           description: "Payroll rules",
         },
-        {
-          href: `/admin/${schoolSlug}/package-deductions`,
-          label: "Package Deductions",
-          icon: FiPackage,
-          description: "Pricing rules",
-        },
+       
         {
           href: `/admin/${schoolSlug}/package-salaries`,
           label: "Package Salaries",
@@ -839,12 +836,7 @@ export default function AdminLayout({
           icon: FiUsers,
           description: "Student settings",
         },
-        {
-          href: `/admin/${schoolSlug}/on-progress`,
-          label: "On Progress Students",
-          icon: FiActivity,
-          description: "Active enrollments",
-        },
+       
       ],
     },
   ];
@@ -910,13 +902,16 @@ export default function AdminLayout({
     if (schoolSlug) {
       const fetchBranding = async () => {
         try {
+          console.log('🎨 Admin Layout: Fetching branding for school:', schoolSlug);
           const response = await fetch(
             `/api/admin/${schoolSlug}/branding`
           );
           if (response.ok) {
             const data = await response.json();
+            console.log('🎨 Admin Layout: Branding data received:', data);
             setBranding(data);
           } else {
+            console.error('🎨 Admin Layout: Branding API failed:', response.status, response.statusText);
             // If API fails, use fallback branding
             const fallbackBranding = {
               name: `${
@@ -925,6 +920,7 @@ export default function AdminLayout({
               logo: "/logo.svg",
               primaryColor: "#4F46E5",
               secondaryColor: "#7C3AED",
+              accentColor: "#3B82F6",
               theme: "light",
               supportEmail: `admin@${schoolSlug}.com`,
             };

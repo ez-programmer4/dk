@@ -47,3 +47,6 @@ async function testSimpleRegistration() {
 
 // Run the test
 testSimpleRegistration();
+
+
+

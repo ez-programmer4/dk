@@ -1441,7 +1441,7 @@ export default function StudentsPage() {
     if (!editingStudent) return;
 
     try {
-      const response = await fetch(`/api/admin/students/${editingStudent.id}`, {
+      const response = await fetch(`/api/admin/${schoolSlug}/students/${editingStudent.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -1684,7 +1684,7 @@ export default function StudentsPage() {
   const fetchGlobalStats = async () => {
     setStatsLoading(true);
     try {
-      const response = await fetch("/api/admin/students/stats", {
+      const response = await fetch(`/api/admin/${schoolSlug}/students/stats`, {
         credentials: "include",
         cache: "no-store",
       });
@@ -1715,7 +1715,7 @@ export default function StudentsPage() {
     setAlertsLoading(true);
     try {
       const response = await fetch(
-        `/api/admin/students/alerts?months=${notSucceedMonths}`,
+        `/api/admin/${schoolSlug}/students/alerts?months=${notSucceedMonths}`,
         {
           credentials: "include",
           cache: "no-store",
@@ -1723,7 +1723,7 @@ export default function StudentsPage() {
       );
       if (response.ok) {
         const alertsData = await response.json();
-        setAlerts(alertsData);
+        setAlerts(alertsData.alerts);
       }
     } catch (err) {
       console.error("Failed to fetch alerts:", err);
@@ -2169,9 +2169,12 @@ export default function StudentsPage() {
           >
             <FiAlertCircle className="h-6 w-6" />
             {alerts &&
-              alerts.notSucceed.count +
+              alerts.notSucceed &&
+              alerts.notYetMoreThan5Days &&
+              alerts.absent5ConsecutiveDays &&
+              (alerts.notSucceed.count +
                 alerts.notYetMoreThan5Days.count +
-                alerts.absent5ConsecutiveDays.count >
+                alerts.absent5ConsecutiveDays.count) >
                 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-red-600 rounded-full text-xs font-black flex items-center justify-center border-2 border-red-500">
                   {alerts.notSucceed.count +
@@ -3186,7 +3189,7 @@ export default function StudentsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <MetricCard
                     title="Not Succeed Students"
-                    value={alerts.notSucceed.count}
+                    value={alerts?.notSucceed?.count || 0}
                     icon={FiAlertCircle}
                     color="red"
                     subtitle="Requires attention"
@@ -3200,7 +3203,7 @@ export default function StudentsPage() {
                   />
                   <MetricCard
                     title="Not Yet > 5 Days"
-                    value={alerts.notYetMoreThan5Days.count}
+                    value={alerts?.notYetMoreThan5Days?.count || 0}
                     icon={FiClock}
                     color="amber"
                     subtitle="Awaiting activation"
@@ -3208,7 +3211,7 @@ export default function StudentsPage() {
                   />
                   <MetricCard
                     title="Absent 5+ Days"
-                    value={alerts.absent5ConsecutiveDays.count}
+                    value={alerts?.absent5ConsecutiveDays?.count || 0}
                     icon={FiUserMinus}
                     color="red"
                     subtitle="Consecutive absences"
@@ -3219,7 +3222,7 @@ export default function StudentsPage() {
                 {/* Not Succeed Students List - Enhanced */}
                 {(() => {
                   const notSucceedData = getPaginatedStudents(
-                    alerts.notSucceed.students,
+                    alerts?.notSucceed?.students || [],
                     alertSearch.notSucceed,
                     alertPage.notSucceed,
                     alertLimit
@@ -3238,7 +3241,7 @@ export default function StudentsPage() {
                               <h3 className="text-xl font-black text-white flex items-center gap-2">
                                 Not Succeed Students
                                 <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-sm">
-                                  {alerts.notSucceed.count}
+                                  {alerts?.notSucceed?.count || 0}
                                 </span>
                               </h3>
                               <p className="text-red-100 text-sm mt-1">
@@ -3504,7 +3507,7 @@ export default function StudentsPage() {
                 {/* Not Yet Students > 5 Days List - Enhanced */}
                 {(() => {
                   const notYetData = getPaginatedStudents(
-                    alerts.notYetMoreThan5Days.students,
+                    alerts?.notYetMoreThan5Days?.students || [],
                     alertSearch.notYet,
                     alertPage.notYet,
                     alertLimit
@@ -3523,7 +3526,7 @@ export default function StudentsPage() {
                               <h3 className="text-xl font-black text-white flex items-center gap-2">
                                 Not Yet Students &gt; 5 Days
                                 <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-sm">
-                                  {alerts.notYetMoreThan5Days.count}
+                                  {alerts?.notYetMoreThan5Days?.count || 0}
                                 </span>
                               </h3>
                               <p className="text-amber-100 text-sm mt-1">
@@ -3748,7 +3751,7 @@ export default function StudentsPage() {
                 {/* Absent 5 Consecutive Days List - Enhanced */}
                 {(() => {
                   const absentData = getPaginatedStudents(
-                    alerts.absent5ConsecutiveDays.students,
+                    alerts?.absent5ConsecutiveDays?.students || [],
                     alertSearch.absent,
                     alertPage.absent,
                     alertLimit
@@ -3767,7 +3770,7 @@ export default function StudentsPage() {
                               <h3 className="text-xl font-black text-white flex items-center gap-2">
                                 Absent 5+ Consecutive Days
                                 <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-sm">
-                                  {alerts.absent5ConsecutiveDays.count}
+                                  {alerts?.absent5ConsecutiveDays?.count || 0}
                                 </span>
                               </h3>
                               <p className="text-red-100 text-sm mt-1">

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   FiSearch,
   FiChevronLeft,
@@ -227,34 +228,45 @@ const ScheduleGenerator = ({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-4 rounded-xl border border-gray-300">
+      <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <FiCalendar className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Manual Time Entry</h3>
+            <p className="text-sm text-gray-600">Enter times manually or select from prayer slots below</p>
+          </div>
+        </div>
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Enter manually with AM/PM: 6:00 AM, 2:30 PM, 8:00 PM or select from slots below"
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black bg-white text-gray-900"
+          placeholder="Example: 6:00 AM, 2:30 PM, 8:00 PM"
+          className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
         />
       </div>
 
       {/* Select All / Deselect All Buttons */}
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={selectAllTimes}
-          className="flex-1 bg-black hover:bg-gray-800 text-white px-4 py-3 rounded-xl font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
-        >
-          <FiCheck className="h-4 w-4" />
-          Select All Time Slots
-        </button>
-        <button
-          type="button"
-          onClick={deselectAllTimes}
-          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-xl font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
-        >
-          <FiX className="h-4 w-4" />
-          Deselect All
-        </button>
+      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={selectAllTimes}
+            className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-4 rounded-xl font-bold transition-all hover:scale-105 hover:shadow-lg flex items-center justify-center gap-3"
+          >
+            <FiCheck className="h-5 w-5" />
+            Select All Prayer Time Slots
+          </button>
+          <button
+            type="button"
+            onClick={deselectAllTimes}
+            className="flex-1 bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400 text-gray-800 px-6 py-4 rounded-xl font-bold transition-all hover:scale-105 hover:shadow-lg flex items-center justify-center gap-3"
+          >
+            <FiX className="h-5 w-5" />
+            Clear All Selections
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -284,44 +296,46 @@ const ScheduleGenerator = ({
             return (
               <div
                 key={prayer}
-                className={`p-4 rounded-xl border-2 ${
+                className={`p-6 rounded-2xl border-2 ${
                   prayerColors[prayer as keyof typeof prayerColors]
-                }`}
+                } shadow-sm hover:shadow-md transition-all duration-200`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gray-600"></div>
-                    <h4 className="font-bold text-lg text-gray-800">
-                      {prayer} Period
-                    </h4>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg"></div>
+                    <div>
+                      <h4 className="font-bold text-xl text-gray-800">
+                        {prayer} Period
+                      </h4>
+                      <p className="text-sm text-gray-600 font-medium">
+                        {prayerPeriods[prayer as keyof typeof prayerPeriods]}
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => selectPrayerPeriod(prayer)}
-                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-800 text-white text-xs font-semibold rounded-lg transition-all hover:scale-105 flex items-center gap-1"
+                    className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-bold rounded-xl transition-all hover:scale-105 hover:shadow-lg flex items-center gap-2 self-start sm:self-center"
                     title={`Select all ${prayer} time slots`}
                   >
-                    <FiCheck className="h-3 w-3" />
+                    <FiCheck className="h-4 w-4" />
                     Select All
                   </button>
                 </div>
-                <p className="text-sm text-gray-600 mb-3 font-medium">
-                  {prayerPeriods[prayer as keyof typeof prayerPeriods]}
-                </p>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                   {prayerSlots.map((slot, index) => (
                     <button
                       key={index}
                       type="button"
                       onClick={() => toggleTime(slot.time)}
-                      className={`p-2 text-sm rounded-lg border transition-all duration-200 hover:scale-105 ${
+                      className={`p-3 text-sm rounded-xl border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg ${
                         selectedTimes.includes(slot.time12)
-                          ? "bg-black text-white border-black shadow-lg"
-                          : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                          ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white border-blue-600 shadow-xl transform scale-105"
+                          : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-blue-400 hover:text-blue-700"
                       }`}
                     >
-                      <div className="font-bold">{slot.time12}</div>
-                      <div className="text-xs opacity-75">{slot.time}</div>
+                      <div className="font-bold text-base mb-1">{slot.time12}</div>
+                      <div className="text-xs opacity-80 font-medium">{slot.time}</div>
                     </button>
                   ))}
                 </div>
@@ -331,11 +345,19 @@ const ScheduleGenerator = ({
         )}
       </div>
 
-      <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-        <p className="text-sm text-gray-700 font-medium">
-          💡 Select from prayer-based time slots with 30-minute intervals. Times
-          shown in both 12-hour and 24-hour formats.
-        </p>
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-200 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <FiInfo className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h4 className="font-bold text-blue-900 mb-1">How to Use</h4>
+            <p className="text-sm text-blue-800 leading-relaxed">
+              Select from prayer-based time slots with 30-minute intervals. Times are shown in both 12-hour (AM/PM) and 24-hour formats.
+              You can manually enter times above or use the prayer period buttons to quickly select entire time ranges.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -352,6 +374,7 @@ interface User {
   controlId?: string;
   phone?: string;
   code?: string;
+  createdAt?: string;
 }
 
 const RoleBadge = ({ role }: { role: UserRole }) => {
@@ -388,9 +411,21 @@ const roleIcons: Record<UserRole, any> = {
   registral: FiSettings,
 };
 
+// Utility function to apply school branding colors
+const getBrandedColor = (color: string, fallback: string, schoolBranding: any) => {
+  if (color === 'primary' && schoolBranding.primaryColor) {
+    return schoolBranding.primaryColor;
+  }
+  if (color === 'secondary' && schoolBranding.secondaryColor) {
+    return schoolBranding.secondaryColor;
+  }
+  return fallback;
+};
+
 export default function UserManagementPage() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
+  const { data: session, status } = useSession();
   const [users, setUsers] = useState<User[]>([] as User[]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -427,6 +462,12 @@ export default function UserManagementPage() {
     registral: 0,
   });
   const [totalUsers, setTotalUsers] = useState(0);
+  const [schoolBranding, setSchoolBranding] = useState<{
+    logoUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    name?: string;
+  }>({});
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -453,6 +494,7 @@ export default function UserManagementPage() {
   useEffect(() => {
     fetchUsers();
     fetchTotalCounts();
+    fetchSchoolBranding();
   }, [fetchUsers]);
 
   const fetchTotalCounts = async () => {
@@ -472,20 +514,51 @@ export default function UserManagementPage() {
     }
   };
 
-  const fetchControllers = async () => {
+  const fetchSchoolBranding = async () => {
     try {
-      const res = await fetch(`/api/admin/${schoolSlug}/users?role=controller&limit=100`);
-      if (!res.ok) throw new Error("Failed to fetch controllers");
+      const res = await fetch(`/api/admin/${schoolSlug}/branding`);
+      if (!res.ok) throw new Error("Failed to fetch branding");
       const data = await res.json();
+      setSchoolBranding(data.branding || {});
+    } catch (err: any) {
+      console.error("Error fetching branding:", err);
+    }
+  };
+
+  const fetchControllers = async () => {
+    if (status !== "authenticated") {
+      console.log("Waiting for authentication before fetching controllers");
+      return;
+    }
+
+    try {
+      console.log("Fetching controllers for authenticated user");
+      const res = await fetch(`/api/admin/${schoolSlug}/users?role=controller&limit=100`);
+      if (!res.ok) {
+        console.error(`Failed to fetch controllers: ${res.status} ${res.statusText}`);
+        if (res.status === 401) {
+          console.error("Authentication failed for fetching controllers");
+          setError("Authentication required. Please log in again.");
+        } else if (res.status === 403) {
+          console.error("Access denied to this school's controllers");
+          setError("You don't have access to manage users for this school.");
+        }
+        throw new Error(`Failed to fetch controllers: ${res.status} ${res.statusText}`);
+      }
+      const data = await res.json();
+      console.log("Controllers loaded:", data.users?.length || 0);
       setControllers(data.users || []);
     } catch (err: any) {
       console.error("Error fetching controllers:", err);
+      setError("Failed to load controllers. Please refresh the page.");
     }
   };
 
   useEffect(() => {
-    fetchControllers();
-  }, []);
+    if (schoolSlug && status === "authenticated") {
+      fetchControllers();
+    }
+  }, [schoolSlug, status]);
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -528,12 +601,16 @@ export default function UserManagementPage() {
 
     const method = editingUser ? "PUT" : "POST";
 
+    console.log('Sending user creation request:', { method, payload });
+
     try {
       const res = await fetch(`/api/admin/${schoolSlug}/users`, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
+      console.log('API response status:', res.status);
 
       if (!res.ok) {
         const errorData = await res.json();
@@ -629,21 +706,65 @@ export default function UserManagementPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          background: `linear-gradient(135deg, ${getBrandedColor('primary', '#f9fafb', schoolBranding)} 0%, ${getBrandedColor('secondary', '#f3f4f6', schoolBranding)} 100%)`
+        }}
+      >
+        <div className="bg-white rounded-2xl shadow-2xl p-12 text-center border border-gray-100/50">
           <div className="relative mb-8">
-            <div className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200 border-t-blue-600 mx-auto"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-600 animate-spin mx-auto" style={{animationDirection: 'reverse', animationDuration: '1.5s'}}></div>
+            <div
+              className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200 mx-auto"
+              style={{
+                borderTopColor: getBrandedColor('primary', '#2563eb', schoolBranding)
+              }}
+            ></div>
+            <div
+              className="absolute inset-0 rounded-full border-4 border-transparent animate-spin mx-auto"
+              style={{
+                animationDirection: 'reverse',
+                animationDuration: '1.5s',
+                borderTopColor: getBrandedColor('secondary', '#7c3aed', schoolBranding)
+              }}
+            ></div>
+            {/* School Logo in center if available */}
+            {schoolBranding.logoUrl && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <img
+                  src={schoolBranding.logoUrl}
+                  alt="Loading..."
+                  className="w-8 h-8 rounded-lg opacity-20"
+                />
+              </div>
+            )}
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Loading Users</h2>
-          <p className="text-gray-600 text-lg">
-            Please wait while we fetch the data
+          <h2
+            className="text-2xl font-bold mb-3"
+            style={{ color: getBrandedColor('primary', '#111827', schoolBranding) }}
+          >
+            Loading Users
+          </h2>
+          <p
+            className="text-lg"
+            style={{ color: `${getBrandedColor('primary', '#6b7280', schoolBranding)}cc` }}
+          >
+            {schoolBranding.name ? `Loading ${schoolBranding.name} user data` : 'Please wait while we fetch the data'}
           </p>
           <div className="mt-6 flex justify-center">
             <div className="flex space-x-2">
-              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-              <div className="w-2 h-2 bg-pink-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+              <div
+                className="w-2 h-2 rounded-full animate-bounce"
+                style={{ backgroundColor: getBrandedColor('primary', '#2563eb', schoolBranding) }}
+              ></div>
+              <div
+                className="w-2 h-2 rounded-full animate-bounce"
+                style={{ animationDelay: '0.1s', backgroundColor: getBrandedColor('secondary', '#7c3aed', schoolBranding) }}
+              ></div>
+              <div
+                className="w-2 h-2 rounded-full animate-bounce"
+                style={{ animationDelay: '0.2s', backgroundColor: getBrandedColor('primary', '#06b6d4', schoolBranding) }}
+              ></div>
             </div>
           </div>
         </div>
@@ -652,51 +773,120 @@ export default function UserManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+    <div
+      className="min-h-screen"
+      style={{
+        background: `linear-gradient(135deg, ${getBrandedColor('primary', '#f9fafb', schoolBranding)} 0%, ${getBrandedColor('secondary', '#f3f4f6', schoolBranding)}20 50%, ${getBrandedColor('primary', '#f9fafb', schoolBranding)} 100%)`
+      }}
+    >
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-        {/* Modern Header */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-8 lg:p-10 backdrop-blur-sm">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-8 mb-8">
+        {/* Modern Header with School Branding */}
+        <div className="relative overflow-hidden bg-white rounded-2xl shadow-lg border border-gray-100/50 p-8 lg:p-10 backdrop-blur-sm">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute inset-0" style={{
+              background: `linear-gradient(135deg, ${getBrandedColor('primary', '#667eea', schoolBranding)} 0%, ${getBrandedColor('secondary', '#764ba2', schoolBranding)} 100%)`
+            }}></div>
+          </div>
+
+          <div className="relative flex flex-col lg:flex-row lg:items-center gap-8 mb-8">
             <div className="flex items-center gap-6">
-              <div className="p-4 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-lg">
-                <FiUsers className="h-8 w-8 text-white" />
-              </div>
+              {/* School Logo or Default Icon */}
+              {schoolBranding.logoUrl ? (
+                <div className="p-1 bg-white rounded-2xl shadow-lg border-4 border-white">
+                  <img
+                    src={schoolBranding.logoUrl}
+                    alt={`${schoolBranding.name} Logo`}
+                    className="w-16 h-16 rounded-xl object-cover"
+                  />
+                </div>
+              ) : (
+                <div
+                  className="p-4 rounded-2xl shadow-lg border-4 border-white"
+                  style={{
+                    background: `linear-gradient(135deg, ${getBrandedColor('primary', '#1f2937', schoolBranding)}, ${getBrandedColor('secondary', '#374151', schoolBranding)})`
+                  }}
+                >
+                  <FiUsers className="h-8 w-8 text-white" />
+                </div>
+              )}
               <div>
-                <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
+                <h1
+                  className="text-4xl lg:text-5xl font-bold mb-2"
+                  style={{
+                    background: `linear-gradient(135deg, ${getBrandedColor('primary', '#1f2937', schoolBranding)}, ${getBrandedColor('secondary', '#374151', schoolBranding)})`,
+                    WebkitBackgroundClip: 'text',
+                    backgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                  }}
+                >
                   User Management
                 </h1>
                 <p className="text-gray-600 text-lg lg:text-xl font-medium">
-                  Manage system users, roles, and permissions
+                  {schoolBranding.name ? `${schoolBranding.name} - ` : ''}Manage system users, roles, and permissions
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Modern Controls */}
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-2xl p-8 border border-gray-100/50">
+          {/* Enhanced Controls with Branding */}
+          <div
+            className="rounded-2xl p-8 border border-gray-100/50 shadow-lg backdrop-blur-sm"
+            style={{
+              background: `linear-gradient(135deg, ${getBrandedColor('primary', '#f9fafb', schoolBranding)}10 0%, ${getBrandedColor('secondary', '#f3f4f6', schoolBranding)}10 100%)`
+            }}
+          >
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
               <div className="lg:col-span-4">
-                <label className="block text-sm font-bold text-black mb-3">
-                  <FiSearch className="inline h-4 w-4 mr-2" />
-                  Search Users
+                <label className="block text-sm font-bold mb-3 flex items-center gap-2">
+                  <div
+                    className="p-1.5 rounded-lg"
+                    style={{ backgroundColor: `${getBrandedColor('primary', '#6b7280', schoolBranding)}20` }}
+                  >
+                    <FiSearch
+                      className="h-4 w-4"
+                      style={{ color: getBrandedColor('primary', '#374151', schoolBranding) }}
+                    />
+                  </div>
+                  <span style={{ color: getBrandedColor('primary', '#111827', schoolBranding) }}>
+                    Search Users
+                  </span>
                 </label>
                 <input
                   type="text"
                   placeholder="Search by name or username..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 bg-white text-gray-900 shadow-sm transition-all duration-200 text-base hover:shadow-md"
+                  style={{
+                    borderColor: `${getBrandedColor('primary', '#d1d5db', schoolBranding)}50`,
+                    focusRingColor: getBrandedColor('primary', '#000000', schoolBranding)
+                  }}
                 />
               </div>
               <div className="lg:col-span-4">
-                <label className="block text-sm font-bold text-black mb-3">
-                  <FiFilter className="inline h-4 w-4 mr-2" />
-                  Filter by Role
+                <label className="block text-sm font-bold mb-3 flex items-center gap-2">
+                  <div
+                    className="p-1.5 rounded-lg"
+                    style={{ backgroundColor: `${getBrandedColor('secondary', '#6b7280', schoolBranding)}20` }}
+                  >
+                    <FiFilter
+                      className="h-4 w-4"
+                      style={{ color: getBrandedColor('secondary', '#374151', schoolBranding) }}
+                    />
+                  </div>
+                  <span style={{ color: getBrandedColor('secondary', '#111827', schoolBranding) }}>
+                    Filter by Role
+                  </span>
                 </label>
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 shadow-sm transition-all duration-200 text-base"
+                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 bg-white text-gray-900 shadow-sm transition-all duration-200 text-base hover:shadow-md"
+                  style={{
+                    borderColor: `${getBrandedColor('secondary', '#d1d5db', schoolBranding)}50`,
+                    focusRingColor: getBrandedColor('secondary', '#000000', schoolBranding)
+                  }}
                 >
                   <option value="">All Roles</option>
                   <option value="admin">Admin</option>
@@ -709,14 +899,23 @@ export default function UserManagementPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => window.location.reload()}
-                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-4 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-4 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                    style={{
+                      backgroundColor: '#f3f4f6',
+                      color: '#374151'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                   >
                     <FiRefreshCw className="h-4 w-4" />
                     Refresh
                   </button>
                   <button
                     onClick={openCreateModal}
-                    className="flex-1 bg-black hover:bg-gray-800 text-white px-4 py-4 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-4 rounded-xl font-bold transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-white"
+                    style={{
+                      background: `linear-gradient(135deg, ${getBrandedColor('primary', '#000000', schoolBranding)}, ${getBrandedColor('secondary', '#1f2937', schoolBranding)})`
+                    }}
                   >
                     <FiUserPlus className="h-4 w-4" />
                     Add User
@@ -733,37 +932,95 @@ export default function UserManagementPage() {
             const roleUsers = groupedUsers[role] || [];
             const RoleIcon = roleIcons[role];
 
+            // Dynamic role colors based on school branding
+            const roleColors = {
+              admin: {
+                bg: getBrandedColor('primary', '#fef3c7', schoolBranding),
+                border: getBrandedColor('primary', '#f59e0b', schoolBranding),
+                icon: getBrandedColor('primary', '#d97706', schoolBranding),
+                text: getBrandedColor('primary', '#92400e', schoolBranding)
+              },
+              controller: {
+                bg: getBrandedColor('secondary', '#dbeafe', schoolBranding),
+                border: getBrandedColor('secondary', '#3b82f6', schoolBranding),
+                icon: getBrandedColor('secondary', '#2563eb', schoolBranding),
+                text: getBrandedColor('secondary', '#1e40af', schoolBranding)
+              },
+              teacher: {
+                bg: '#f0fdf4',
+                border: '#22c55e',
+                icon: '#16a34a',
+                text: '#15803d'
+              },
+              registral: {
+                bg: '#fef3c7',
+                border: '#f59e0b',
+                icon: '#d97706',
+                text: '#92400e'
+              }
+            };
+
             return (
               <div
                 key={role}
-                className="bg-white rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden backdrop-blur-sm"
+                className="bg-white rounded-2xl shadow-lg border overflow-hidden backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
+                style={{
+                  borderColor: `${roleColors[role].border}30`,
+                  boxShadow: `0 10px 25px -5px ${roleColors[role].border}20`
+                }}
               >
                 <div
-                  className="p-8 border-b border-gray-100 cursor-pointer hover:bg-gradient-to-r hover:from-gray-50 hover:to-transparent transition-all duration-300 group"
+                  className="cursor-pointer transition-all duration-300 group"
+                  style={{
+                    background: `linear-gradient(135deg, ${roleColors[role].bg} 0%, rgba(255,255,255,0.9) 100%)`,
+                    borderBottom: `1px solid ${roleColors[role].border}20`
+                  }}
                   onClick={() => toggleRoleExpansion(role)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-5">
-                      <div className="p-3 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                        <RoleIcon className="h-6 w-6 text-white" />
+                  <div className="p-8">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-5">
+                        <div
+                          className="p-3 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
+                          style={{
+                            background: `linear-gradient(135deg, ${roleColors[role].icon}, ${roleColors[role].text})`
+                          }}
+                        >
+                          <RoleIcon className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h2
+                            className="text-2xl font-bold transition-colors group-hover:scale-105"
+                            style={{
+                              color: roleColors[role].text,
+                              textShadow: `0 1px 2px ${roleColors[role].border}20`
+                            }}
+                          >
+                            {roleLabels[role]}
+                          </h2>
+                          <p
+                            className="font-medium"
+                            style={{ color: `${roleColors[role].text}cc` }}
+                          >
+                            {roleUsers.length} users
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900 group-hover:text-gray-800 transition-colors">
-                          {roleLabels[role]}
-                        </h2>
-                        <p className="text-gray-600 font-medium">
-                          {roleUsers.length} users
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <RoleBadge role={role} />
-                      <div className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                        {expandedRoles[role] ? (
-                          <FiChevronDown className="h-6 w-6 text-gray-400" />
-                        ) : (
-                          <FiChevronRightIcon className="h-6 w-6 text-gray-400" />
-                        )}
+                      <div className="flex items-center gap-4">
+                        <RoleBadge role={role} />
+                        <div
+                          className="p-2 rounded-lg transition-all duration-200 hover:scale-110"
+                          style={{
+                            backgroundColor: `${roleColors[role].icon}15`,
+                            color: roleColors[role].icon
+                          }}
+                        >
+                          {expandedRoles[role] ? (
+                            <FiChevronDown className="h-6 w-6" />
+                          ) : (
+                            <FiChevronRightIcon className="h-6 w-6" />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -772,47 +1029,51 @@ export default function UserManagementPage() {
                 {expandedRoles[role] && (
                   <div className="p-6">
                     {roleUsers.length === 0 ? (
-                      <div className="text-center py-16">
-                        <div className="relative mb-8">
-                          <div className="p-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl w-fit mx-auto shadow-lg">
-                            <RoleIcon className="h-16 w-16 text-gray-500" />
+                      <div className="text-center py-20 px-6">
+                        <div className="relative mb-10">
+                          <div className="p-10 bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 rounded-3xl w-fit mx-auto shadow-2xl">
+                            <RoleIcon className="h-20 w-20 text-gray-600" />
                           </div>
-                          <div className="absolute -top-2 -right-2 p-2 bg-gray-200 rounded-full">
-                            <FiInfo className="h-4 w-4 text-gray-600" />
+                          <div className="absolute -top-3 -right-3 p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full shadow-lg">
+                            <FiInfo className="h-5 w-5 text-white" />
                           </div>
                         </div>
-                        <h3 className="text-3xl font-bold text-gray-900 mb-4">
-                          No {roleLabels[role]}
+                        <h3 className="text-4xl font-bold text-gray-900 mb-6">
+                          No {roleLabels[role]} Yet
                         </h3>
-                        <p className="text-gray-600 text-xl font-medium">
+                        <p className="text-gray-600 text-xl font-medium mb-4">
                           No users found with this role.
                         </p>
-                        <p className="text-gray-500 text-sm mt-2">
-                          Click "Add User" to create the first one
+                        <p className="text-gray-500 text-base mb-8">
+                          Click "Add User" to create the first one and get started
                         </p>
+                        <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all hover:scale-105 hover:shadow-xl">
+                          <FiUserPlus className="h-5 w-5" />
+                          Create First {roleLabels[role].slice(0, -1)}
+                        </div>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto">
+                      <div className="overflow-x-auto rounded-xl border border-gray-200">
                         <table className="min-w-full text-sm divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
+                          <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                             <tr>
-                              <th className="px-6 py-4 text-left text-sm font-bold text-black uppercase tracking-wider">
+                              <th className="px-6 py-5 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">
                                 User
                               </th>
-                              <th className="px-6 py-4 text-left text-sm font-bold text-black uppercase tracking-wider">
+                              <th className="px-6 py-5 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">
                                 Details
                               </th>
                               {role === "teacher" && (
                                 <>
-                                  <th className="px-6 py-4 text-left text-sm font-bold text-black uppercase tracking-wider">
+                                  <th className="px-6 py-5 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">
                                     Controller
                                   </th>
-                                  <th className="px-6 py-4 text-left text-sm font-bold text-black uppercase tracking-wider">
+                                  <th className="px-6 py-5 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">
                                     Schedule
                                   </th>
                                 </>
                               )}
-                              <th className="px-6 py-4 text-right text-sm font-bold text-black uppercase tracking-wider">
+                              <th className="px-6 py-5 text-right text-sm font-bold text-gray-900 uppercase tracking-wider">
                                 Actions
                               </th>
                             </tr>
@@ -821,9 +1082,7 @@ export default function UserManagementPage() {
                             {roleUsers.map((user, index) => (
                               <tr
                                 key={user.id}
-                                className={`hover:bg-gray-50 transition-all duration-200 ${
-                                  index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                                }`}
+                                className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent transition-all duration-200 group"
                               >
                                 <td className="px-6 py-4">
                                   <div className="flex items-center gap-3">
@@ -904,20 +1163,20 @@ export default function UserManagementPage() {
                                   </>
                                 )}
                                 <td className="px-6 py-4 text-right">
-                                  <div className="flex items-center justify-end gap-2">
+                                  <div className="flex items-center justify-end gap-3">
                                     <button
                                       onClick={() => openEditModal(user)}
-                                      className="p-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all hover:scale-105"
+                                      className="p-3 border-2 border-blue-200 text-blue-600 rounded-xl hover:bg-blue-50 hover:border-blue-400 transition-all hover:scale-110 hover:shadow-lg group"
                                       title="Edit user"
                                     >
-                                      <FiEdit className="h-4 w-4" />
+                                      <FiEdit className="h-4 w-4 group-hover:scale-110 transition-transform" />
                                     </button>
                                     <button
                                       onClick={() => openDeleteModal(user)}
-                                      className="p-2 border border-gray-300 text-red-600 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all hover:scale-105"
+                                      className="p-3 border-2 border-red-200 text-red-600 rounded-xl hover:bg-red-50 hover:border-red-400 transition-all hover:scale-110 hover:shadow-lg group"
                                       title="Delete user"
                                     >
-                                      <FiTrash2 className="h-4 w-4" />
+                                      <FiTrash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
                                     </button>
                                   </div>
                                 </td>
@@ -973,7 +1232,7 @@ export default function UserManagementPage() {
           <div className="fixed inset-0 z-50 flex">
             {/* Backdrop */}
             <div
-              className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${
+              className={`absolute inset-0 bg-black/30 backdrop-blur-md transition-opacity duration-500 ${
                 isModalOpen ? "opacity-100" : "opacity-0"
               }`}
               onClick={() => setIsModalOpen(false)}
@@ -981,7 +1240,7 @@ export default function UserManagementPage() {
 
             {/* Drawer */}
             <div
-              className={`relative ml-auto h-full w-full max-w-4xl bg-white shadow-2xl transform transition-transform duration-300 ease-out ${
+              className={`relative ml-auto h-full w-full max-w-5xl bg-white shadow-2xl transform transition-transform duration-500 ease-out overflow-hidden ${
                 isModalOpen ? "translate-x-0" : "translate-x-full"
               }`}
             >
@@ -1092,18 +1351,47 @@ export default function UserManagementPage() {
 
                 {/* Main Content Area */}
                 <div className="flex-1 flex flex-col min-w-0">
-                  {/* Header */}
-                  <div className="p-8 border-b border-gray-100 bg-gray-50/50">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                      {editingUser
-                        ? "Update User Information"
-                        : "Create New User Account"}
-                    </h1>
-                    <p className="text-gray-600 text-lg">
-                      {editingUser
-                        ? "Modify user details and permissions below"
-                        : "Fill in the details to create a new user account"}
-                    </p>
+                  {/* Enhanced Header with Branding */}
+                  <div
+                    className="p-10 border-b bg-gradient-to-r"
+                    style={{
+                      background: `linear-gradient(135deg, ${getBrandedColor('primary', '#eff6ff', schoolBranding)} 0%, ${getBrandedColor('secondary', '#e0e7ff', schoolBranding)} 100%)`,
+                      borderBottomColor: `${getBrandedColor('primary', '#e5e7eb', schoolBranding)}50`
+                    }}
+                  >
+                    <div className="flex items-center gap-4 mb-4">
+                      <div
+                        className="p-3 rounded-2xl shadow-lg"
+                        style={{
+                          background: `linear-gradient(135deg, ${getBrandedColor('primary', '#2563eb', schoolBranding)}, ${getBrandedColor('secondary', '#7c3aed', schoolBranding)})`
+                        }}
+                      >
+                        <FiUserPlus className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h1
+                          className="text-4xl font-bold mb-2"
+                          style={{
+                            background: `linear-gradient(135deg, ${getBrandedColor('primary', '#1f2937', schoolBranding)}, ${getBrandedColor('secondary', '#374151', schoolBranding)})`,
+                            WebkitBackgroundClip: 'text',
+                            backgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                          }}
+                        >
+                          {editingUser
+                            ? "Update User Information"
+                            : "Create New User Account"}
+                        </h1>
+                        <p
+                          className="text-xl font-medium"
+                          style={{ color: `${getBrandedColor('primary', '#4b5563', schoolBranding)}dd` }}
+                        >
+                          {editingUser
+                            ? "Modify user details and permissions below"
+                            : "Fill in the details to create a new user account"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Form Content */}
@@ -1115,14 +1403,17 @@ export default function UserManagementPage() {
                         className="space-y-8"
                       >
                         {/* Basic Information */}
-                        <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
-                          <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-blue-50 rounded-lg">
-                              <FiUser className="h-5 w-5 text-blue-600" />
+                        <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-3xl p-10 border border-gray-200 shadow-lg">
+                          <div className="flex items-center gap-4 mb-8">
+                            <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+                              <FiUser className="h-6 w-6 text-white" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900">
-                              Basic Information
-                            </h3>
+                            <div>
+                              <h3 className="text-2xl font-bold text-gray-900">
+                                Basic Information
+                              </h3>
+                              <p className="text-gray-600 font-medium">Enter the user's personal details</p>
+                            </div>
                           </div>
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="space-y-2">
@@ -1133,7 +1424,7 @@ export default function UserManagementPage() {
                                 type="text"
                                 name="name"
                                 defaultValue={editingUser?.name}
-                                className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 text-base"
+                                className="w-full px-6 py-5 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 text-base font-medium shadow-sm hover:shadow-md"
                                 placeholder="Enter full name"
                                 required
                               />
@@ -1157,7 +1448,7 @@ export default function UserManagementPage() {
                                   type="text"
                                   name="username"
                                   defaultValue={editingUser?.username}
-                                  className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 text-base"
+                                  className="w-full px-6 py-5 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 text-base font-medium shadow-sm hover:shadow-md"
                                   placeholder="Enter username"
                                   required
                                 />
@@ -1173,7 +1464,7 @@ export default function UserManagementPage() {
                                 <input
                                   type="password"
                                   name="password"
-                                  className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 text-base"
+                                  className="w-full px-6 py-5 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 text-base font-medium shadow-sm hover:shadow-md"
                                   placeholder={
                                     editingUser
                                       ? "Leave blank to keep current"
@@ -1191,12 +1482,17 @@ export default function UserManagementPage() {
                     "teacher" && (
                     <>
                       {/* Controller Assignment */}
-                      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                        <div className="flex items-center gap-3 mb-6">
-                          <FiUsers className="h-5 w-5 text-gray-600" />
-                          <h3 className="text-xl font-bold text-gray-900">
-                            Controller Assignment
-                          </h3>
+                      <div className="bg-gradient-to-br from-white to-green-50/30 rounded-3xl p-8 border border-green-200 shadow-lg">
+                        <div className="flex items-center gap-4 mb-8">
+                          <div className="p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl shadow-lg">
+                            <FiUsers className="h-6 w-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold text-gray-900">
+                              Controller Assignment
+                            </h3>
+                            <p className="text-gray-600 font-medium">Assign a controller to supervise this teacher</p>
+                          </div>
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           <div>
@@ -1209,7 +1505,7 @@ export default function UserManagementPage() {
                               onChange={(e) =>
                                 setTeacherControlId(e.target.value)
                               }
-                              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 transition-all"
+                              className="w-full px-6 py-4 border-2 border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-gray-900 transition-all font-medium shadow-sm hover:shadow-md"
                               required
                             >
                               <option value="">Select Controller</option>
@@ -1234,7 +1530,7 @@ export default function UserManagementPage() {
                               name="phone"
                               value={teacherPhone}
                               onChange={(e) => setTeacherPhone(e.target.value)}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-gray-900 transition-all"
+                              className="w-full px-6 py-4 border-2 border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-gray-900 transition-all font-medium shadow-sm hover:shadow-md"
                               placeholder="e.g. +251912345678"
                               required
                             />
@@ -1269,17 +1565,19 @@ export default function UserManagementPage() {
                       </div>
 
                       {/* Teaching Schedule */}
-                      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                        <div className="flex items-center gap-3 mb-6">
-                          <FiCalendar className="h-5 w-5 text-gray-600" />
-                          <h3 className="text-xl font-bold text-gray-900">
-                            Teaching Schedule
-                          </h3>
-                          <span className="text-sm text-gray-500">
-                            Configure available time slots
-                          </span>
+                      <div className="bg-gradient-to-br from-white to-purple-50/30 rounded-3xl p-8 border border-purple-200 shadow-lg">
+                        <div className="flex items-center gap-4 mb-8">
+                          <div className="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl shadow-lg">
+                            <FiCalendar className="h-6 w-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold text-gray-900">
+                              Teaching Schedule
+                            </h3>
+                            <p className="text-gray-600 font-medium">Configure available time slots for this teacher</p>
+                          </div>
                         </div>
-                        <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                        <div className="bg-gradient-to-br from-gray-50 to-purple-50/50 rounded-2xl p-8 border border-purple-200 shadow-inner">
                           <ScheduleGenerator
                             value={teacherSchedule}
                             onChange={setTeacherSchedule}
@@ -1309,7 +1607,10 @@ export default function UserManagementPage() {
                               <button
                                 type="submit"
                                 form="user-form"
-                                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl"
+                                className="px-8 py-3 text-white rounded-xl transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
+                                style={{
+                                  background: `linear-gradient(135deg, ${getBrandedColor('primary', '#2563eb', schoolBranding)}, ${getBrandedColor('secondary', '#7c3aed', schoolBranding)})`
+                                }}
                               >
                                 <FiUserPlus className="h-5 w-5" />
                                 {editingUser ? "Update" : "Create"} User
@@ -1336,14 +1637,25 @@ export default function UserManagementPage() {
         >
           <div className="bg-white rounded-2xl p-8 max-w-lg mx-auto shadow-2xl border border-gray-100/50">
             <div className="text-center mb-8">
-              <div className="p-4 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl w-fit mx-auto mb-6 shadow-lg">
+              <div
+                className="p-4 rounded-2xl w-fit mx-auto mb-6 shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${getBrandedColor('primary', '#10b981', schoolBranding)}, ${getBrandedColor('secondary', '#059669', schoolBranding)})`
+                }}
+              >
                 <FiCheck className="h-8 w-8 text-white" />
               </div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">
-                Teacher Created Successfully!
+              <h2
+                className="text-3xl font-bold mb-3"
+                style={{ color: getBrandedColor('primary', '#111827', schoolBranding) }}
+              >
+                {newUserRole === 'teacher' ? 'Teacher' : 'User'} Created Successfully!
               </h2>
-              <p className="text-gray-600 text-lg">
-                Here are the auto-generated credentials:
+              <p
+                className="text-lg"
+                style={{ color: `${getBrandedColor('primary', '#6b7280', schoolBranding)}cc` }}
+              >
+                {newUserRole === 'teacher' ? 'Here are the auto-generated credentials:' : 'User account has been created successfully.'}
               </p>
             </div>
 
@@ -1366,7 +1678,10 @@ export default function UserManagementPage() {
                   />
                   <button
                     onClick={() => copyToClipboard(generatedUsername)}
-                    className="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl"
+                    className="px-4 py-3 text-white rounded-xl transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
+                    style={{
+                      background: `linear-gradient(135deg, ${getBrandedColor('primary', '#2563eb', schoolBranding)}, ${getBrandedColor('secondary', '#1d4ed8', schoolBranding)})`
+                    }}
                   >
                     <FiCopy className="h-5 w-5" />
                     Copy
@@ -1392,7 +1707,10 @@ export default function UserManagementPage() {
                   />
                   <button
                     onClick={() => copyToClipboard(generatedPassword)}
-                    className="px-4 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl"
+                    className="px-4 py-3 text-white rounded-xl transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
+                    style={{
+                      background: `linear-gradient(135deg, ${getBrandedColor('secondary', '#7c3aed', schoolBranding)}, ${getBrandedColor('primary', '#6d28d9', schoolBranding)})`
+                    }}
                   >
                     <FiCopy className="h-5 w-5" />
                     Copy
@@ -1420,7 +1738,10 @@ export default function UserManagementPage() {
                 fetchUsers();
                 resetForm();
               }}
-              className="w-full mt-8 px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl"
+              className="w-full mt-8 px-6 py-4 text-white rounded-xl transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105"
+              style={{
+                background: `linear-gradient(135deg, ${getBrandedColor('primary', '#10b981', schoolBranding)}, ${getBrandedColor('secondary', '#059669', schoolBranding)})`
+              }}
             >
               Done
             </button>

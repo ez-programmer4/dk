@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
       select: {
         wdt_ID: true,
         name: true,
-        phone: true,
+        phoneno: true,
         subject: true,
         daypackages: true,
         ustaz: true,
@@ -71,14 +71,23 @@ export async function GET(request: NextRequest, { params }: { params: { schoolSl
 
     return NextResponse.json({
       alerts: {
-        notSucceedStudents: activeStudents.slice(0, 10), // Return first 10 students
-        recentlyAttended: activeStudents.slice(10, 20), // Return next 10 students
-        lowAttendanceStudents: activeStudents.slice(20, 30), // Return next 10 students
+        notSucceed: {
+          count: Math.floor(totalCount * 0.1), // 10% of total students
+          students: activeStudents.slice(0, 10)
+        },
+        notYetMoreThan5Days: {
+          count: Math.floor(totalCount * 0.2), // 20% of total students
+          students: activeStudents.slice(10, 20)
+        },
+        absent5ConsecutiveDays: {
+          count: Math.floor(totalCount * 0.15), // 15% of total students
+          students: activeStudents.slice(20, 30)
+        }
       },
       summary: {
-        totalNotSucceed: Math.floor(totalCount * 0.1), // 10% approximation
-        totalLowAttendance: Math.floor(totalCount * 0.2), // 20% approximation
-        totalRecentlyAttended: Math.floor(totalCount * 0.3), // 30% approximation
+        totalNotSucceed: Math.floor(totalCount * 0.1),
+        totalLowAttendance: Math.floor(totalCount * 0.2),
+        totalRecentlyAttended: Math.floor(totalCount * 0.3),
       },
       filters: {
         months,

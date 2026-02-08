@@ -48,3 +48,6 @@ async function testRegistration() {
 
 // Run the test
 testRegistration();
+
+
+

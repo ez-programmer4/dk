@@ -44,3 +44,6 @@ async function testFinalRegistration() {
 
 // Run the test
 testFinalRegistration();
+
+
+

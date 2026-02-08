@@ -122,6 +122,7 @@ function RegistrationContent() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
   const branding = useBranding();
+  const logoUrl = branding?.logoUrl;
   const searchParams = useSearchParams();
   const editId = searchParams.get("id") || searchParams.get("studentId");
   const isEditMode = searchParams.get("edit") === "true" || !!editId;
@@ -996,6 +997,18 @@ function RegistrationContent() {
       sessionStorage.removeItem("usStudentEmail");
       sessionStorage.removeItem("usStudentId");
 
+      // Force refresh of occupied times in localStorage or sessionStorage
+      // This will help ensure availability is updated for future registrations
+      try {
+        // Clear any cached availability data
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('occupiedTimes');
+          localStorage.removeItem('occupiedTimes');
+        }
+      } catch (error) {
+        console.warn('Could not clear cached occupied times:', error);
+      }
+
       setTimeout(() => {
         // Redirect registral back to registral dashboard after registration
         const userRole = session?.user?.role;
@@ -1062,6 +1075,7 @@ function RegistrationContent() {
     if (!selectedDayPackage) return;
 
     try {
+      console.log('🔄 Fetching occupied times for:', { schoolSlug, selectedDayPackage });
       const res = await fetch(
         `/api/occupied-times?schoolSlug=${schoolSlug}&dayPackage=${encodeURIComponent(
           selectedDayPackage
@@ -1069,10 +1083,14 @@ function RegistrationContent() {
       );
       if (res.ok) {
         const data = await res.json();
+        console.log('📥 Received occupied times:', data.totalOccupied, 'entries');
         setOccupiedTimes(data.occupiedTimes || []);
+      } else {
+        console.error('❌ Occupied times API failed:', res.status, res.statusText);
+        setOccupiedTimes([]);
       }
     } catch (error) {
-      console.error("Error fetching occupied times:", error);
+      console.error("❌ Error fetching occupied times:", error);
       setOccupiedTimes([]);
     }
   }, [schoolSlug, selectedDayPackage]);
@@ -1126,9 +1144,12 @@ function RegistrationContent() {
 
   useEffect(() => {
     if (timeSlots.length > 0 && selectedDayPackage) {
-      checkAvailability();
+      // Always fetch fresh occupied times when day package changes
+      fetchOccupiedTimes().then(() => {
+        checkAvailability();
+      });
     }
-  }, [timeSlots, selectedDayPackage, occupiedTimes, checkAvailability]);
+  }, [timeSlots, selectedDayPackage, checkAvailability]);
 
   // Refresh availability when returning from registration
   useEffect(() => {

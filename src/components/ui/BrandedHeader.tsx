@@ -70,7 +70,10 @@ export const BrandedHeader = React.memo(function BrandedHeader({
   // Use custom branding if available, otherwise fall back to variant defaults
   const primaryColor = branding?.primaryColor || "#4F46E5";
   const secondaryColor = branding?.secondaryColor || "#7C3AED";
+  const accentColor = branding?.accentColor;
   const logoUrl = branding?.logoUrl;
+
+  console.log('🎨 BrandedHeader: Using colors:', { primaryColor, secondaryColor, accentColor, logoUrl });
 
   const config = variantConfig[variant];
   const Icon = config.icon;

@@ -14,14 +14,15 @@ export async function GET(request: NextRequest) {
     const ustazId = searchParams.get("ustazId");
 
     // Determine schoolId
-    let schoolId = schoolSlug === 'darulkubra' ? null : null;
-    if (schoolSlug !== 'darulkubra') {
+    let schoolId = null;
+    if (schoolSlug && schoolSlug !== 'darulkubra') {
       try {
         const school = await prisma.school.findUnique({
           where: { slug: schoolSlug },
           select: { id: true }
         });
         schoolId = school?.id || null;
+        console.log('🎓 Occupied times API - School lookup:', { schoolSlug, schoolId });
       } catch (error) {
         console.error("Error looking up school:", error);
         schoolId = null;
@@ -71,7 +72,12 @@ export async function GET(request: NextRequest) {
       ORDER BY occupied_at DESC
     `;
 
+    console.log('🔍 Occupied times query:', occupiedQuery);
+    console.log('🔍 Query params:', queryParams);
+
     const occupiedTimes = await prisma.$queryRawUnsafe(occupiedQuery, ...queryParams);
+
+    console.log('📋 Found occupied times:', (occupiedTimes as any[]).length, 'entries');
 
     return NextResponse.json({
       occupiedTimes,

@@ -23,24 +23,6 @@ const prismaClient = globalPrisma;
 // Student slot limits per day package
 const MAX_SLOTS_PER_STUDENT = 2;
 
-// Helper function to get school by slug
-const getSchoolBySlug = async (schoolSlug: string) => {
-  let school = await prismaClient.school.findFirst({
-    where: { slug: schoolSlug },
-    select: { id: true, name: true },
-  });
-
-  // Fallback for backward compatibility if slug doesn't match
-  if (!school && schoolSlug !== "darulkubra") {
-    school = await prismaClient.school.findUnique({
-      where: { id: schoolSlug },
-      select: { id: true, name: true },
-    });
-  }
-
-  return school;
-};
-
 const checkTeacherAvailability = async (
   selectedTime: string,
   selectedDayPackage: string,
@@ -169,6 +151,15 @@ export async function POST(request: NextRequest) {
       schoolSlug,
     } = body;
 
+    console.log('📝 Registration request received:', {
+      ustaz,
+      selectedTime,
+      selectedDayPackage,
+      status,
+      schoolSlug,
+      schoolId,
+    });
+
     // Derive schoolId for multi-tenancy based on user's school association
     const userSchoolSlug = session.schoolSlug || "darulkubra";
 
@@ -274,6 +265,13 @@ export async function POST(request: NextRequest) {
     let timeToMatch: string = "",
       timeSlot: string = "";
 
+    console.log('🔍 Checking conditions for occupied time creation:', {
+      status,
+      isNotOnProgress: status !== "On Progress" && status !== "on progress",
+      hasSelectedTime: !!selectedTime,
+      hasUstaz: !!ustaz,
+    });
+
     // Only validate time and check availability if not "On Progress"
     if (
       status !== "On Progress" &&
@@ -281,6 +279,8 @@ export async function POST(request: NextRequest) {
       selectedTime &&
       ustaz
     ) {
+      console.log('⏰ Processing time validation for:', { selectedTime, ustaz, status });
+
       // Validate time format
       if (!validateTime(selectedTime)) {
         return NextResponse.json(
@@ -291,6 +291,7 @@ export async function POST(request: NextRequest) {
 
       timeToMatch = to24Hour(selectedTime);
       timeSlot = to12Hour(timeToMatch);
+      console.log('⏰ Time converted:', { selectedTime, timeToMatch, timeSlot });
 
       // Check teacher availability
       const availability = await checkTeacherAvailability(
@@ -457,7 +458,25 @@ export async function POST(request: NextRequest) {
       }
 
       // Create occupied time record if teacher and time are assigned
+      console.log('🔍 Checking occupied time creation conditions:', {
+        ustaz: !!ustaz,
+        selectedTime: !!selectedTime,
+        timeSlot: !!timeSlot,
+        ustaz_value: ustaz,
+        selectedTime_value: selectedTime,
+        timeSlot_value: timeSlot,
+        schoolId: schoolId,
+      });
+
       if (ustaz && selectedTime && timeSlot) {
+        console.log('🎯 Creating occupied time entry:', {
+          ustaz_id: ustaz,
+          student_id: registration.wdt_ID,
+          time_slot: timeSlot,
+          daypackage: selectedDayPackage || "",
+          schoolId: schoolId,
+        });
+
         await tx.wpos_ustaz_occupied_times.create({
           data: {
             ustaz_id: ustaz,
@@ -469,6 +488,10 @@ export async function POST(request: NextRequest) {
             schoolId: schoolId,
           },
         });
+
+        console.log('✅ Occupied time entry created successfully');
+      } else {
+        console.log('⚠️ Skipping occupied time creation:', { ustaz, selectedTime, timeSlot });
       }
 
       return registration;
@@ -532,38 +555,6 @@ export async function GET(request: NextRequest) {
         schoolId = newSchool.id;
       } else {
         schoolId = existingSchool.id;
-      }
-    }
-
-    // Handle day packages fetch request
-    if (schoolSlug && !id && !student) {
-      try {
-        const school = await getSchoolBySlug(schoolSlug);
-        if (!school) {
-          return NextResponse.json(
-            { message: "School not found" },
-            { status: 404 }
-          );
-        }
-
-        const dayPackages = await prismaClient.studentdaypackage.findMany({
-          where: {
-            isActive: true,
-            schoolId: school.id
-          },
-          orderBy: { name: "asc" },
-          select: { name: true }
-        });
-
-        return NextResponse.json({
-          dayPackages: dayPackages.map(dp => dp.name)
-        });
-      } catch (error) {
-        console.error("Error fetching day packages:", error);
-        return NextResponse.json(
-          { message: "Failed to fetch day packages" },
-          { status: 500 }
-        );
       }
     }
 
@@ -1031,6 +1022,7 @@ export async function PUT(request: NextRequest) {
 
         if (existingOccupiedTime) {
           // Update existing record
+          console.log('🔄 Updating existing occupied time entry:', existingOccupiedTime.id);
           await tx.wpos_ustaz_occupied_times.update({
             where: { id: existingOccupiedTime.id },
             data: {
@@ -1040,6 +1032,7 @@ export async function PUT(request: NextRequest) {
           });
         } else {
           // Create new record
+          console.log('🆕 Creating new occupied time entry for update');
           await tx.wpos_ustaz_occupied_times.create({
             data: {
               ustaz_id: ustaz,

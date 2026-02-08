@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const session = await getToken({
       req: request,
@@ -14,6 +14,16 @@ export async function GET(request: NextRequest) {
 
     if (!session || !["admin", "registral"].includes(session.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
     // Get current month start and end dates
@@ -72,7 +82,10 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       // Total students
       prisma.wpos_wpdatatable_23.count({
-        where: { name: { not: "" } },
+        where: {
+          name: { not: "" },
+          schoolId: school.id
+        },
       }),
 
       // Total active students
@@ -80,6 +93,7 @@ export async function GET(request: NextRequest) {
         where: {
           name: { not: "" },
           status: "Active",
+          schoolId: school.id
         },
       }),
 
@@ -88,6 +102,7 @@ export async function GET(request: NextRequest) {
         where: {
           name: { not: "" },
           status: "Not yet",
+          schoolId: school.id
         },
       }),
 
@@ -96,6 +111,7 @@ export async function GET(request: NextRequest) {
         where: {
           name: { not: "" },
           status: { notIn: ["Active", "Not yet"] },
+          schoolId: school.id
         },
       }),
 
@@ -107,6 +123,7 @@ export async function GET(request: NextRequest) {
             gte: monthStart,
             lte: monthEnd,
           },
+          schoolId: school.id
         },
       }),
 
@@ -119,6 +136,7 @@ export async function GET(request: NextRequest) {
             gte: monthStart,
             lte: monthEnd,
           },
+          schoolId: school.id
         },
       }),
 
@@ -335,6 +353,7 @@ export async function GET(request: NextRequest) {
             gte: monthStart,
             lte: monthEnd,
           },
+          schoolId: school.id
         },
         select: {
           attendance_status: true,
@@ -345,6 +364,9 @@ export async function GET(request: NextRequest) {
       // Total attendance data (all time)
       prisma.student_attendance_progress.groupBy({
         by: ["attendance_status"],
+        where: {
+          schoolId: school.id
+        },
         _count: true,
       }),
     ]);
@@ -373,6 +395,7 @@ export async function GET(request: NextRequest) {
         where: {
           month: currentMonthFormat,
           payment_status: "Paid",
+          schoolId: school.id
         },
         _count: true,
       }),
@@ -383,6 +406,7 @@ export async function GET(request: NextRequest) {
         where: {
           month: currentMonthFormat,
           payment_status: "Unpaid",
+          schoolId: school.id
         },
         _count: true,
       }),
@@ -393,6 +417,7 @@ export async function GET(request: NextRequest) {
         where: {
           month: lastMonthFormat,
           payment_status: "Paid",
+          schoolId: school.id
         },
         _count: true,
       }),
@@ -403,6 +428,7 @@ export async function GET(request: NextRequest) {
         where: {
           month: lastMonthFormat,
           payment_status: "Unpaid",
+          schoolId: school.id
         },
         _count: true,
       }),
@@ -411,6 +437,7 @@ export async function GET(request: NextRequest) {
       prisma.months_table.aggregate({
         where: {
           payment_status: "Paid",
+          schoolId: school.id
         },
         _sum: {
           paid_amount: true,
@@ -422,6 +449,7 @@ export async function GET(request: NextRequest) {
         where: {
           month: currentMonthFormat,
           payment_status: "Paid",
+          schoolId: school.id
         },
         _sum: {
           paid_amount: true,
@@ -432,6 +460,7 @@ export async function GET(request: NextRequest) {
       prisma.months_table.findMany({
         where: {
           month: currentMonthFormat,
+          schoolId: school.id
         },
         select: {
           studentid: true,
@@ -444,6 +473,7 @@ export async function GET(request: NextRequest) {
       prisma.months_table.findMany({
         where: {
           month: lastMonthFormat,
+          schoolId: school.id
         },
         select: {
           studentid: true,

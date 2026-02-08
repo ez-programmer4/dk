@@ -46,3 +46,6 @@ async function testMinimalSchool() {
 
 // Run the test
 testMinimalSchool();
+
+
+
