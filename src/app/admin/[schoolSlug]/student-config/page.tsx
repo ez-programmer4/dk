@@ -688,7 +688,7 @@ export default function StudentConfigPage({ params }: { params: { schoolSlug: st
                       <div className="border-t border-gray-100 my-2"></div>
                       <button
                         onClick={() =>
-                          signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
+                          signOut({ callbackUrl: `${window.location.origin}/login`, redirect: true })
                         }
                         className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >

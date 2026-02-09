@@ -67,18 +67,29 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    // Log the settings update
-    await prisma.superAdminAuditLog.create({
-      data: {
-        superAdminId: "system", // We'll need to get the actual super admin ID
-        action: "UPDATE_SUPER_ADMIN_SETTINGS",
-        resourceType: "settings",
-        resourceId: "global",
-        details: {
-          updatedFields: ["telegramBotToken"],
-        },
-      },
-    });
+    // Log the settings update (get super admin ID from database)
+    try {
+      const superAdmin = await prisma.superAdmin.findFirst({
+        select: { id: true },
+      });
+
+      if (superAdmin) {
+        await prisma.superAdminAuditLog.create({
+          data: {
+            superAdminId: superAdmin.id,
+            action: "UPDATE_SUPER_ADMIN_SETTINGS",
+            resourceType: "settings",
+            resourceId: "global",
+            details: {
+              updatedFields: ["telegramBotToken"],
+            },
+          },
+        });
+      }
+    } catch (auditError) {
+      // Don't fail the settings update if audit logging fails
+      console.error("Failed to create audit log:", auditError);
+    }
 
     return NextResponse.json({
       success: true,
@@ -96,6 +107,7 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
+
 
 
 

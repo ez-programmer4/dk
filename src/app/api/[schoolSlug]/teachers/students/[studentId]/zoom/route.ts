@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { ZoomService } from "@/lib/zoom-service";
+import { CentralizedBotManager } from "@/lib/telegram/bot-manager";
 
 export async function POST(
   req: NextRequest,
@@ -18,6 +19,9 @@ export async function POST(
       );
     }
     const teacherId = token.id as string;
+
+    // Initialize bot manager for notifications
+    const botManager = new CentralizedBotManager();
     const studentId = Number(params.studentId);
     const schoolSlug = params.schoolSlug;
 
@@ -330,9 +334,10 @@ export async function POST(
 
       // Send Telegram notification using global bot token from super admin settings
       if (student.chatId) {
+        let botToken: string | null = null;
         try {
           const { getGlobalBotToken } = await import('@/lib/bot-token');
-          const botToken = await getGlobalBotToken();
+          botToken = await getGlobalBotToken();
 
           if (botToken) {
             const classInfo = `Date: ${localTime.toLocaleDateString("en-US", {
@@ -347,10 +352,9 @@ export async function POST(
             })}`;
 
             const success = await botManager.sendZoomLinkToStudent(
-              studentId,
+              studentId.toString(),
               finalURL,
-              teacher.ustazname || 'Your Teacher',
-              classInfo
+              `${teacher.ustazname || 'Your Teacher'} - ${classInfo}`
             );
 
             if (success) {

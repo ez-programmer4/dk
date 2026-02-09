@@ -1,13 +1,9 @@
-﻿import { PrismaClient } from "@prisma/client";
 import { NextResponse, NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
-
+import { prisma } from "@/lib/prisma";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   const session = await getToken({
@@ -21,7 +17,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const schoolSlug = searchParams.get("schoolSlug");
-    const dayPackage = searchParams.get("dayPackage");
 
     if (!schoolSlug) {
       return NextResponse.json(
@@ -43,33 +38,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Build where clause for filtering
-    const whereClause: any = {
-      schoolId: school.id,
-    };
-
-    if (dayPackage) {
-      whereClause.daypackage = dayPackage;
-    }
-
-    const occupiedTimes = await prisma.wpos_ustaz_occupied_times.findMany({
-      where: whereClause,
+    // Filter teachers by school
+    const teachers = await prisma.wpos_wpdatatable_24.findMany({
+      where: {
+        schoolId: school.id,
+      },
       select: {
-        time_slot: true,
-        daypackage: true,
-        ustaz_id: true,
-        student_id: true,
+        ustazid: true,
+        ustazname: true,
+        schedule: true,
+        controller: {
+          select: { code: true },
+        },
+      },
+      orderBy: {
+        ustazname: "asc",
       },
     });
 
-    return NextResponse.json(
-      { occupiedTimes },
-      { status: 200 }
-    );
+    return NextResponse.json(teachers, { status: 200 });
   } catch (error) {
     return NextResponse.json(
       {
-        message: "Error fetching occupied times",
+        message: "Error fetching teachers",
         error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }

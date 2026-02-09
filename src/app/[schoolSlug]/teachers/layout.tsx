@@ -38,6 +38,7 @@ import {
   FiMonitor,
   FiBriefcase,
   FiFileText,
+  FiX,
 } from "react-icons/fi";
 
 interface SchoolBranding {
@@ -96,10 +97,9 @@ export default function TeachersLayout({
   const [showNotifications, setShowNotifications] = useState(false);
   const [systemStatus, setSystemStatus] = useState("online");
 
-  // Don't apply layout to login page
-  if (pathname === `/${schoolSlug}/teachers/login`) {
-    return <>{children}</>;
-  }
+  // Mobile state
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (params.schoolSlug) {
@@ -139,7 +139,7 @@ export default function TeachersLayout({
       const fetchBranding = async () => {
         try {
           const response = await fetch(
-            `/api/controller/${schoolSlug}/branding`
+            `/api/registral/${schoolSlug}/branding`
           );
           if (response.ok) {
             const data = await response.json();
@@ -228,6 +228,26 @@ export default function TeachersLayout({
       fetchSidebarStats();
     }
   }, [schoolSlug]);
+
+  // Mobile detection and responsive handling
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 1024; // lg breakpoint
+      setIsMobile(mobile);
+      if (mobile && !mobileSidebarOpen) {
+        // On mobile, sidebar is always hidden unless opened
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [mobileSidebarOpen]);
+
+  // Don't apply layout to login page
+  if (pathname === `/${schoolSlug}/teachers/login`) {
+    return <>{children}</>;
+  }
 
   // Handle global search
   const handleSearch = (query: string) => {
@@ -556,10 +576,22 @@ export default function TeachersLayout({
 
               {/* Right Section - Actions & User */}
               <div className="flex items-center space-x-3">
-                {/* Mobile Menu Button */}
-                <button className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
-                  <FiSearch className="w-5 h-5" />
-                </button>
+                {/* Mobile Sidebar Menu Button */}
+                {isMobile && (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+                    className="p-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors border border-gray-200 shadow-sm"
+                    title={mobileSidebarOpen ? "Close Menu" : "Open Menu"}
+                  >
+                    <motion.div
+                      animate={{ rotate: mobileSidebarOpen ? 90 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <FiSettings className="w-6 h-6" />
+                    </motion.div>
+                  </motion.button>
+                )}
 
                 {/* Notifications */}
                 <div className="relative">
@@ -662,9 +694,15 @@ export default function TeachersLayout({
         <div className="flex pb-16 md:pb-0">
           {/* Enhanced Sidebar */}
           <motion.nav
-            initial={{ x: -300 }}
-            animate={{ x: 0 }}
-            className="hidden md:block w-80 bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 min-h-[calc(100vh-5rem)] sticky top-20 overflow-hidden"
+            initial={{ x: isMobile ? -1000 : -300 }}
+            animate={{
+              x: isMobile ? (mobileSidebarOpen ? 0 : -1000) : 0,
+              width: isMobile ? "100vw" : 320
+            }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className={`bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 fixed top-20 z-40 ${
+              isMobile ? 'h-full left-0' : 'hidden md:block w-80 min-h-[calc(100vh-5rem)] sticky'
+            } ${isMobile && !mobileSidebarOpen ? 'hidden' : ''}`}
             style={{
               background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}08 100%)`,
             }}
@@ -676,6 +714,16 @@ export default function TeachersLayout({
                 background: `linear-gradient(135deg, ${primaryColor}10 0%, ${secondaryColor}15 100%)`,
               }}
             >
+              {/* Mobile Close Button */}
+              {isMobile && (
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="absolute top-4 right-4 p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200 z-50"
+                  title="Close Menu"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              )}
               {/* Background Pattern */}
               <div className="absolute inset-0 opacity-10">
                 <div
@@ -798,8 +846,20 @@ export default function TeachersLayout({
             </div>
           </motion.nav>
 
+          {/* Mobile Sidebar Backdrop */}
+          {isMobile && mobileSidebarOpen && (
+            <div
+              className="fixed inset-0 z-30"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}90 0%, ${secondaryColor}85 100%)`,
+                backdropFilter: "blur(8px)",
+              }}
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+          )}
+
           {/* Main Content */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
+          <main className={`flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 ${isMobile ? '' : 'md:ml-0'}`}>
             <AnimatePresence mode="wait">{children}</AnimatePresence>
           </main>
         </div>

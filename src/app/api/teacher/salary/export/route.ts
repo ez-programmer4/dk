@@ -23,19 +23,25 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");
+    const fromParam = url.searchParams.get("from");
+    const toParam = url.searchParams.get("to");
     const format = url.searchParams.get("format") || "pdf";
 
+    // Support both parameter formats for flexibility
+    const fromDateParam = startDate || fromParam;
+    const toDateParam = endDate || toParam;
+
     // Validate required parameters
-    if (!startDate || !endDate) {
+    if (!fromDateParam || !toDateParam) {
       return NextResponse.json(
-        { error: "Missing startDate or endDate" },
+        { error: "Missing startDate/endDate or from/to parameters" },
         { status: 400 }
       );
     }
 
     // Parse and validate dates
-    const from = parseISO(startDate);
-    const to = parseISO(endDate);
+    const from = parseISO(fromDateParam);
+    const to = parseISO(toDateParam);
 
     if (isNaN(from.getTime()) || isNaN(to.getTime()) || from > to) {
       return NextResponse.json(

@@ -42,6 +42,7 @@ interface SchoolBranding {
   primaryColor: string;
   secondaryColor: string;
   logo: string;
+  logoUrl?: string;
   name: string;
   theme: string;
   supportEmail?: string;
@@ -178,26 +179,31 @@ export default function RegistralLayout({
   const [showNotifications, setShowNotifications] = useState(false);
   const [systemStatus, setSystemStatus] = useState("online");
 
-  // Enhanced sidebar state - Auto-collapse on mobile
+  // Enhanced sidebar state
   const [sidebarSearchQuery, setSidebarSearchQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Initialize mobile state on mount
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 1024);
+  }, []);
 
   // Mobile detection and responsive handling
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 1024; // lg breakpoint
       setIsMobile(mobile);
-      if (mobile && !sidebarCollapsed) {
-        setSidebarCollapsed(true);
+      if (mobile && !mobileSidebarOpen) {
+        setSidebarCollapsed(true); // Collapse sidebar on mobile by default
       }
     };
 
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, [sidebarCollapsed]);
+  }, [mobileSidebarOpen]);
 
   // Fetch sidebar stats
   useEffect(() => {
@@ -329,7 +335,7 @@ export default function RegistralLayout({
     const [isFocused, setIsFocused] = useState(false);
 
     return (
-      <div className={`${sidebarCollapsed && !isMobile ? 'px-2' : 'px-4'} mb-4`}>
+      <div className="px-4 mb-4">
         <div
           className={`relative transition-all duration-300 rounded-xl overflow-hidden ${
             isFocused ? "shadow-lg" : "shadow-sm"
@@ -342,11 +348,11 @@ export default function RegistralLayout({
             border: isFocused ? `1px solid ${primaryColor}20` : "1px solid rgba(255,255,255,0.2)",
           }}
         >
-          <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <FiSearch
-              className={`transition-colors duration-300 ${
-                sidebarCollapsed && !isMobile ? 'w-3 h-3' : 'w-4 h-4'
-              } ${isFocused ? "text-gray-600" : "text-gray-400"}`}
+              className={`w-4 h-4 transition-colors duration-300 ${
+                isFocused ? "text-gray-600" : "text-gray-400"
+              }`}
             />
           </div>
           <input
@@ -356,20 +362,14 @@ export default function RegistralLayout({
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            className={`w-full bg-transparent text-gray-700 placeholder-gray-400 focus:outline-none transition-all duration-300 ${
-              sidebarCollapsed && !isMobile
-                ? 'pl-8 pr-3 py-2 text-sm'
-                : 'pl-11 sm:pl-12 pr-4 py-3 text-sm'
-            }`}
+            className="w-full pl-12 pr-4 py-3 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none transition-all duration-300"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center"
+              className="absolute inset-y-0 right-0 pr-4 flex items-center"
             >
-              <FiX className={`text-gray-400 hover:text-gray-600 transition-colors ${
-                sidebarCollapsed && !isMobile ? 'w-3 h-3' : 'w-4 h-4'
-              }`} />
+              <FiX className="w-4 h-4 text-gray-400 hover:text-gray-600 transition-colors" />
             </button>
           )}
         </div>
@@ -409,6 +409,7 @@ export default function RegistralLayout({
         trend: "+8%",
         trendUp: true,
       },
+      
       {
         label: "Pending",
         value: stats.pendingRegistrations,
@@ -420,21 +421,15 @@ export default function RegistralLayout({
     ];
 
     return (
-      <div className={`mb-6 ${sidebarCollapsed && !isMobile ? 'px-2' : 'px-4'}`}>
-        <div className={`grid gap-2 sm:gap-3 ${
-          sidebarCollapsed && !isMobile
-            ? 'grid-cols-1'
-            : 'grid-cols-2 lg:grid-cols-1 xl:grid-cols-2'
-        }`}>
+      <div className="px-4 mb-6">
+        <div className="grid grid-cols-2 gap-3">
           {statItems.map((stat, index) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1, duration: 0.3 }}
-              className={`group relative overflow-hidden rounded-lg sm:rounded-xl transition-all duration-300 hover:scale-105 ${
-                sidebarCollapsed && !isMobile ? 'p-2' : 'p-3 sm:p-4'
-              }`}
+              className="group relative overflow-hidden rounded-xl p-4 transition-all duration-300 hover:scale-105"
               style={{
                 background: `linear-gradient(135deg, ${stat.color}10, ${stat.color}05)`,
                 border: `1px solid ${stat.color}20`,
@@ -450,41 +445,31 @@ export default function RegistralLayout({
               />
 
               <div className="relative flex items-center justify-between">
-                <div className="flex items-center min-w-0 flex-1">
+                <div className="flex items-center">
                   <div
-                    className={`rounded-lg flex items-center justify-center mr-2 sm:mr-3 ${
-                      sidebarCollapsed && !isMobile ? 'w-6 h-6' : 'w-7 h-7 sm:w-8 sm:h-8'
-                    }`}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center mr-3"
                     style={{ backgroundColor: `${stat.color}20` }}
                   >
-                    <stat.icon className={`${
-                      sidebarCollapsed && !isMobile ? 'w-3 h-3' : 'w-3 h-3 sm:w-4 sm:h-4'
-                    }`} style={{ color: stat.color }} />
+                    <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className={`font-medium text-gray-600 truncate ${
-                      sidebarCollapsed && !isMobile ? 'text-xs' : 'text-xs sm:text-sm'
-                    }`}>{stat.label}</p>
-                    <p className={`font-bold text-gray-900 ${
-                      sidebarCollapsed && !isMobile ? 'text-sm' : 'text-sm sm:text-base'
-                    }`}>
+                  <div>
+                    <p className="text-xs font-medium text-gray-600">{stat.label}</p>
+                    <p className="text-sm font-bold text-gray-900">
                       {stat.label === "Earnings" ? `$${stat.value}` : stat.value}
                     </p>
                   </div>
                 </div>
 
-                {!sidebarCollapsed && (
-                  <div className={`flex items-center text-xs font-medium ml-2 ${
-                    stat.trendUp ? "text-green-600" : "text-red-600"
-                  }`}>
-                    {stat.trendUp ? (
-                      <FiTrendingUp className="w-3 h-3 mr-1" />
-                    ) : (
-                      <FiTrendingDown className="w-3 h-3 mr-1" />
-                    )}
-                    <span className="hidden sm:inline">{stat.trend}</span>
-                  </div>
-                )}
+                <div className={`flex items-center text-xs font-medium ${
+                  stat.trendUp ? "text-green-600" : "text-red-600"
+                }`}>
+                  {stat.trendUp ? (
+                    <FiTrendingUp className="w-3 h-3 mr-1" />
+                  ) : (
+                    <FiTrendingDown className="w-3 h-3 mr-1" />
+                  )}
+                  {stat.trend}
+                </div>
               </div>
             </motion.div>
           ))}
@@ -960,7 +945,7 @@ export default function RegistralLayout({
           `
         }} />
 
-        {/* Enhanced Responsive Header */}
+        {/* Enhanced Header */}
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -970,17 +955,17 @@ export default function RegistralLayout({
           backdropFilter: "blur(12px)",
         }}
       >
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
-          <div className="flex justify-between items-center h-16 sm:h-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
             {/* Left Section - Logo & School Info */}
-            <div className="flex items-center space-x-2 sm:space-x-4">
+            <div className="flex items-center space-x-4">
               <div className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                <div className="relative bg-white rounded-lg sm:rounded-xl p-1.5 sm:p-2 shadow-lg ring-1 ring-gray-200/50">
+                <div className="relative bg-white rounded-xl p-2 shadow-lg ring-1 ring-gray-200/50">
                   <img
                     src={logoUrl}
                     alt={`${schoolName} Logo`}
-                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg object-cover"
+                    className="h-10 w-10 rounded-lg object-cover"
                     onError={(e) => {
                       if (e.currentTarget.src !== "/logo.svg") {
                         e.currentTarget.src = "/logo.svg";
@@ -990,8 +975,8 @@ export default function RegistralLayout({
                 </div>
               </div>
 
-              <div className="hidden sm:block min-w-0 flex-1">
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight truncate">
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold text-gray-900 leading-tight">
                   {schoolName}
                 </h1>
                 <div className="flex items-center space-x-2">
@@ -1001,8 +986,8 @@ export default function RegistralLayout({
                       Online
                     </span>
                   </div>
-                  <span className="text-xs text-gray-400 hidden md:inline">•</span>
-                  <span className="text-xs text-gray-500 hidden md:inline">
+                  <span className="text-xs text-gray-400">•</span>
+                  <span className="text-xs text-gray-500">
                     Registral Portal
                   </span>
                 </div>
@@ -1010,7 +995,7 @@ export default function RegistralLayout({
             </div>
 
             {/* Center Section - Search & Quick Actions */}
-            <div className="hidden lg:flex items-center space-x-3 flex-1 max-w-md mx-4 xl:mx-8">
+            <div className="hidden md:flex items-center space-x-3 flex-1 max-w-md mx-8">
               <div className="relative flex-1">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FiSearch className="h-4 w-4 text-gray-400" />
@@ -1024,8 +1009,8 @@ export default function RegistralLayout({
             </div>
 
             {/* Right Section - Actions & User */}
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              {/* Sidebar Toggle Button - Desktop */}
+            <div className="flex items-center space-x-3">
+              {/* Sidebar Toggle Button */}
               <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 className="hidden lg:flex p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200"
@@ -1039,22 +1024,21 @@ export default function RegistralLayout({
                 </motion.div>
               </button>
 
-              {/* Quick Actions - Desktop */}
-              <div className="hidden xl:flex items-center space-x-2">
+              {/* Quick Actions */}
+              <div className="hidden lg:flex items-center space-x-2">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() =>
                     (window.location.href = `/registral/${schoolSlug}/registration`)
                   }
-                  className="flex items-center space-x-2 px-3 lg:px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl text-xs lg:text-sm font-medium shadow-sm transition-all duration-200"
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl text-sm font-medium shadow-sm transition-all duration-200"
                   style={{
                     background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
                   }}
                 >
                   <FiPlus className="w-4 h-4" />
-                  <span className="hidden sm:inline">New Registration</span>
-                  <span className="sm:hidden">New</span>
+                  <span>New Registration</span>
                 </motion.button>
 
                 <motion.button
@@ -1063,33 +1047,29 @@ export default function RegistralLayout({
                   onClick={() =>
                     (window.location.href = `/registral/${schoolSlug}/students`)
                   }
-                  className="flex items-center space-x-2 px-3 lg:px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200/50 text-gray-700 hover:bg-white hover:shadow-sm rounded-xl text-xs lg:text-sm font-medium transition-all duration-200"
+                  className="flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200/50 text-gray-700 hover:bg-white hover:shadow-sm rounded-xl text-sm font-medium transition-all duration-200"
                 >
                   <FiUsers className="w-4 h-4" />
                   <span>Students</span>
                 </motion.button>
               </div>
 
-              {/* Mobile Search Button */}
-              <button
-                onClick={() => setShowSearch(!showSearch)}
-                className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
-              >
-                <FiSearch className="w-5 h-5" />
-              </button>
-
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
-              >
-                <motion.div
-                  animate={{ rotate: mobileMenuOpen ? 90 : 0 }}
-                  transition={{ duration: 0.2 }}
+              {/* Mobile Sidebar Menu Button */}
+              {isMobile && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+                  className="p-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors border border-gray-200 shadow-sm"
+                  title={mobileSidebarOpen ? "Close Menu" : "Open Menu"}
                 >
-                  <FiSettings className="w-5 h-5" />
-                </motion.div>
-              </button>
+                  <motion.div
+                    animate={{ rotate: mobileSidebarOpen ? 90 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <FiSettings className="w-6 h-6" />
+                  </motion.div>
+                </motion.button>
+              )}
 
               {/* Notifications */}
               <div className="relative">
@@ -1103,22 +1083,22 @@ export default function RegistralLayout({
 
               {/* User Menu */}
               <div className="relative group">
-                <button className="flex items-center space-x-2 sm:space-x-3 p-2 rounded-xl hover:bg-white/70 backdrop-blur-sm transition-all duration-200 border border-transparent hover:border-gray-200/50">
+                <button className="flex items-center space-x-3 p-2 rounded-xl hover:bg-white/70 backdrop-blur-sm transition-all duration-200 border border-transparent hover:border-gray-200/50">
                   <div className="relative">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
-                      <FiUser className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
+                      <FiUser className="w-4 h-4 text-white" />
                     </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-400 rounded-full border-2 border-white"></div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
                   </div>
-                  <div className="hidden md:block text-left min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 leading-tight truncate max-w-32">
+                  <div className="hidden sm:block text-left">
+                    <p className="text-sm font-semibold text-gray-900 leading-tight">
                       {session?.user?.name?.split(" ")[0]}
                     </p>
                     <p className="text-xs text-gray-500 capitalize">
                       {session?.user?.role}
                     </p>
                   </div>
-                  <FiChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors hidden sm:block" />
+                  <FiChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
                 </button>
 
                 {/* Dropdown Menu */}
@@ -1147,7 +1127,7 @@ export default function RegistralLayout({
                     <div className="border-t border-gray-100 my-2"></div>
                     <button
                       onClick={() =>
-                        signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
+                        signOut({ callbackUrl: `${window.location.origin}/login`, redirect: true })
                       }
                       className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
@@ -1161,145 +1141,22 @@ export default function RegistralLayout({
           </div>
         </div>
 
-        {/* Mobile Search Overlay */}
-        <AnimatePresence>
-          {showSearch && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="lg:hidden bg-white border-t border-gray-200 px-4 py-4"
-            >
-              <div className="relative max-w-md mx-auto">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiSearch className="h-4 w-4 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search students, registrations..."
-                  autoFocus
-                  className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSearch(searchQuery);
-                    } else if (e.key === 'Escape') {
-                      setShowSearch(false);
-                      setSearchQuery("");
-                    }
-                  }}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <button
-                  onClick={() => {
-                    setShowSearch(false);
-                    setSearchQuery("");
-                  }}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  <FiX className="w-5 h-5 text-gray-400 hover:text-gray-600" />
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Mobile Menu Overlay */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden bg-white border-t border-gray-200 overflow-hidden"
-            >
-              <div className="px-4 py-4 space-y-3">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    window.location.href = `/registral/${schoolSlug}/registration`;
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center space-x-3 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl text-sm font-medium shadow-sm transition-all duration-200"
-                  style={{
-                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                  }}
-                >
-                  <FiPlus className="w-4 h-4" />
-                  <span>New Registration</span>
-                </motion.button>
-
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    window.location.href = `/registral/${schoolSlug}/students`;
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center space-x-3 px-4 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-sm font-medium transition-all duration-200"
-                >
-                  <FiUsers className="w-4 h-4" />
-                  <span>Students</span>
-                </motion.button>
-
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    window.location.href = `/registral/${schoolSlug}/earnings`;
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center space-x-3 px-4 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-sm font-medium transition-all duration-200"
-                >
-                  <FiDollarSign className="w-4 h-4" />
-                  <span>Earnings</span>
-                </motion.button>
-
-                <div className="border-t border-gray-200 pt-3 space-y-3">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      window.location.href = `/registral/${schoolSlug}/dashboard`;
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center space-x-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl text-sm font-medium transition-all duration-200"
-                  >
-                    <FiHome className="w-4 h-4" />
-                    <span>Dashboard</span>
-                  </motion.button>
-
-                  {/* Mobile Logout Button */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true });
-                    }}
-                    className="w-full flex items-center space-x-3 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-medium transition-all duration-200"
-                  >
-                    <FiLogOut className="w-4 h-4" />
-                    <span>Logout</span>
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Breadcrumb Navigation */}
         <div className="bg-white/50 backdrop-blur-sm border-t border-gray-200/50">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
-            <nav className="flex py-2 sm:py-3" aria-label="Breadcrumb">
-              <ol className="flex items-center space-x-1 sm:space-x-2">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav className="flex py-3" aria-label="Breadcrumb">
+              <ol className="flex items-center space-x-2">
                 <li>
                   <Link
                     href={`/registral/${schoolSlug}/dashboard`}
-                    className="text-gray-500 hover:text-gray-700 text-xs sm:text-sm font-medium transition-colors"
+                    className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
                   >
-                    <span className="hidden sm:inline">Dashboard</span>
-                    <span className="sm:hidden">Home</span>
+                    Dashboard
                   </Link>
                 </li>
                 <li className="flex items-center">
-                  <FiChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mx-1 sm:mx-2" />
-                  <span className="text-gray-900 text-xs sm:text-sm font-medium capitalize truncate max-w-48 sm:max-w-none">
+                  <FiChevronRight className="w-4 h-4 text-gray-400 mx-2" />
+                  <span className="text-gray-900 text-sm font-medium capitalize">
                     {pathname.split("/").pop()?.replace("-", " ") || "Home"}
                   </span>
                 </li>
@@ -1309,17 +1166,17 @@ export default function RegistralLayout({
         </div>
       </motion.header>
 
-        {/* Enhanced Responsive Sidebar */}
+        {/* Enhanced Sidebar */}
         <motion.nav
-          initial={{ x: -300 }}
+          initial={{ x: isMobile ? -1000 : -300 }}
           animate={{
-            x: isMobile && !mobileMenuOpen ? -300 : 0,
-            width: sidebarCollapsed ? 72 : isMobile ? "100vw" : 320
+            x: isMobile ? (mobileSidebarOpen ? 0 : -1000) : 0,
+            width: isMobile ? "100vw" : (sidebarCollapsed ? 72 : 320)
           }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
-          className={`bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 fixed top-28 sm:top-32 z-40 ${
-            isMobile ? 'h-[calc(100vh-7rem)]' : 'h-[calc(100vh-8rem)]'
-          }`}
+          className={`bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 fixed top-32 left-0 z-40 ${
+            isMobile ? 'h-full' : 'h-[calc(100vh-8rem)]'
+          } ${isMobile && !mobileSidebarOpen ? 'hidden' : ''}`}
           style={{
             background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}08 100%)`,
           }}
@@ -1328,13 +1185,21 @@ export default function RegistralLayout({
             <div className="h-full overflow-y-auto sidebar-scroll">
               {/* Sidebar Header with School Branding */}
           <div
-            className={`relative border-b border-gray-200 ${
-              sidebarCollapsed && !isMobile ? 'p-4' : 'p-4 sm:p-6'
-            }`}
+            className="relative p-6 border-b border-gray-200"
             style={{
               background: `linear-gradient(135deg, ${primaryColor}10 0%, ${secondaryColor}15 100%)`,
             }}
           >
+            {/* Mobile Close Button */}
+            {isMobile && (
+              <button
+                onClick={() => setMobileSidebarOpen(false)}
+                className="absolute top-4 right-4 p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200 z-50"
+                title="Close Menu"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            )}
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-10">
               <div
@@ -1411,8 +1276,8 @@ export default function RegistralLayout({
             </div>
           </div>
 
-          {/* Enhanced Quick Stats - Hidden when collapsed */}
-          {!sidebarCollapsed && (
+          {/* Enhanced Quick Stats - Hidden when collapsed on desktop */}
+          {(!sidebarCollapsed || isMobile) && (
             <QuickStatsWidget
               stats={sidebarStats}
               primaryColor={primaryColor}
@@ -1420,8 +1285,8 @@ export default function RegistralLayout({
             />
           )}
 
-          {/* Navigation Search - Hidden when collapsed */}
-          {!sidebarCollapsed && (
+          {/* Navigation Search - Hidden when collapsed on desktop */}
+          {(!sidebarCollapsed || isMobile) && (
             <NavigationSearch
               searchQuery={sidebarSearchQuery}
               setSearchQuery={setSidebarSearchQuery}
@@ -1431,7 +1296,7 @@ export default function RegistralLayout({
           )}
 
           {/* Navigation Groups */}
-          <div className={`${sidebarCollapsed && !isMobile ? 'px-2' : 'px-4'} pb-4 space-y-2`}>
+          <div className={`${isMobile ? 'px-6' : 'px-4'} pb-4 space-y-2`}>
             {navGroups
               .filter((group) => {
                 if (!sidebarSearchQuery) return true;
@@ -1463,7 +1328,7 @@ export default function RegistralLayout({
                     primaryColor={primaryColor}
                     secondaryColor={secondaryColor}
                     schoolSlug={schoolSlug}
-                    isCollapsed={sidebarCollapsed}
+                    isCollapsed={sidebarCollapsed && !isMobile}
                   />
                 );
               })}
@@ -1495,59 +1360,44 @@ export default function RegistralLayout({
           </div>
 
           {/* User Profile Section */}
-          <div className={`${sidebarCollapsed && !isMobile ? 'p-2' : 'p-4'} border-t border-gray-200 bg-gray-50/50`}>
+          <div className={`${isMobile ? 'p-6' : 'p-4'} border-t border-gray-200 bg-gray-50/50`}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center min-w-0 flex-1">
-                <div className={`rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm ${
-                  sidebarCollapsed && !isMobile ? 'w-6 h-6' : 'w-8 h-8'
-                }`}>
-                  <FiUser className={`text-white ${
-                    sidebarCollapsed && !isMobile ? 'w-3 h-3' : 'w-4 h-4'
-                  }`} />
+              <div className="flex items-center">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
+                  <FiUser className="w-4 h-4 text-white" />
                 </div>
-                {!sidebarCollapsed && (
-                  <div className="ml-3 min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
-                      {session?.user?.name}
-                    </p>
-                    <p className="text-xs text-gray-600 capitalize">
-                      {session?.user?.role}
-                    </p>
-                  </div>
-                )}
+                <div className="ml-3">
+                  <p className="text-sm font-semibold text-gray-900 truncate max-w-32">
+                    {session?.user?.name}
+                  </p>
+                  <p className="text-xs text-gray-600 capitalize">
+                    {session?.user?.role}
+                  </p>
+                </div>
               </div>
-              {!sidebarCollapsed && (
-                <button
-                  onClick={() =>
-                    signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
-                  }
-                  className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors ml-2"
-                  title="Logout"
-                >
-                  <FiLogOut size={16} />
-                </button>
-              )}
-              {sidebarCollapsed && !isMobile && (
-                <button
-                  onClick={() =>
-                    signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
-                  }
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
-                  title="Logout"
-                >
-                  <FiLogOut size={14} />
-                </button>
-              )}
+              <button
+                onClick={() =>
+                  signOut({ callbackUrl: `${window.location.origin}/login`, redirect: true })
+                }
+                className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
+                title="Logout"
+              >
+                <FiLogOut size={16} />
+              </button>
             </div>
           </div>
         </div>
       </motion.nav>
 
       {/* Mobile Sidebar Backdrop */}
-      {isMobile && mobileMenuOpen && (
+      {isMobile && mobileSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30"
-          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-30"
+          style={{
+            background: `linear-gradient(135deg, ${primaryColor}90 0%, ${secondaryColor}85 100%)`,
+            backdropFilter: "blur(8px)",
+          }}
+          onClick={() => setMobileSidebarOpen(false)}
         />
       )}
 
@@ -1555,11 +1405,11 @@ export default function RegistralLayout({
       <motion.main
         animate={{
           paddingLeft: isMobile ? 0 : (sidebarCollapsed ? 72 : 320),
-          marginTop: isMobile ? "7rem" : "8rem"
+          marginTop: isMobile ? "8rem" : "8rem"
         }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
         className={`min-h-[calc(100vh-5rem)] transition-all duration-300 ${
-          isMobile ? 'p-4 sm:p-6' : 'p-6 lg:p-8'
+          isMobile ? 'p-4 sm:p-6' : 'p-8'
         }`}
       >
         <BrandingContext.Provider value={branding}>

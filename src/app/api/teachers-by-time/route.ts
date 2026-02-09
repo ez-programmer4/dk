@@ -13,7 +13,8 @@ const prisma = new PrismaClient();
 const checkTeacherAvailability = async (
   selectedTime: string,
   selectedPackage: string,
-  teacherId: string
+  teacherId: string,
+  schoolId: string
 ) => {
   // Validate time format
   if (!validateTime(selectedTime)) {
@@ -72,9 +73,10 @@ const checkTeacherAvailability = async (
     };
   }
 
-  // Check for occupied times with multiple time formats
+  // Check for occupied times with multiple time formats and school filtering
   const allBookings = await prisma.wpos_ustaz_occupied_times.findMany({
     where: {
+      schoolId: schoolId,
       OR: [
         { time_slot: timeSlot }, // 12-hour format
         { time_slot: timeToMatch }, // 24-hour format
@@ -139,11 +141,32 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const selectedTime = searchParams.get("selectedTime");
     const selectedPackage = searchParams.get("selectedDayPackage");
+    const schoolSlug = searchParams.get("schoolSlug");
 
     if (!selectedTime || !selectedPackage) {
       return NextResponse.json(
         { message: "Selected time and day package are required" },
         { status: 400 }
+      );
+    }
+
+    if (!schoolSlug) {
+      return NextResponse.json(
+        { message: "School slug is required" },
+        { status: 400 }
+      );
+    }
+
+    // Get school ID from slug
+    const school = await prisma.school.findUnique({
+      where: { slug: schoolSlug },
+      select: { id: true },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { message: "School not found" },
+        { status: 404 }
       );
     }
 
@@ -156,6 +179,9 @@ export async function GET(request: NextRequest) {
     }
 
     const teachers = await prisma.wpos_wpdatatable_24.findMany({
+      where: {
+        schoolId: school.id,
+      },
       select: {
         ustazid: true,
         ustazname: true,
@@ -175,7 +201,8 @@ export async function GET(request: NextRequest) {
         const availability = await checkTeacherAvailability(
           selectedTime,
           selectedPackage,
-          teacher.ustazid
+          teacher.ustazid,
+          school.id
         );
         return availability.isAvailable ? availability.teacher : null;
       })

@@ -22,9 +22,11 @@ export async function GET(
         phone: true,
         address: true,
         status: true,
-        subscriptionTier: true,
-        currentStudentCount: true,
-        maxStudents: true,
+        subscription: {
+          select: {
+            currentStudents: true,
+          },
+        },
       },
     });
 
@@ -41,6 +43,7 @@ export async function GET(
     );
   }
 }
+
 
 
 

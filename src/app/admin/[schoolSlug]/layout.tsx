@@ -733,12 +733,7 @@ export default function AdminLayout({
           icon: FiClock,
           description: "Track daily sessions",
         },
-        {
-          href: `/admin/${schoolSlug}/teacher-durations`,
-          label: "Teaching Durations",
-          icon: FiTarget,
-          description: "Session tracking",
-        },
+        
         {
           href: `/admin/${schoolSlug}/permissions`,
           label: "Permissions",
@@ -1203,7 +1198,7 @@ export default function AdminLayout({
                       <div className="border-t border-gray-100 my-2"></div>
                       <button
                         onClick={() =>
-                          signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
+                          signOut({ callbackUrl: `${window.location.origin}/login`, redirect: true })
                         }
                         className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >
@@ -1473,7 +1468,7 @@ export default function AdminLayout({
                 </div>
                 <button
                   onClick={() =>
-                    signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
+                    signOut({ callbackUrl: "/login", redirect: true })
                   }
                   className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
                   title="Logout"

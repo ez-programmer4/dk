@@ -142,24 +142,10 @@ export default function RegistralDashboard() {
       ]);
 
       if (!regResponse.ok) {
-        console.error('❌ RegResponse not ok:', regResponse.status, regResponse.statusText);
-        const errorText = await regResponse.text();
-        console.error('❌ Error response:', errorText);
-        throw new Error(`HTTP error! Status: ${regResponse.status} - ${errorText}`);
+        throw new Error(`HTTP error! Status: ${regResponse.status}`);
       }
-
       const data = await regResponse.json();
-      console.log('📥 Dashboard received data:', data);
-      console.log('📥 Data type:', typeof data, 'Is array:', Array.isArray(data));
-
-      // Check if it's an error response
-      if (data.error) {
-        console.error('❌ API returned error:', data.error, data.details);
-        throw new Error(data.error || "API returned an error");
-      }
-
       if (!Array.isArray(data)) {
-        console.error('❌ Expected array but got:', data);
         throw new Error("Expected an array of registrations");
       }
 
@@ -777,7 +763,7 @@ export default function RegistralDashboard() {
 
   const handleLogout = async () => {
     try {
-      await signOut({ callbackUrl: "/login", redirect: true });
+      await signOut({ callbackUrl: `${window.location.origin}/login`, redirect: true });
     } catch (error) {
       setNotification({
         message: "Failed to logout",
@@ -791,7 +777,7 @@ export default function RegistralDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-3 sm:p-4 lg:p-6 xl:p-8 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4 md:p-8 font-sans">
       <AnimatePresence>
         {notification && (
           <motion.div
@@ -841,10 +827,10 @@ export default function RegistralDashboard() {
       </AnimatePresence>
 
       <div className="w-full max-w-7xl mx-auto">
-        <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-100">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+        <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-8 border border-gray-100">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
                 Student Management Dashboard
               </h1>
               <p className="text-gray-600 mt-2 text-sm">
@@ -866,7 +852,7 @@ export default function RegistralDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mt-6 sm:mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
             <motion.div
               whileHover={{ scale: 1.02 }}
               className="bg-white p-6 rounded-xl shadow-md border border-gray-100 hover:bg-gray-50 transition-all duration-300"
@@ -967,13 +953,13 @@ export default function RegistralDashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <h2 className="text-xl font-semibold text-gray-900">
               Student Registrations
             </h2>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-              <div className="relative flex-1 sm:flex-initial sm:w-72">
+            <div className="flex items-center space-x-4">
+              <div className="relative w-full md:w-72">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FiSearch className="text-gray-400" />
                 </div>
@@ -989,11 +975,11 @@ export default function RegistralDashboard() {
           </div>
 
           {selectedRows.length > 0 && (
-            <div className="px-4 sm:px-6 py-3 border-b border-gray-200 bg-blue-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+            <div className="px-6 py-3 border-b border-gray-200 bg-blue-50 flex items-center justify-between">
               <div className="text-sm text-blue-800">
                 {selectedRows.length} student(s) selected
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex space-x-2">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -1046,8 +1032,7 @@ export default function RegistralDashboard() {
             </div>
           ) : paginatedRegistrations.length > 0 ? (
             <>
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <div className="inline-block min-w-full align-middle">
+              <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -1347,8 +1332,8 @@ export default function RegistralDashboard() {
                               exit={{ height: 0, opacity: 0 }}
                               className="bg-gray-50"
                             >
-                              <td colSpan={8} className="px-4 sm:px-6 py-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <td colSpan={8} className="px-6 py-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <DetailItem
                                     icon={<FiUser className="text-blue-600" />}
                                     label="Name"
@@ -1467,13 +1452,12 @@ export default function RegistralDashboard() {
                   </tbody>
                 </table>
               </div>
-            </div>
-              <div className="px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
-                <div className="text-xs sm:text-sm text-gray-600">
+              <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center">
+                <div className="text-sm text-gray-600 mb-2 sm:mb-0">
                   Showing {paginatedRegistrations.length} of{" "}
                   {sortedRegistrations.length} entries
                 </div>
-                <div className="flex items-center space-x-1 sm:space-x-2">
+                <div className="flex items-center space-x-2">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}

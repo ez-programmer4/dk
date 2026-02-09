@@ -99,6 +99,8 @@ export default function ControllerLayout({
   // Enhanced sidebar state
   const [sidebarSearchQuery, setSidebarSearchQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (params.schoolSlug) {
@@ -226,6 +228,21 @@ export default function ControllerLayout({
     }
   }, [schoolSlug]);
 
+  // Mobile detection and responsive handling
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 1024; // lg breakpoint
+      setIsMobile(mobile);
+      if (mobile && !mobileSidebarOpen) {
+        setSidebarCollapsed(true); // Collapse sidebar on mobile by default
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [mobileSidebarOpen]);
+
   // Handle global search
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -297,18 +314,8 @@ export default function ControllerLayout({
           icon: FiUsers,
           description: `${sidebarStats.totalTeachers} Assigned Teachers`,
         },
-        {
-          href: `/controller/${schoolSlug}/ratings`,
-          label: "Teacher Ratings",
-          icon: FiStar,
-          description: "Performance Reviews",
-        },
-        {
-          href: `/controller/${schoolSlug}/quality`,
-          label: "Quality Review",
-          icon: FiAward,
-          description: "Teaching Standards",
-        },
+        
+        
       ],
     },
     {
@@ -329,34 +336,10 @@ export default function ControllerLayout({
           icon: FiCheckSquare,
           description: "Real-time Monitoring",
         },
-        {
-          href: `/controller/${schoolSlug}/student-analytics`,
-          label: "Student Analytics",
-          icon: FiBarChart,
-          description: "Progress Tracking",
-        },
+        
       ],
     },
-    {
-      id: "business",
-      label: "Business & Reports",
-      icon: FiBriefcase,
-      defaultExpanded: false,
-      items: [
-        {
-          href: `/controller/${schoolSlug}/earnings`,
-          label: "Earnings",
-          icon: FiDollarSign,
-          description: `$${sidebarStats.monthlyEarnings} This Month`,
-        },
-        {
-          href: `/controller/${schoolSlug}/subscriptions`,
-          label: "Subscriptions",
-          icon: FiClipboard,
-          description: "Package Management",
-        },
-      ],
-    },
+   
     {
       id: "tools",
       label: "Tools & Settings",
@@ -1019,7 +1002,7 @@ export default function ControllerLayout({
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-20">
               {/* Left Section - Logo & School Info */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 sm:space-x-4">
                 <div className="relative group">
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                   <div className="relative bg-white rounded-xl p-2 shadow-lg ring-1 ring-gray-200/50">
@@ -1056,7 +1039,7 @@ export default function ControllerLayout({
               </div>
 
               {/* Center Section - Search & Quick Actions */}
-              <div className="hidden md:flex items-center space-x-3 flex-1 max-w-md mx-8">
+              <div className="hidden sm:flex items-center space-x-3 flex-1 max-w-md mx-4 sm:mx-8">
                 <div className="relative flex-1">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <FiSearch className="h-4 w-4 text-gray-400" />
@@ -1085,10 +1068,22 @@ export default function ControllerLayout({
                   </motion.div>
                 </button>
 
-                {/* Mobile Menu Button */}
-                <button className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
-                  <FiSearch className="w-5 h-5" />
-                </button>
+                {/* Mobile Sidebar Menu Button */}
+                {isMobile && (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+                    className="p-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors border border-gray-200 shadow-sm"
+                    title={mobileSidebarOpen ? "Close Menu" : "Open Menu"}
+                  >
+                    <motion.div
+                      animate={{ rotate: mobileSidebarOpen ? 90 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <FiSettings className="w-6 h-6" />
+                    </motion.div>
+                  </motion.button>
+                )}
 
                 {/* Notifications */}
                 <div className="relative">
@@ -1146,7 +1141,7 @@ export default function ControllerLayout({
                       <div className="border-t border-gray-100 my-2"></div>
                       <button
                         onClick={() =>
-                          signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
+                          signOut({ callbackUrl: `${window.location.origin}/login`, redirect: true })
                         }
                         className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >
@@ -1164,7 +1159,7 @@ export default function ControllerLayout({
         {/* Breadcrumb Navigation */}
         <div className="bg-white/50 backdrop-blur-sm border-t border-gray-200/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <nav className="flex py-3" aria-label="Breadcrumb">
+            <nav className="flex py-2 sm:py-3" aria-label="Breadcrumb">
               <ol className="flex items-center space-x-2">
                 <li>
                   <Link
@@ -1186,14 +1181,20 @@ export default function ControllerLayout({
         </div>
  
         {/* Enhanced Sidebar */}
-          <motion.nav
-            initial={{ x: -300 }}
-            animate={{ x: 0 }}
-            className="w-80 bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 h-[calc(100vh-5rem)] fixed top-20 z-30"
-            style={{
-              background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}08 100%)`,
-            }}
-          >
+        <motion.nav
+          initial={{ x: isMobile ? -1000 : -300 }}
+          animate={{
+            x: isMobile ? (mobileSidebarOpen ? 0 : -1000) : 0,
+            width: isMobile ? "100vw" : (sidebarCollapsed ? 72 : 320)
+          }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className={`bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 fixed top-20 left-0 z-40 ${
+            isMobile ? 'h-full' : 'h-[calc(100vh-5rem)]'
+          } ${isMobile && !mobileSidebarOpen ? 'hidden' : ''}`}
+          style={{
+            background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}08 100%)`,
+          }}
+        >
             {/* Entire Sidebar Content - Scrollable */}
             <div className="h-full overflow-y-auto sidebar-scroll">
               {/* Sidebar Header with School Branding */}
@@ -1203,6 +1204,16 @@ export default function ControllerLayout({
                 background: `linear-gradient(135deg, ${primaryColor}10 0%, ${secondaryColor}15 100%)`,
               }}
             >
+              {/* Mobile Close Button */}
+              {isMobile && (
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="absolute top-4 right-4 p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200 z-50"
+                  title="Close Menu"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              )}
               {/* Background Pattern */}
               <div className="absolute inset-0 opacity-10">
                 <div
@@ -1277,8 +1288,8 @@ export default function ControllerLayout({
               </div>
             </div>
 
-            {/* Enhanced Quick Stats - Hidden when collapsed */}
-            {!sidebarCollapsed && (
+            {/* Enhanced Quick Stats - Hidden when collapsed on desktop */}
+            {(!sidebarCollapsed || isMobile) && (
               <QuickStatsWidget
                 stats={sidebarStats}
                 primaryColor={primaryColor}
@@ -1286,8 +1297,8 @@ export default function ControllerLayout({
               />
             )}
 
-            {/* Navigation Search - Hidden when collapsed */}
-            {!sidebarCollapsed && (
+            {/* Navigation Search - Hidden when collapsed on desktop */}
+            {(!sidebarCollapsed || isMobile) && (
               <NavigationSearch
                 searchQuery={sidebarSearchQuery}
                 setSearchQuery={setSidebarSearchQuery}
@@ -1297,7 +1308,7 @@ export default function ControllerLayout({
             )}
 
             {/* Navigation Groups */}
-            <div className="px-4 pb-4 space-y-2">
+            <div className={`${isMobile ? 'px-6' : 'px-4'} pb-4 space-y-2`}>
               {navGroups
                 .filter((group) => {
                   if (!sidebarSearchQuery) return true;
@@ -1329,7 +1340,7 @@ export default function ControllerLayout({
                       primaryColor={primaryColor}
                       secondaryColor={secondaryColor}
                       schoolSlug={schoolSlug}
-                      isCollapsed={sidebarCollapsed}
+                      isCollapsed={sidebarCollapsed && !isMobile}
                     />
                   );
                 })}
@@ -1361,7 +1372,7 @@ export default function ControllerLayout({
             </div>
 
             {/* User Profile Section */}
-            <div className="p-4 border-t border-gray-200 bg-gray-50/50">
+            <div className={`${isMobile ? 'p-6' : 'p-4'} border-t border-gray-200 bg-gray-50/50`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
@@ -1378,7 +1389,7 @@ export default function ControllerLayout({
                 </div>
                 <button
                   onClick={() =>
-                    signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
+                    signOut({ callbackUrl: "/login", redirect: true })
                   }
                   className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
                   title="Logout"
@@ -1390,13 +1401,28 @@ export default function ControllerLayout({
             </div> {/* End scrollable container */}
           </motion.nav>
 
+          {/* Mobile Sidebar Backdrop */}
+          {isMobile && mobileSidebarOpen && (
+            <div
+              className="fixed inset-0 z-30"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}90 0%, ${secondaryColor}85 100%)`,
+                backdropFilter: "blur(8px)",
+              }}
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+          )}
+
         {/* Main Content */}
         <motion.main
           animate={{
-            paddingLeft: sidebarCollapsed ? 72 : 320
+            paddingLeft: isMobile ? 0 : (sidebarCollapsed ? 72 : 320),
+            marginTop: isMobile ? "5rem" : "5rem"
           }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="min-h-[calc(100vh-5rem)] p-8"
+          className={`min-h-[calc(100vh-5rem)] transition-all duration-300 ${
+            isMobile ? 'p-4 sm:p-6' : 'p-8'
+          }`}
         >
           <AnimatePresence mode="wait">{children}</AnimatePresence>
         </motion.main>

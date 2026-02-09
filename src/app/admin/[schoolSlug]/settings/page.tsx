@@ -262,9 +262,6 @@ export default function SchoolSettingsPage() {
       console.log('📥 Settings API response:', data);
 
       if (data.success && data.settings) {
-        console.log('🎨 Settings page received branding data:', data.settings.branding);
-        console.log('🎨 Full API response:', data);
-
         // Merge fetched settings with defaults
         const defaultSettings = {
           branding: {

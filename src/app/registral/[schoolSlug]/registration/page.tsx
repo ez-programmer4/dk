@@ -204,6 +204,7 @@ function RegistrationContent() {
   }>({});
   const [loadingAvailability, setLoadingAvailability] =
     useState<boolean>(false);
+  const availabilityCheckRef = useRef<string | null>(null);
 
   // Add state for controllers
   const [controllers, setControllers] = useState<
@@ -997,18 +998,6 @@ function RegistrationContent() {
       sessionStorage.removeItem("usStudentEmail");
       sessionStorage.removeItem("usStudentId");
 
-      // Force refresh of occupied times in localStorage or sessionStorage
-      // This will help ensure availability is updated for future registrations
-      try {
-        // Clear any cached availability data
-        if (typeof window !== 'undefined') {
-          sessionStorage.removeItem('occupiedTimes');
-          localStorage.removeItem('occupiedTimes');
-        }
-      } catch (error) {
-        console.warn('Could not clear cached occupied times:', error);
-      }
-
       setTimeout(() => {
         // Redirect registral back to registral dashboard after registration
         const userRole = session?.user?.role;
@@ -1075,7 +1064,6 @@ function RegistrationContent() {
     if (!selectedDayPackage) return;
 
     try {
-      console.log('🔄 Fetching occupied times for:', { schoolSlug, selectedDayPackage });
       const res = await fetch(
         `/api/occupied-times?schoolSlug=${schoolSlug}&dayPackage=${encodeURIComponent(
           selectedDayPackage
@@ -1083,83 +1071,87 @@ function RegistrationContent() {
       );
       if (res.ok) {
         const data = await res.json();
-        console.log('📥 Received occupied times:', data.totalOccupied, 'entries');
         setOccupiedTimes(data.occupiedTimes || []);
-      } else {
-        console.error('❌ Occupied times API failed:', res.status, res.statusText);
-        setOccupiedTimes([]);
       }
     } catch (error) {
-      console.error("❌ Error fetching occupied times:", error);
+      console.error("Error fetching occupied times:", error);
       setOccupiedTimes([]);
     }
   }, [schoolSlug, selectedDayPackage]);
 
   const checkAvailability = useCallback(async () => {
-    if (!selectedDayPackage) return;
+    const checkId = `${selectedDayPackage}-${timeSlots.length}-${occupiedTimes.length}`;
+    if (!selectedDayPackage || timeSlots.length === 0 || loadingAvailability || availabilityCheckRef.current === checkId) return;
+
+    availabilityCheckRef.current = checkId;
     setLoadingAvailability(true);
     const availability: { [time: string]: boolean } = {};
 
-    await Promise.all(
-      timeSlots.map(async (slot) => {
-        try {
-          const res = await fetch(
-            `/api/teachers-by-time?selectedTime=${encodeURIComponent(
-              slot.time
-            )}&selectedDayPackage=${encodeURIComponent(
-              selectedDayPackage
-            )}&schoolSlug=${schoolSlug}&_t=${Date.now()}`
-          );
-          if (!res.ok) {
+    try {
+      await Promise.all(
+        timeSlots.map(async (slot) => {
+          try {
+            const res = await fetch(
+              `/api/teachers-by-time?selectedTime=${encodeURIComponent(
+                slot.time
+              )}&selectedDayPackage=${encodeURIComponent(
+                selectedDayPackage
+              )}&schoolSlug=${schoolSlug}&_t=${Date.now()}`
+            );
+            if (!res.ok) {
+              availability[slot.time] = false;
+              return;
+            }
+            const data = await res.json();
+            const teachers = Array.isArray(data) ? data : data.teachers;
+            const isAvailable = teachers && teachers.length > 0;
+
+            // Check if this time slot is already occupied
+            const isOccupied = occupiedTimes.some(
+              (occupied) =>
+                occupied.time_slot === slot.time &&
+                occupied.daypackage === selectedDayPackage
+            );
+
+            availability[slot.time] = isAvailable && !isOccupied;
+          } catch (error) {
             availability[slot.time] = false;
-            return;
           }
-          const data = await res.json();
-          const teachers = Array.isArray(data) ? data : data.teachers;
-          const isAvailable = teachers && teachers.length > 0;
+        })
+      );
 
-          // Check if this time slot is already occupied
-          const isOccupied = occupiedTimes.some(
-            (occupied) =>
-              occupied.time_slot === slot.time &&
-              occupied.daypackage === selectedDayPackage
-          );
+      setAvailableTimeSlots(availability);
+    } finally {
+      setLoadingAvailability(false);
+      availabilityCheckRef.current = null;
+    }
+  }, [selectedDayPackage, timeSlots.length, occupiedTimes.length, schoolSlug, loadingAvailability]);
 
-          availability[slot.time] = isAvailable && !isOccupied;
-        } catch (error) {
-          availability[slot.time] = false;
+  // Combined effect to fetch occupied times and check availability
+  useEffect(() => {
+    const initializeAvailability = async () => {
+      if (!selectedDayPackage || timeSlots.length === 0) return;
+
+      // Fetch occupied times first
+      await fetchOccupiedTimes();
+
+      // Small delay to ensure occupied times are set
+      setTimeout(() => {
+        if (!loadingAvailability) {
+          checkAvailability();
         }
-      })
-    );
+      }, 100);
+    };
 
-    setAvailableTimeSlots(availability);
-    setLoadingAvailability(false);
-  }, [timeSlots, selectedDayPackage, occupiedTimes, schoolSlug]);
+    initializeAvailability();
+  }, [selectedDayPackage, timeSlots.length]); // Simplified dependencies
 
-  useEffect(() => {
-    if (selectedDayPackage) {
-      fetchOccupiedTimes();
-    }
-  }, [selectedDayPackage, fetchOccupiedTimes]);
-
-  useEffect(() => {
-    if (timeSlots.length > 0 && selectedDayPackage) {
-      // Always fetch fresh occupied times when day package changes
-      fetchOccupiedTimes().then(() => {
-        checkAvailability();
-      });
-    }
-  }, [timeSlots, selectedDayPackage, checkAvailability]);
-
-  // Refresh availability when returning from registration
-  useEffect(() => {
-    if (step === 1 && timeSlots.length > 0 && selectedDayPackage) {
-      checkAvailability();
-    }
-  }, [step, checkAvailability, timeSlots.length, selectedDayPackage]);
+  // Availability is already handled by the main useEffect above, no need for separate refresh logic
 
   useEffect(() => {
     setSelectedTime("");
+    // Reset availability check ref when day package changes
+    availabilityCheckRef.current = null;
   }, [selectedDayPackage]);
 
   // Fetch controllers for refer dropdown
@@ -1311,7 +1303,7 @@ function RegistrationContent() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-3 sm:p-4 lg:p-6 xl:p-8 font-sans overflow-x-hidden"
+      className="min-h-screen flex items-center justify-center p-4 md:p-8 font-sans overflow-x-hidden"
       style={{
         background: `linear-gradient(to bottom right, ${primaryColor}10, ${secondaryColor}10)`,
       }}
@@ -1359,16 +1351,16 @@ function RegistrationContent() {
             <p className="mb-6 text-gray-700 text-base md:text-lg text-center font-medium">
               You have unsaved changes. Are you sure you want to leave?
             </p>
-            <div className="flex flex-col md:flex-row justify-end gap-4 w-full mt-2">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 w-full mt-2">
               <button
                 onClick={cancelLeave}
-                className="px-6 py-3 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold text-base shadow focus:outline-none focus:ring-2 focus:ring-teal-400 transition-all w-full md:w-auto"
+                className="px-4 py-3 sm:px-6 sm:py-3 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold text-sm sm:text-base shadow focus:outline-none focus:ring-2 focus:ring-teal-400 transition-all w-full sm:w-auto"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmLeave}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-base shadow focus:outline-none focus:ring-2 focus:ring-red-400 transition-all w-full md:w-auto"
+                className="px-4 py-3 sm:px-6 sm:py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-sm sm:text-base shadow focus:outline-none focus:ring-2 focus:ring-red-400 transition-all w-full sm:w-auto"
               >
                 Leave
               </button>
@@ -1616,7 +1608,7 @@ function RegistrationContent() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.0, duration: 0.3 }}
-              className="flex gap-3 mt-6 pt-4 border-t border-emerald-200"
+              className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-emerald-200"
             >
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -1625,7 +1617,7 @@ function RegistrationContent() {
                   setShowSummary(false);
                   window.location.href = `/registral/${schoolSlug}/dashboard`;
                 }}
-                className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm shadow-md transition-all duration-200"
+                className="flex-1 px-4 py-3 sm:px-4 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-base sm:text-sm shadow-md transition-all duration-200"
               >
                 Go to Dashboard
               </motion.button>
@@ -1636,7 +1628,7 @@ function RegistrationContent() {
                   setShowSummary(false);
                   window.location.href = `/registral/${schoolSlug}/registration`;
                 }}
-                className="flex-1 px-4 py-2 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-semibold text-sm shadow-md transition-all duration-200"
+                className="flex-1 px-4 py-3 sm:px-4 sm:py-2 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-semibold text-base sm:text-sm shadow-md transition-all duration-200"
               >
                 Register Another
               </motion.button>
@@ -1648,22 +1640,22 @@ function RegistrationContent() {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full max-w-sm sm:max-w-2xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto"
+        className="w-full max-w-3xl md:max-w-5xl lg:max-w-6xl"
       >
-        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border-t-4 border-teal-500">
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-t-4 border-teal-500">
           <div
-            className="relative overflow-hidden p-4 sm:p-6 lg:p-8 text-white"
+            className="relative overflow-hidden p-8 text-white"
             style={{
               background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
             }}
           >
             {/* Background pattern overlay */}
             <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-white rounded-full -translate-y-12 sm:-translate-y-16 translate-x-12 sm:translate-x-16"></div>
-              <div className="absolute bottom-0 left-0 w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-full translate-y-8 sm:translate-y-12 -translate-x-8 sm:-translate-x-12"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
             </div>
 
-            <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
+            <div className="relative flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -1695,15 +1687,15 @@ function RegistrationContent() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
-                className="flex flex-col items-center gap-3 sm:gap-4"
+                className="flex flex-col items-center gap-4"
               >
                 <div
-                  className="bg-white/15 backdrop-blur-sm rounded-xl sm:rounded-2xl px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold flex items-center shadow-lg border border-white/20"
+                  className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-semibold flex items-center shadow-lg border border-white/20"
                   aria-label="Step Progress"
                 >
-                  <span className="mr-2 sm:mr-4 text-white/90 hidden sm:inline">Progress</span>
-                  <span className="text-base sm:text-lg font-bold mr-2 sm:mr-4">{step} of 3</span>
-                  <div className="flex space-x-1 sm:space-x-2">
+                  <span className="mr-4 text-white/90">Progress</span>
+                  <span className="text-lg font-bold mr-4">{step} of 3</span>
+                  <div className="flex space-x-2">
                     {[1, 2, 3].map((i) => (
                       <button
                         key={i}
@@ -1776,7 +1768,7 @@ function RegistrationContent() {
                   <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
                     Select Preferred Time Slot
                   </h2>
-                  <div className="flex flex-col md:flex-row items-start md:items-center bg-white rounded-2xl p-5 shadow-md border border-gray-100 w-full md:w-auto transition-all duration-300 hover:shadow-lg mb-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center bg-white rounded-2xl p-4 sm:p-5 shadow-md border border-gray-100 w-full sm:w-auto transition-all duration-300 hover:shadow-lg mb-4">
                     <label className="flex items-center text-sm font-semibold text-gray-800 mb-3 md:mb-0 md:mr-5">
                       <FiCalendar className="mr-2 text-teal-600" />
                       Day Package:
@@ -2070,12 +2062,12 @@ function RegistrationContent() {
                       </div>
                     </div>
                   )}
-                  <div className="flex gap-4 mt-4">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
                     <Button
                       onClick={() => checkAvailability()}
                       disabled={loadingAvailability}
                       variant="outline"
-                      className="flex items-center gap-2"
+                      className="flex items-center justify-center gap-2 px-4 py-3 sm:px-4 sm:py-2 text-sm sm:text-base"
                     >
                       <FiRefreshCw
                         className={`h-4 w-4 ${
@@ -2091,13 +2083,14 @@ function RegistrationContent() {
                         setStep(3);
                       }}
                       variant="outline"
-                      className="bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                      className="px-4 py-3 sm:px-4 sm:py-2 text-sm sm:text-base bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
                     >
                       Skip Time Slot
                     </Button>
                     <Button
                       onClick={() => setStep(2)}
                       disabled={!selectedDayPackage || !selectedTime}
+                      className="px-4 py-3 sm:px-4 sm:py-2 text-sm sm:text-base"
                     >
                       Continue
                     </Button>
@@ -2249,14 +2242,14 @@ function RegistrationContent() {
                       </div>
                     )}
                   </div>
-                  <div className="flex justify-between pt-6">
+                  <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4 pt-6">
                     <Button
                       onClick={() => {
                         setSelectedTeacher("");
                         setStep(3);
                       }}
                       variant="outline"
-                      className="bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                      className="px-4 py-3 sm:px-4 sm:py-2 text-sm sm:text-base bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100 w-full sm:w-auto"
                     >
                       Skip Teacher
                     </Button>
@@ -2266,11 +2259,11 @@ function RegistrationContent() {
                       disabled={!selectedTeacher}
                       whileHover={selectedTeacher ? { scale: 1.03 } : {}}
                       whileTap={selectedTeacher ? { scale: 0.97 } : {}}
-                      className={`px-6 py-3 rounded-xl font-semibold text-white shadow-lg transition-all duration-300 flex items-center ${
+                      className={`px-4 py-3 sm:px-6 sm:py-3 rounded-xl font-semibold text-white shadow-lg transition-all duration-300 flex items-center justify-center ${
                         !selectedTeacher
                           ? "bg-gray-300 cursor-not-allowed"
                           : "bg-teal-600 hover:bg-teal-700"
-                      }`}
+                      } w-full sm:w-auto`}
                     >
                       Continue <FiArrowRight className="ml-2" />
                     </motion.button>
@@ -2286,7 +2279,7 @@ function RegistrationContent() {
                   exit={{ opacity: 0, x: 30 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                   onSubmit={handleSubmit(onSubmit)}
-                  className="space-y-6 sm:space-y-8"
+                  className="space-y-8"
                 >
                   <button
                     type="button"
@@ -2360,7 +2353,7 @@ function RegistrationContent() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="block text-sm font-semibold text-gray-800 flex items-center">
                         <FiUser className="mr-2 text-teal-600" />
@@ -2465,7 +2458,7 @@ function RegistrationContent() {
                           ? "*"
                           : "(Optional)"}
                       </label>
-                      <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex flex-col gap-3">
                         <select
                           {...register("classfeeCurrency")}
                           disabled={isUsStudent}
@@ -2980,7 +2973,7 @@ function RegistrationContent() {
                     disabled={isSubmitting}
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
-                    className={`w-full py-4 px-8 rounded-xl font-semibold text-white shadow-lg transition-all duration-300 mt-8 ${
+                    className={`w-full py-4 px-6 sm:px-8 rounded-xl font-semibold text-white shadow-lg transition-all duration-300 mt-8 text-base sm:text-lg ${
                       isSubmitting
                         ? "bg-teal-400"
                         : "bg-teal-600 hover:bg-teal-700"

@@ -174,22 +174,22 @@ export default function TeacherSalaryPage() {
     if (!salaryData) return;
 
     const reportData = {
-      teacher: salaryData.teacher,
-      period: salaryData.period,
+      teacher: salaryData?.teacher || {},
+      period: salaryData?.period || {},
       summary: {
-        totalSalary: salaryData.totalSalary,
-        workingDays: salaryData.totalWorkingDays,
-        totalClasses: salaryData.totalClasses,
-        averageDailySalary: salaryData.averageDailySalary,
+        totalSalary: salaryData?.totalSalary || 0,
+        workingDays: salaryData?.totalWorkingDays || 0,
+        totalClasses: salaryData?.totalClasses || 0,
+        averageDailySalary: salaryData?.averageDailySalary || 0,
       },
-      breakdown: salaryData.monthlyBreakdown,
+      breakdown: salaryData?.monthlyBreakdown || [],
     };
 
     const dataStr = JSON.stringify(reportData, null, 2);
     const dataUri =
       "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
 
-    const exportFileDefaultName = `salary-report-${salaryData.teacher.name}-${salaryData.period.from}-to-${salaryData.period.to}.json`;
+    const exportFileDefaultName = `salary-report-${salaryData?.teacher?.name || 'Unknown'}-${salaryData?.period?.from || 'unknown'}-to-${salaryData?.period?.to || 'unknown'}.json`;
 
     const linkElement = document.createElement("a");
     linkElement.setAttribute("href", dataUri);
@@ -418,8 +418,23 @@ export default function TeacherSalaryPage() {
         </div>
       )}
 
+      {/* Loading State */}
+      {loading && !salaryData && (
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200/50 p-8">
+          <div className="flex items-center justify-center gap-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">
+                Calculating Salary
+              </h3>
+              <p className="text-gray-600">Please wait while we fetch your salary data...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Salary Data */}
-      {salaryData && (
+      {salaryData && salaryData.attendance && (
         <div className="space-y-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -433,7 +448,7 @@ export default function TeacherSalaryPage() {
                     Total Salary
                   </h3>
                   <p className="text-2xl font-bold text-gray-900 truncate">
-                    {formatCurrency(salaryData.totalSalary)}
+                    {formatCurrency(salaryData?.totalSalary || 0)}
                   </p>
                 </div>
               </div>
@@ -449,7 +464,7 @@ export default function TeacherSalaryPage() {
                     Working Days
                   </h3>
                   <p className="text-2xl font-bold text-gray-900 truncate">
-                    {salaryData.totalWorkingDays}
+                    {salaryData?.totalWorkingDays || 0}
                   </p>
                 </div>
               </div>
@@ -465,7 +480,7 @@ export default function TeacherSalaryPage() {
                     Total Classes
                   </h3>
                   <p className="text-2xl font-bold text-gray-900 truncate">
-                    {salaryData.totalClasses}
+                    {salaryData?.totalClasses || 0}
                   </p>
                 </div>
               </div>
@@ -481,7 +496,7 @@ export default function TeacherSalaryPage() {
                     Daily Average
                   </h3>
                   <p className="text-2xl font-bold text-gray-900 truncate">
-                    {formatCurrency(salaryData.averageDailySalary)}
+                    {formatCurrency(salaryData?.averageDailySalary || 0)}
                   </p>
                 </div>
               </div>
@@ -497,7 +512,7 @@ export default function TeacherSalaryPage() {
             </TabsList>
 
             <TabsContent value="monthly" className="space-y-4">
-              {salaryData.monthlyBreakdown?.map((month: any, index: number) => (
+              {salaryData?.monthlyBreakdown?.map((month: any, index: number) => (
                 <Card key={index}>
                   <CardHeader>
                     <CardTitle>
@@ -540,7 +555,7 @@ export default function TeacherSalaryPage() {
             </TabsContent>
 
             <TabsContent value="weekly" className="space-y-4">
-              {salaryData.weeklyBreakdown?.map((week: any, index: number) => (
+              {salaryData?.weeklyBreakdown?.map((week: any, index: number) => (
                 <Card key={index}>
                   <CardHeader>
                     <CardTitle>Week {index + 1}</CardTitle>
@@ -574,7 +589,7 @@ export default function TeacherSalaryPage() {
             </TabsContent>
 
             <TabsContent value="daily" className="space-y-4">
-              {salaryData.dailyBreakdown?.map((day: any, index: number) => (
+              {salaryData?.dailyBreakdown?.map((day: any, index: number) => (
                 <Card key={index}>
                   <CardHeader>
                     <CardTitle>
@@ -635,19 +650,19 @@ export default function TeacherSalaryPage() {
                     Total Classes
                   </span>
                   <span className="text-xl font-bold text-gray-900">
-                    {salaryData.attendance.total}
+                    {salaryData?.attendance?.total || 0}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-green-50/80 rounded-xl">
                   <span className="text-gray-700 font-medium">Present</span>
                   <span className="text-xl font-bold text-green-700">
-                    {salaryData.attendance.present}
+                    {salaryData?.attendance?.present || 0}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-red-50/80 rounded-xl">
                   <span className="text-gray-700 font-medium">Absent</span>
                   <span className="text-xl font-bold text-red-700">
-                    {salaryData.attendance.absent}
+                    {salaryData?.attendance?.absent || 0}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-blue-50/80 rounded-xl">
@@ -655,7 +670,7 @@ export default function TeacherSalaryPage() {
                     Attendance Rate
                   </span>
                   <span className="text-xl font-bold text-blue-700">
-                    {formatPercentage(salaryData.attendance.rate)}
+                    {formatPercentage(salaryData?.attendance?.rate || 0)}
                   </span>
                 </div>
               </div>
@@ -689,7 +704,7 @@ export default function TeacherSalaryPage() {
                       : {}
                   }
                 >
-                  {salaryData.quality.rating}/10
+                  {salaryData?.quality?.rating || 0}/10
                 </div>
                 <p className="text-gray-600 text-lg">Overall Quality Score</p>
                 <div className="mt-4 bg-gray-100 rounded-full h-3 overflow-hidden">
@@ -698,7 +713,7 @@ export default function TeacherSalaryPage() {
                       schoolInfo?.primaryColor ? "" : "bg-blue-500"
                     }`}
                     style={{
-                      width: `${(salaryData.quality.rating / 10) * 100}%`,
+                      width: `${((salaryData?.quality?.rating || 0) / 10) * 100}%`,
                       backgroundColor: schoolInfo?.primaryColor || undefined,
                     }}
                   />

@@ -151,15 +151,6 @@ export async function POST(request: NextRequest) {
       schoolSlug,
     } = body;
 
-    console.log('📝 Registration request received:', {
-      ustaz,
-      selectedTime,
-      selectedDayPackage,
-      status,
-      schoolSlug,
-      schoolId,
-    });
-
     // Derive schoolId for multi-tenancy based on user's school association
     const userSchoolSlug = session.schoolSlug || "darulkubra";
 
@@ -265,13 +256,6 @@ export async function POST(request: NextRequest) {
     let timeToMatch: string = "",
       timeSlot: string = "";
 
-    console.log('🔍 Checking conditions for occupied time creation:', {
-      status,
-      isNotOnProgress: status !== "On Progress" && status !== "on progress",
-      hasSelectedTime: !!selectedTime,
-      hasUstaz: !!ustaz,
-    });
-
     // Only validate time and check availability if not "On Progress"
     if (
       status !== "On Progress" &&
@@ -279,8 +263,6 @@ export async function POST(request: NextRequest) {
       selectedTime &&
       ustaz
     ) {
-      console.log('⏰ Processing time validation for:', { selectedTime, ustaz, status });
-
       // Validate time format
       if (!validateTime(selectedTime)) {
         return NextResponse.json(
@@ -291,7 +273,6 @@ export async function POST(request: NextRequest) {
 
       timeToMatch = to24Hour(selectedTime);
       timeSlot = to12Hour(timeToMatch);
-      console.log('⏰ Time converted:', { selectedTime, timeToMatch, timeSlot });
 
       // Check teacher availability
       const availability = await checkTeacherAvailability(
@@ -458,25 +439,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create occupied time record if teacher and time are assigned
-      console.log('🔍 Checking occupied time creation conditions:', {
-        ustaz: !!ustaz,
-        selectedTime: !!selectedTime,
-        timeSlot: !!timeSlot,
-        ustaz_value: ustaz,
-        selectedTime_value: selectedTime,
-        timeSlot_value: timeSlot,
-        schoolId: schoolId,
-      });
-
       if (ustaz && selectedTime && timeSlot) {
-        console.log('🎯 Creating occupied time entry:', {
-          ustaz_id: ustaz,
-          student_id: registration.wdt_ID,
-          time_slot: timeSlot,
-          daypackage: selectedDayPackage || "",
-          schoolId: schoolId,
-        });
-
         await tx.wpos_ustaz_occupied_times.create({
           data: {
             ustaz_id: ustaz,
@@ -488,10 +451,6 @@ export async function POST(request: NextRequest) {
             schoolId: schoolId,
           },
         });
-
-        console.log('✅ Occupied time entry created successfully');
-      } else {
-        console.log('⚠️ Skipping occupied time creation:', { ustaz, selectedTime, timeSlot });
       }
 
       return registration;
@@ -1022,7 +981,6 @@ export async function PUT(request: NextRequest) {
 
         if (existingOccupiedTime) {
           // Update existing record
-          console.log('🔄 Updating existing occupied time entry:', existingOccupiedTime.id);
           await tx.wpos_ustaz_occupied_times.update({
             where: { id: existingOccupiedTime.id },
             data: {
@@ -1032,7 +990,6 @@ export async function PUT(request: NextRequest) {
           });
         } else {
           // Create new record
-          console.log('🆕 Creating new occupied time entry for update');
           await tx.wpos_ustaz_occupied_times.create({
             data: {
               ustaz_id: ustaz,

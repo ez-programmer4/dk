@@ -19,19 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if salary visibility is enabled
-    const visibilitySetting = await prisma.setting.findUnique({
-      where: { key: "teacher_salary_visible" },
-    });
-
-    if (visibilitySetting?.value !== "true") {
-      return NextResponse.json(
-        { error: "Salary access is currently disabled by administrator" },
-        { status: 403 }
-      );
-    }
-
-    // Get school ID for filtering
+    // Get school ID for filtering and settings
     const schoolSlug = params.schoolSlug;
     let schoolId = null;
     try {
@@ -43,6 +31,26 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     } catch (error) {
       console.error("Error looking up school:", error);
       schoolId = null;
+    }
+
+    // Check if salary visibility is enabled (default to enabled if not set)
+    if (schoolId) {
+      const visibilitySetting = await prisma.setting.findUnique({
+        where: {
+          key_schoolId: {
+            key: "teacher_salary_visible",
+            schoolId: schoolId,
+          },
+        },
+      });
+
+      // Only block access if explicitly set to "false"
+      if (visibilitySetting?.value === "false") {
+        return NextResponse.json(
+          { error: "Salary access is currently disabled by administrator" },
+          { status: 403 }
+        );
+      }
     }
 
     const url = new URL(req.url);
@@ -74,63 +82,13 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       );
     }
 
-    // Get teacher's salary data using the same logic as admin
-    const res = await fetch(
-      `${
-        process.env.NEXTAUTH_URL
-      }/api/admin/teacher-payments?startDate=${fromDate.toISOString()}&endDate=${toDate.toISOString()}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.INTERNAL_API_KEY || "internal"}`,
-        },
-      }
+    // Calculate teacher's salary directly using the same logic as admin
+    return await calculateTeacherSalaryDirect(
+      teacherId,
+      fromDate,
+      toDate,
+      includeDetails
     );
-
-    if (!res.ok) {
-      // Fallback to direct calculation if admin API fails
-      return await calculateTeacherSalaryDirect(
-        teacherId,
-        fromDate,
-        toDate,
-        includeDetails
-      );
-    }
-
-    const allTeachers = await res.json();
-    const teacherData = allTeachers.find((t: any) => t.id === teacherId);
-
-    if (!teacherData) {
-      return NextResponse.json(
-        { error: "Teacher salary data not found" },
-        { status: 404 }
-      );
-    }
-
-    // If details requested, get breakdown
-    if (includeDetails) {
-      const breakdownRes = await fetch(
-        `${
-          process.env.NEXTAUTH_URL
-        }/api/admin/teacher-payments?teacherId=${teacherId}&from=${fromDate.toISOString()}&to=${toDate.toISOString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${
-              process.env.INTERNAL_API_KEY || "internal"
-            }`,
-          },
-        }
-      );
-
-      if (breakdownRes.ok) {
-        const breakdown = await breakdownRes.json();
-        return NextResponse.json({
-          ...teacherData,
-          breakdown,
-        });
-      }
-    }
-
-    return NextResponse.json(teacherData);
   } catch (error: any) {
     console.error("Teacher salary API error:", error);
     return NextResponse.json(
