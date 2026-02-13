@@ -35,7 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import SchoolRegistrationDetails from "@/components/super-admin/SchoolRegistrationDetails";
+import SchoolCreationPanel from "@/components/super-admin/SchoolCreationPanel";
 
 interface SchoolRegistration {
   id: string;
@@ -338,13 +338,13 @@ export default function SchoolRegistrationsPage() {
       </div>
 
       {/* Registration Details Panel */}
-      <SchoolRegistrationDetails
-        registration={selectedRegistration}
+      <SchoolCreationPanel
         isOpen={showDetails}
         onClose={() => {
           setShowDetails(false);
           setSelectedRegistration(null);
         }}
+        registration={selectedRegistration}
       />
 
       {/* Action Confirmation Dialog */}

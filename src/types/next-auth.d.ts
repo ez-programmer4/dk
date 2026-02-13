@@ -9,6 +9,10 @@ declare module "next-auth" {
       username: string;
       role: string;
       code?: string;
+      schoolId?: string;
+      schoolSlug?: string;
+      schoolName?: string;
+      hasGlobalAccess?: boolean;
     };
   }
 
@@ -29,5 +33,9 @@ declare module "next-auth/jwt" {
     username: string;
     role: string;
     code?: string;
+    schoolId?: string;
+    schoolSlug?: string;
+    schoolName?: string;
+    hasGlobalAccess?: boolean;
   }
 }

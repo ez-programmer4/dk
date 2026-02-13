@@ -14,6 +14,12 @@ function TeacherLoginPageContent() {
   const params = useParams();
   const schoolSlug = params.schoolSlug as string;
 
+  // Handle SchoolInactive error
+  const error = searchParams.get("error");
+  const displayError = error === "SchoolInactive"
+    ? "Your school account is currently inactive. Please contact your school administrator or support for assistance."
+    : null;
+
   if (isLoading) {
     return <PageLoading />;
   }

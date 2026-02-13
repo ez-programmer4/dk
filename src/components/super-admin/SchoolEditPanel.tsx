@@ -705,91 +705,227 @@ export default function SchoolEditPanel({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Enhanced Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-gradient-to-br from-black/60 via-gray-900/50 to-black/60 backdrop-blur-md z-40"
+            style={{
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)'
+            }}
             onClick={onClose}
           />
 
-          {/* Side Panel */}
+          {/* Enhanced Side Panel */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "tween", duration: 0.3 }}
-            className="fixed top-0 right-0 h-full w-full max-w-4xl bg-white shadow-2xl z-50 overflow-y-auto"
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+              duration: 0.4
+            }}
+            className="fixed top-0 right-0 h-full w-full max-w-4xl bg-white shadow-2xl z-50 overflow-y-auto border-l border-gray-200"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.98) 100%)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)'
+            }}
           >
-            {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                  <Edit className="w-5 h-5 text-white" />
-                </div>
+            {/* Enhanced Header with Glassmorphism */}
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="sticky top-0 bg-gradient-to-r from-white/90 to-gray-50/90 backdrop-blur-xl border-b border-gray-200/50 px-8 py-6 flex items-center justify-between shadow-sm"
+            >
+              <motion.div
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="flex items-center space-x-6"
+              >
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-12 h-12 bg-gradient-to-br from-amber-600 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg"
+                >
+                  <Edit className="w-6 h-6 text-white" />
+                </motion.div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Edit School</h2>
-                  <p className="text-sm text-gray-600">Update school information and settings</p>
+                  <motion.h2
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-2xl font-bold text-gray-900 tracking-tight"
+                  >
+                    Edit School
+                  </motion.h2>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-sm text-gray-600 mt-1"
+                  >
+                    Update school information and settings
+                  </motion.p>
                 </div>
-              </div>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
+              </motion.div>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="w-10 h-10 rounded-xl hover:bg-gray-100 transition-all duration-200"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </motion.div>
+            </motion.div>
 
-            {/* Progress */}
-            <div className="px-6 py-6 bg-gradient-to-r from-blue-50 to-purple-50 border-b">
-              <div className="max-w-md mx-auto">
-                <div className="flex items-center justify-between mb-4">
-                  {[1, 2, 3].map((step) => (
-                    <div key={step} className="flex items-center flex-1">
+            {/* Enhanced Progress Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="px-8 py-8 bg-gradient-to-r from-gray-50/80 to-gray-100/80 backdrop-blur-sm border-b border-gray-200/50"
+            >
+              <div className="max-w-lg mx-auto">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="flex items-center justify-between mb-6"
+                >
+                  {[1, 2, 3].map((step, index) => (
+                    <motion.div
+                      key={step}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 + index * 0.1 }}
+                      className="flex items-center flex-1"
+                    >
                       <motion.div
                         initial={false}
                         animate={{
-                          backgroundColor: step <= currentStep ? "#3B82F6" : "#E5E7EB",
-                          color: step <= currentStep ? "#FFFFFF" : "#6B7280",
+                          background: step <= currentStep
+                            ? "linear-gradient(135deg, #374151 0%, #1f2937 100%)"
+                            : "#f3f4f6",
+                          color: step <= currentStep ? "#FFFFFF" : "#6b7280",
+                          boxShadow: step <= currentStep
+                            ? "0 4px 14px 0 rgba(55, 65, 81, 0.3)"
+                            : "0 2px 8px 0 rgba(0, 0, 0, 0.1)",
                         }}
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shadow-sm"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-bold relative overflow-hidden"
                       >
-                        {step <= currentStep ? (
-                          <CheckCircle className="w-5 h-5" />
-                        ) : (
-                          step
-                        )}
+                        <motion.div
+                          initial={false}
+                          animate={{
+                            scale: step <= currentStep ? 0 : 1,
+                            opacity: step <= currentStep ? 0 : 1,
+                          }}
+                          className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200"
+                        />
+                        <motion.div
+                          initial={false}
+                          animate={{
+                            scale: step <= currentStep ? 1 : 0,
+                            opacity: step <= currentStep ? 1 : 0,
+                          }}
+                          className="relative z-10"
+                        >
+                          {step <= currentStep ? (
+                            <CheckCircle className="w-6 h-6" />
+                          ) : (
+                            step
+                          )}
+                        </motion.div>
                       </motion.div>
                       {step < 3 && (
                         <motion.div
                           initial={false}
                           animate={{
-                            backgroundColor: step < currentStep ? "#3B82F6" : "#E5E7EB",
+                            background: step < currentStep
+                              ? "linear-gradient(90deg, #374151 0%, #1f2937 100%)"
+                              : "#e5e7eb",
+                            boxShadow: step < currentStep
+                              ? "0 2px 8px 0 rgba(55, 65, 81, 0.2)"
+                              : "none",
                           }}
-                          className="flex-1 h-1 mx-4 rounded-full"
-                        />
+                          className="flex-1 h-1 mx-6 rounded-full relative overflow-hidden"
+                        >
+                          <motion.div
+                            initial={false}
+                            animate={{
+                              x: step < currentStep ? "0%" : "-100%",
+                            }}
+                            transition={{ duration: 0.6, ease: "easeInOut" }}
+                            className="absolute inset-0 bg-gradient-to-r from-gray-700 to-gray-900 rounded-full"
+                          />
+                        </motion.div>
                       )}
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
 
-                <div className="flex justify-between text-xs font-medium text-gray-600">
-                  <div className={`text-center ${currentStep === 1 ? "text-blue-600" : ""}`}>
-                    <div>School Details</div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="flex justify-between text-sm font-medium"
+                >
+                  <motion.div
+                    animate={{
+                      color: currentStep === 1 ? "#374151" : "#9ca3af",
+                      fontWeight: currentStep === 1 ? "600" : "500",
+                    }}
+                    className="text-center flex-1"
+                  >
+                    <div className="text-sm">School Details</div>
                     <div className="text-xs text-gray-500 mt-1">Basic information</div>
-                  </div>
-                  <div className={`text-center ${currentStep === 2 ? "text-blue-600" : ""}`}>
-                    <div>Administration</div>
+                  </motion.div>
+                  <motion.div
+                    animate={{
+                      color: currentStep === 2 ? "#374151" : "#9ca3af",
+                      fontWeight: currentStep === 2 ? "600" : "500",
+                    }}
+                    className="text-center flex-1"
+                  >
+                    <div className="text-sm">Administration</div>
                     <div className="text-xs text-gray-500 mt-1">Account management</div>
-                  </div>
-                  <div className={`text-center ${currentStep === 3 ? "text-blue-600" : ""}`}>
-                    <div>Configuration</div>
+                  </motion.div>
+                  <motion.div
+                    animate={{
+                      color: currentStep === 3 ? "#374151" : "#9ca3af",
+                      fontWeight: currentStep === 3 ? "600" : "500",
+                    }}
+                    className="text-center flex-1"
+                  >
+                    <div className="text-sm">Configuration</div>
                     <div className="text-xs text-gray-500 mt-1">Branding & settings</div>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
 
-            {/* Content */}
-            <div className="px-6 py-6">
+            {/* Enhanced Content Area */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="flex-1 px-8 py-8 pb-12 space-y-6"
+            >
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
@@ -817,76 +953,108 @@ export default function SchoolEditPanel({
                   </AnimatePresence>
                 </>
               )}
-            </div>
+            </motion.div>
 
-            {/* Footer */}
-            {!loading && (
-              <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-6">
-                <div className="flex justify-between items-center">
-                  <Button
-                    variant="outline"
-                    onClick={onClose}
-                    disabled={saving}
-                    className="flex items-center space-x-2 px-6 py-3"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Cancel</span>
-                  </Button>
+            {/* Enhanced Footer */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="sticky bottom-0 mb-4"
+            >
+              {!loading && (
+                <motion.div
+                  className="bg-gradient-to-r from-white/95 to-gray-50/95 backdrop-blur-xl border-t border-gray-200/50 px-8 py-6 shadow-lg"
+                >
+                  <div className="flex justify-between items-center">
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Button
+                        variant="outline"
+                        onClick={onClose}
+                        disabled={saving}
+                        className="flex items-center space-x-2 px-6 py-3 rounded-xl border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-300"
+                      >
+                        <X className="w-4 h-4" />
+                        <span className="font-medium">Cancel</span>
+                      </Button>
+                    </motion.div>
 
-                  <div className="flex items-center space-x-4">
-                    <div className="text-sm text-gray-500">
-                      Step {currentStep} of {totalSteps}
-                    </div>
+                    <div className="flex items-center space-x-6">
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full"
+                      >
+                        Step {currentStep} of {totalSteps}
+                      </motion.div>
 
-                    <div className="flex space-x-3">
-                      {currentStep > 1 && (
-                        <Button
-                          variant="outline"
-                          onClick={handleBack}
-                          disabled={saving}
-                          className="flex items-center space-x-2 px-6 py-3"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                          <span>Back</span>
-                        </Button>
-                      )}
+                      <div className="flex space-x-3">
+                        {currentStep > 1 && (
+                          <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <Button
+                              variant="outline"
+                              onClick={handleBack}
+                              disabled={saving}
+                              className="flex items-center space-x-2 px-6 py-3 rounded-xl border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-300"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                              <span className="font-medium">Back</span>
+                            </Button>
+                          </motion.div>
+                        )}
 
-                      {currentStep < totalSteps ? (
-                        <Button
-                          onClick={handleNext}
-                          disabled={saving}
-                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 flex items-center space-x-2 px-6 py-3"
-                        >
-                          <span>Next</span>
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={handleSubmit}
-                          disabled={saving}
-                          className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 flex items-center space-x-2 px-8 py-3 text-lg"
-                        >
-                          {saving ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                              <span>Updating...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Save className="w-5 h-5" />
-                              <span>Update School</span>
-                            </>
-                          )}
-                        </Button>
-                      )}
+                        {currentStep < totalSteps ? (
+                          <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <Button
+                              onClick={handleNext}
+                              disabled={saving}
+                              className="bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white flex items-center space-x-2 px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                            >
+                              <span className="font-medium">Next</span>
+                              <ChevronRight className="w-4 h-4" />
+                            </Button>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <Button
+                              onClick={handleSubmit}
+                              disabled={saving}
+                              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white flex items-center space-x-3 px-10 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-lg"
+                            >
+                              {saving ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 animate-spin" />
+                                  <span className="font-medium">Updating...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Save className="w-5 h-5" />
+                                  <span className="font-medium">Update School</span>
+                                </>
+                              )}
+                            </Button>
+                          </motion.div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
+            </motion.div>
           </motion.div>
         </>
       )}
-    </AnimatePresence>
-  );
+    </AnimatePresence> )
 }

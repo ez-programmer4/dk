@@ -2,9 +2,10 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { AuthUser } from "./lib/auth";
+import { prisma } from "./lib/prisma";
 
 export default withAuth(
-  function middleware(req: NextRequest) {
+  async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
     const token = (req as any).nextauth.token as AuthUser | null;
 
@@ -58,6 +59,40 @@ export default withAuth(
         return NextResponse.redirect(
           new URL("/login?error=AccessDenied", req.url)
         );
+      }
+
+      // Check school status for school-specific routes
+      // Extract school slug from paths like /[schoolSlug]/admin/... or /[schoolSlug]/teachers/...
+      const schoolRouteMatch = pathname.match(/^\/([^\/]+)\/(admin|teachers|students|dashboard)/);
+      if (schoolRouteMatch && token.schoolSlug) {
+        const [, urlSchoolSlug] = schoolRouteMatch;
+
+        // If the URL school slug doesn't match the user's school slug, deny access
+        if (urlSchoolSlug !== token.schoolSlug) {
+          return NextResponse.redirect(
+            new URL("/login?error=AccessDenied", req.url)
+          );
+        }
+
+        // Check if the school is active
+        try {
+          const school = await prisma.school.findUnique({
+            where: { slug: token.schoolSlug },
+            select: { status: true, name: true },
+          });
+
+          if (!school || school.status !== "active") {
+            // School is inactive or doesn't exist
+            // For teachers, redirect to their specific school login page
+            const teacherLoginPath = `/${token.schoolSlug}/teachers/login?error=SchoolInactive`;
+            return NextResponse.redirect(
+              new URL(token.role === "teacher" ? teacherLoginPath : "/login?error=SchoolInactive", req.url)
+            );
+          }
+        } catch (error) {
+          console.error("Error checking school status:", error);
+          // If database error, allow access but log the error
+        }
       }
     }
 

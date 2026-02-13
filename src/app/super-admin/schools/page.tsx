@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2,
   Plus,
@@ -9,6 +9,7 @@ import {
   Filter,
   MoreHorizontal,
   Users,
+  User,
   BookOpen,
   Shield,
   Calendar,
@@ -24,6 +25,22 @@ import {
   Key,
   Trash2,
   FileText,
+  Palette,
+  Globe,
+  DollarSign,
+  Save,
+  Loader2,
+  AlertCircle,
+  EyeOff,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Settings,
+  Mail,
+  Phone,
+  MapPin,
+  MessageSquare,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +62,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import SchoolCreationPanel from "@/components/super-admin/SchoolCreationPanel";
 import PremiumFeaturesPanel from "@/components/super-admin/PremiumFeaturesPanel";
 import PaymentCalculator from "@/components/super-admin/PaymentCalculator";
@@ -103,6 +124,79 @@ const statusIcons = {
   cancelled: Ban,
 };
 
+interface SchoolCreationFormData {
+  // School Details
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+
+  // Branding
+  primaryColor: string;
+  secondaryColor: string;
+
+  // Configuration
+  timezone: string;
+  defaultCurrency: string;
+  defaultLanguage: string;
+
+  // Admin Details
+  adminName: string;
+  adminUsername: string;
+  adminPassword: string;
+  adminConfirmPassword: string;
+  adminPhone: string;
+
+  // Pricing
+  pricingTierId: string;
+}
+
+const timezones = [
+  { value: "Africa/Addis_Ababa", label: "East Africa Time (EAT)" },
+  { value: "Africa/Cairo", label: "Eastern European Time (EET)" },
+  { value: "Europe/London", label: "Greenwich Mean Time (GMT)" },
+  { value: "America/New_York", label: "Eastern Standard Time (EST)" },
+  { value: "Asia/Dubai", label: "Gulf Standard Time (GST)" },
+  { value: "Asia/Riyadh", label: "Arabia Standard Time (AST)" },
+];
+
+const currencies = [
+  { value: "ETB", label: "Ethiopian Birr (ETB)" },
+  { value: "USD", label: "US Dollar (USD)" },
+  { value: "EUR", label: "Euro (EUR)" },
+  { value: "SAR", label: "Saudi Riyal (SAR)" },
+  { value: "AED", label: "UAE Dirham (AED)" },
+];
+
+const languages = [
+  { value: "en", label: "English" },
+  { value: "ar", label: "العربية (Arabic)" },
+  { value: "am", label: "አማርኛ (Amharic)" },
+];
+
+const colorPalettes = [
+  // Professional palettes
+  { name: "Ocean Blue", primary: "#1E40AF", secondary: "#1E3A8A", accent: "#3B82F6" },
+  { name: "Forest Green", primary: "#059669", secondary: "#047857", accent: "#10B981" },
+  { name: "Royal Purple", primary: "#7C3AED", secondary: "#6D28D9", accent: "#8B5CF6" },
+  { name: "Sunset Orange", primary: "#EA580C", secondary: "#C2410C", accent: "#F97316" },
+  { name: "Rose Pink", primary: "#DB2777", secondary: "#BE185D", accent: "#EC4899" },
+  { name: "Teal Waves", primary: "#0F766E", secondary: "#115E59", accent: "#14B8A6" },
+  { name: "Indigo Night", primary: "#312E81", secondary: "#1E1B4B", accent: "#4338CA" },
+  { name: "Emerald City", primary: "#065F46", secondary: "#064E3B", accent: "#047857" },
+  { name: "Crimson Red", primary: "#DC2626", secondary: "#B91C1C", accent: "#EF4444" },
+  { name: "Amber Gold", primary: "#D97706", secondary: "#B45309", accent: "#F59E0B" },
+  { name: "Slate Gray", primary: "#374151", secondary: "#1F2937", accent: "#4B5563" },
+  { name: "Mint Fresh", primary: "#0D9488", secondary: "#0F766E", accent: "#14B8A6" },
+];
+
+const predefinedColors = [
+  "#1E40AF", "#059669", "#7C3AED", "#EA580C", "#DB2777", "#0F766E",
+  "#312E81", "#065F46", "#DC2626", "#D97706", "#374151", "#0D9488",
+  "#2563EB", "#16A34A", "#9333EA", "#EA580C", "#EC4899", "#0891B2",
+  "#4F46E5", "#15803D", "#C026D3", "#C2410C", "#BE185D", "#0E7490",
+];
+
 export default function SchoolsManagementPage() {
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,6 +210,31 @@ export default function SchoolsManagementPage() {
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
   const [selectedSchoolForEdit, setSelectedSchoolForEdit] = useState<string | null>(null);
   const [isEditPanelOpen, setIsEditPanelOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+
+  // School Creation Form State
+  const [creationFormData, setCreationFormData] = useState<SchoolCreationFormData>({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    primaryColor: "#3B82F6",
+    secondaryColor: "#1D4ED8",
+    timezone: "Africa/Addis_Ababa",
+    defaultCurrency: "ETB",
+    defaultLanguage: "en",
+    adminName: "",
+    adminUsername: "",
+    adminPassword: "",
+    adminConfirmPassword: "",
+    adminPhone: "",
+    pricingTierId: "",
+  });
+  const [creationCurrentStep, setCreationCurrentStep] = useState(1);
+  const [creationLoading, setCreationLoading] = useState(false);
+  const [creationError, setCreationError] = useState<string | null>(null);
+  const [creationSuccess, setCreationSuccess] = useState(false);
+  const [showCreationPassword, setShowCreationPassword] = useState(false);
 
   useEffect(() => {
     fetchSchools();
@@ -206,6 +325,789 @@ export default function SchoolsManagementPage() {
       currency: currency === "ETB" ? "ETB" : currency,
       minimumFractionDigits: 0,
     }).format(amount);
+  };
+
+  // School Creation Form Functions
+  const handleCreationInputChange = (field: keyof SchoolCreationFormData, value: string) => {
+    setCreationFormData(prev => ({ ...prev, [field]: value }));
+    if (creationError) setCreationError(null);
+  };
+
+  const validateCreationStep = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        if (!creationFormData.name.trim()) {
+          setCreationError("School name is required");
+          return false;
+        }
+        if (creationFormData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(creationFormData.email)) {
+          setCreationError("Invalid email address");
+          return false;
+        }
+        return true;
+
+      case 2:
+        if (!creationFormData.adminName.trim()) {
+          setCreationError("Admin name is required");
+          return false;
+        }
+        if (!creationFormData.adminUsername.trim()) {
+          setCreationError("Admin username is required");
+          return false;
+        }
+        if (creationFormData.adminPassword.length < 6) {
+          setCreationError("Admin password must be at least 6 characters");
+          return false;
+        }
+        if (creationFormData.adminPassword !== creationFormData.adminConfirmPassword) {
+          setCreationError("Passwords do not match");
+          return false;
+        }
+        return true;
+
+      case 3:
+        return true;
+
+      default:
+        return false;
+    }
+  };
+
+  const handleCreationNext = () => {
+    if (validateCreationStep(creationCurrentStep) && creationCurrentStep < 3) {
+      setCreationCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const handleCreationBack = () => {
+    if (creationCurrentStep > 1) {
+      setCreationCurrentStep(prev => prev - 1);
+    }
+  };
+
+  const handleCreationSubmit = async () => {
+    if (!validateCreationStep(creationCurrentStep)) return;
+
+    setCreationLoading(true);
+    setCreationError(null);
+
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const submitData = {
+        name: creationFormData.name,
+        email: creationFormData.email || undefined,
+        phone: creationFormData.phone || undefined,
+        address: creationFormData.address || undefined,
+        primaryColor: creationFormData.primaryColor,
+        secondaryColor: creationFormData.secondaryColor,
+        timezone: creationFormData.timezone,
+        defaultCurrency: creationFormData.defaultCurrency,
+        defaultLanguage: creationFormData.defaultLanguage,
+        adminName: creationFormData.adminName,
+        adminUsername: creationFormData.adminUsername,
+        adminPassword: creationFormData.adminPassword,
+        adminPhone: creationFormData.adminPhone || undefined,
+        pricingTierId: creationFormData.pricingTierId || undefined,
+      };
+
+      const response = await fetch("/api/super-admin/schools", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(submitData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create school");
+      }
+
+      setCreationSuccess(true);
+      setTimeout(() => {
+        fetchSchools();
+        setIsCreationPanelOpen(false);
+        // Reset form
+        setCreationFormData({
+          name: "",
+          email: "",
+          phone: "",
+          address: "",
+          primaryColor: "#3B82F6",
+          secondaryColor: "#1D4ED8",
+          timezone: "Africa/Addis_Ababa",
+          defaultCurrency: "ETB",
+          defaultLanguage: "en",
+          adminName: "",
+          adminUsername: "",
+          adminPassword: "",
+          adminConfirmPassword: "",
+          adminPhone: "",
+          pricingTierId: "",
+        });
+        setCreationCurrentStep(1);
+        setCreationSuccess(false);
+      }, 2000);
+
+    } catch (err) {
+      setCreationError(err instanceof Error ? err.message : "An unexpected error occurred");
+    } finally {
+      setCreationLoading(false);
+    }
+  };
+
+  // Handle school status toggle (activate/deactivate)
+  const handleStatusToggle = async (school: School) => {
+    if (updatingStatus) return; // Prevent multiple simultaneous updates
+
+    const newStatus = school.status === 'active' ? 'inactive' : 'active';
+    const action = newStatus === 'active' ? 'activate' : 'deactivate';
+
+    // Show confirmation dialog
+    if (!confirm(`Are you sure you want to ${action} the school "${school.name}"?`)) {
+      return;
+    }
+
+    setUpdatingStatus(school.id);
+
+    try {
+      const response = await fetch('/api/super-admin/schools', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          schoolId: school.id,
+          status: newStatus,
+          statusReason: `School ${action}d by super admin`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update the school in the local state
+        setSchools(prevSchools =>
+          prevSchools.map(s =>
+            s.id === school.id
+              ? { ...s, status: newStatus, statusChangedAt: new Date().toISOString() }
+              : s
+          )
+        );
+
+        // Show success message
+        alert(`School "${school.name}" has been ${action}d successfully.`);
+      } else {
+        throw new Error(data.error || `Failed to ${action} school`);
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing school:`, error);
+      alert(`Failed to ${action} school: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  const renderCreationStepContent = () => {
+    switch (creationCurrentStep) {
+      case 1: {
+        return (
+          <div className="space-y-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Building2 className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">School Information</h3>
+              <p className="text-gray-600">
+                Enter the basic details for your new school
+              </p>
+            </div>
+
+            <div className="max-w-2xl mx-auto space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="creation-name" className="text-sm font-semibold text-gray-800 flex items-center">
+                  School Name <span className="text-red-500 ml-1">*</span>
+                </Label>
+                <Input
+                  id="creation-name"
+                  placeholder="e.g., Darul Hikmah Islamic School"
+                  value={creationFormData.name}
+                  onChange={(e) => handleCreationInputChange("name", e.target.value)}
+                  className="h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500">This will be displayed publicly</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="creation-email" className="text-sm font-semibold text-gray-800">
+                    Contact Email
+                  </Label>
+                  <Input
+                    id="creation-email"
+                    type="email"
+                    placeholder="info@school.edu"
+                    value={creationFormData.email}
+                    onChange={(e) => handleCreationInputChange("email", e.target.value)}
+                    className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500">For official communications</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="creation-phone" className="text-sm font-semibold text-gray-800">
+                    Contact Phone
+                  </Label>
+                  <Input
+                    id="creation-phone"
+                    placeholder="+251 XXX XXX XXX"
+                    value={creationFormData.phone}
+                    onChange={(e) => handleCreationInputChange("phone", e.target.value)}
+                    className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500">Primary contact number</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="creation-address" className="text-sm font-semibold text-gray-800">
+                  Physical Address
+                </Label>
+                <Textarea
+                  id="creation-address"
+                  placeholder="Street address, city, region, postal code"
+                  value={creationFormData.address}
+                  onChange={(e) => handleCreationInputChange("address", e.target.value)}
+                  className="min-h-20 border-gray-300 focus:border-blue-500 focus:ring-blue-500 resize-none"
+                  rows={4}
+                />
+                <p className="text-xs text-gray-500">Complete address for records and logistics</p>
+              </div>
+
+              {/* Preview Card */}
+              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900">
+                        {creationFormData.name || "School Name"}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {creationFormData.email || "contact@school.edu"}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+      }
+
+      case 2: {
+        return (
+          <div className="space-y-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <User className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Administrator Account</h3>
+              <p className="text-gray-600">
+                Create secure credentials for the school administrator
+              </p>
+            </div>
+
+            <div className="max-w-2xl mx-auto space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="creation-adminName" className="text-sm font-semibold text-gray-800 flex items-center">
+                  Full Name <span className="text-red-500 ml-1">*</span>
+                </Label>
+                <Input
+                  id="creation-adminName"
+                  placeholder="e.g., Ahmed Mohammed"
+                  value={creationFormData.adminName}
+                  onChange={(e) => handleCreationInputChange("adminName", e.target.value)}
+                  className="h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500"
+                />
+                <p className="text-xs text-gray-500">Administrator's full legal name</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="creation-adminUsername" className="text-sm font-semibold text-gray-800">
+                    Username <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Input
+                    id="creation-adminUsername"
+                    placeholder="unique_username"
+                    value={creationFormData.adminUsername}
+                    onChange={(e) => handleCreationInputChange("adminUsername", e.target.value)}
+                    className="h-12 border-gray-300 focus:border-green-500 focus:ring-green-500"
+                  />
+                  <p className="text-xs text-gray-500">Must be unique across all schools</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="creation-adminPhone" className="text-sm font-semibold text-gray-800">
+                    Contact Phone
+                  </Label>
+                  <Input
+                    id="creation-adminPhone"
+                    placeholder="+251 XXX XXX XXX"
+                    value={creationFormData.adminPhone}
+                    onChange={(e) => handleCreationInputChange("adminPhone", e.target.value)}
+                    className="h-12 border-gray-300 focus:border-green-500 focus:ring-green-500"
+                  />
+                  <p className="text-xs text-gray-500">For account recovery</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="creation-adminPassword" className="text-sm font-semibold text-gray-800">
+                    Password <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="creation-adminPassword"
+                      type={showCreationPassword ? "text" : "password"}
+                      placeholder="Create a strong password"
+                      value={creationFormData.adminPassword}
+                      onChange={(e) => handleCreationInputChange("adminPassword", e.target.value)}
+                      className="h-12 pr-12 border-gray-300 focus:border-green-500 focus:ring-green-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreationPassword(!showCreationPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showCreationPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex items-center space-x-2 text-xs text-gray-500">
+                    <div className={`w-2 h-2 rounded-full ${creationFormData.adminPassword.length >= 8 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span>At least 8 characters</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="creation-adminConfirmPassword" className="text-sm font-semibold text-gray-800">
+                    Confirm Password <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Input
+                    id="creation-adminConfirmPassword"
+                    type="password"
+                    placeholder="Re-enter password"
+                    value={creationFormData.adminConfirmPassword}
+                    onChange={(e) => handleCreationInputChange("adminConfirmPassword", e.target.value)}
+                    className={`h-12 border-gray-300 focus:ring-green-500 ${
+                      creationFormData.adminConfirmPassword &&
+                      creationFormData.adminPassword !== creationFormData.adminConfirmPassword
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'focus:border-green-500'
+                    }`}
+                  />
+                  {creationFormData.adminConfirmPassword && creationFormData.adminPassword !== creationFormData.adminConfirmPassword && (
+                    <p className="text-xs text-red-600 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      Passwords do not match
+                    </p>
+                  )}
+                  {creationFormData.adminConfirmPassword && creationFormData.adminPassword === creationFormData.adminConfirmPassword && creationFormData.adminPassword && (
+                    <p className="text-xs text-green-600 flex items-center">
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Passwords match
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Account Preview */}
+              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900">
+                        {creationFormData.adminName || "Administrator Name"}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        @{creationFormData.adminUsername || "username"}
+                      </div>
+                      <div className="flex items-center mt-1 space-x-2">
+                        <Badge variant="outline" className="text-xs">
+                          School Admin
+                        </Badge>
+                        {creationFormData.adminPassword && (
+                          <Badge variant="secondary" className="text-xs text-green-700">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Password Set
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+      }
+
+      case 3: {
+        return (
+          <div className="space-y-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-purple-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Configuration & Branding</h3>
+              <p className="text-gray-600">
+                Customize your school's appearance and regional settings
+              </p>
+            </div>
+
+            <div className="max-w-4xl mx-auto space-y-8">
+              {/* Branding Section */}
+              <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-pink-50/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-purple-900">
+                    <Palette className="w-5 h-5 mr-2" />
+                    Brand Identity
+                  </CardTitle>
+                  <p className="text-sm text-purple-700">
+                    Choose colors that represent your school's brand and personality
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+
+                {/* Color Palette Selector */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block">
+                    Professional Color Palettes
+                  </Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                    {colorPalettes.map((palette) => (
+                      <motion.button
+                        key={palette.name}
+                        type="button"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          setCreationFormData(prev => ({
+                            ...prev,
+                            primaryColor: palette.primary,
+                            secondaryColor: palette.secondary,
+                          }));
+                        }}
+                        className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                          creationFormData.primaryColor === palette.primary
+                            ? "border-purple-500 shadow-lg ring-2 ring-purple-200"
+                            : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div
+                            className="w-5 h-5 rounded-full border-2 border-white shadow-sm"
+                            style={{ backgroundColor: palette.primary }}
+                          />
+                          <div
+                            className="w-5 h-5 rounded-full border-2 border-white shadow-sm"
+                            style={{ backgroundColor: palette.secondary }}
+                          />
+                          <div
+                            className="w-3 h-3 rounded-full border border-white shadow-sm"
+                            style={{ backgroundColor: palette.accent }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">{palette.name}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom Color Picker */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block">
+                    Custom Colors
+                  </Label>
+                  <div className="grid grid-cols-6 gap-2 mb-4">
+                    {predefinedColors.map((color) => (
+                      <motion.button
+                        key={color}
+                        type="button"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => {
+                          if (creationFormData.primaryColor === color) {
+                            setCreationFormData(prev => ({
+                              ...prev,
+                              secondaryColor: color,
+                            }));
+                          } else {
+                            setCreationFormData(prev => ({
+                              ...prev,
+                              primaryColor: color,
+                            }));
+                          }
+                        }}
+                        className={`w-10 h-10 rounded-lg border-2 transition-all ${
+                          creationFormData.primaryColor === color || creationFormData.secondaryColor === color
+                            ? "border-gray-900 shadow-lg"
+                            : "border-gray-200 hover:border-gray-400"
+                        }`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Manual Color Input */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="creation-primaryColor" className="text-sm font-medium text-gray-700">
+                        Primary Color
+                      </Label>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <div
+                          className="w-8 h-8 rounded-lg border-2 border-gray-200 shadow-sm"
+                          style={{ backgroundColor: creationFormData.primaryColor }}
+                        />
+                        <Input
+                          id="creation-primaryColor"
+                          type="color"
+                          value={creationFormData.primaryColor}
+                          onChange={(e) => handleCreationInputChange("primaryColor", e.target.value)}
+                          className="flex-1 h-10"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="creation-secondaryColor" className="text-sm font-medium text-gray-700">
+                        Secondary Color
+                      </Label>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <div
+                          className="w-8 h-8 rounded-lg border-2 border-gray-200 shadow-sm"
+                          style={{ backgroundColor: creationFormData.secondaryColor }}
+                        />
+                        <Input
+                          id="creation-secondaryColor"
+                          type="color"
+                          value={creationFormData.secondaryColor}
+                          onChange={(e) => handleCreationInputChange("secondaryColor", e.target.value)}
+                          className="flex-1 h-10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live Preview */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block">
+                    Live Preview
+                  </Label>
+                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center space-x-4">
+                      {/* Logo Preview */}
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg"
+                        style={{ backgroundColor: creationFormData.primaryColor }}
+                      >
+                        S
+                      </div>
+
+                      {/* Text Preview */}
+                      <div className="flex-1">
+                        <div
+                          className="text-lg font-semibold"
+                          style={{ color: creationFormData.primaryColor }}
+                        >
+                          Sample School Name
+                        </div>
+                        <div
+                          className="text-sm"
+                          style={{ color: creationFormData.secondaryColor }}
+                        >
+                          Professional Learning Platform
+                        </div>
+                      </div>
+
+                      {/* Button Preview */}
+                      <Button
+                        size="sm"
+                        style={{
+                          backgroundColor: creationFormData.primaryColor,
+                          borderColor: creationFormData.secondaryColor
+                        }}
+                        className="text-white hover:opacity-90"
+                      >
+                        Get Started
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                </CardContent>
+              </Card>
+
+              {/* Configuration Section */}
+              <Card className="border-blue-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-blue-900">
+                    <Settings className="w-5 h-5 mr-2" />
+                    Regional & System Settings
+                  </CardTitle>
+                  <p className="text-sm text-blue-700">
+                    Configure timezone, currency, and language preferences
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="creation-timezone" className="text-sm font-semibold text-gray-800 flex items-center">
+                        <Globe className="w-4 h-4 mr-2 text-blue-600" />
+                        Timezone
+                      </Label>
+                      <Select
+                        value={creationFormData.timezone}
+                        onValueChange={(value) => handleCreationInputChange("timezone", value)}
+                      >
+                        <SelectTrigger className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                          <SelectValue placeholder="Select timezone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {timezones.map((tz) => (
+                            <SelectItem key={tz.value} value={tz.value}>
+                              {tz.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500">Affects all time-based features</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="creation-currency" className="text-sm font-semibold text-gray-800 flex items-center">
+                        <DollarSign className="w-4 h-4 mr-2 text-green-600" />
+                        Default Currency
+                      </Label>
+                      <Select
+                        value={creationFormData.defaultCurrency}
+                        onValueChange={(value) => handleCreationInputChange("defaultCurrency", value)}
+                      >
+                        <SelectTrigger className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currencies.map((curr) => (
+                            <SelectItem key={curr.value} value={curr.value}>
+                              {curr.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500">For payments and pricing</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="creation-language" className="text-sm font-semibold text-gray-800">
+                        Default Language
+                      </Label>
+                      <Select
+                        value={creationFormData.defaultLanguage}
+                        onValueChange={(value) => handleCreationInputChange("defaultLanguage", value)}
+                      >
+                        <SelectTrigger className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                          <SelectValue placeholder="Select language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {languages.map((lang) => (
+                            <SelectItem key={lang.value} value={lang.value}>
+                              {lang.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500">Interface language</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Summary Preview */}
+              <Card className="bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200">
+                <CardHeader>
+                  <CardTitle className="text-gray-900">School Setup Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">School:</span>
+                        <p className="text-sm text-gray-900">{creationFormData.name || "Not set"}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Administrator:</span>
+                        <p className="text-sm text-gray-900">{creationFormData.adminName || "Not set"}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Contact:</span>
+                        <p className="text-sm text-gray-900">{creationFormData.email || "Not set"}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Theme:</span>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <div
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: creationFormData.primaryColor }}
+                          />
+                          <span className="text-sm text-gray-900">Primary</span>
+                          <div
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: creationFormData.secondaryColor }}
+                          />
+                          <span className="text-sm text-gray-900">Secondary</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Region:</span>
+                        <p className="text-sm text-gray-900">
+                          {timezones.find(tz => tz.value === creationFormData.timezone)?.label || "Not set"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Currency:</span>
+                        <p className="text-sm text-gray-900">
+                          {currencies.find(curr => curr.value === creationFormData.defaultCurrency)?.label || "Not set"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+      }
+
+      default:
+        return null;
+    }
   };
 
   return (
@@ -646,15 +1548,42 @@ export default function SchoolsManagementPage() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                         </motion.div>
+                      </div>
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2, duration: 0.3 }}
                         className="flex items-center justify-between mt-4"
                       >
-                        <div className="flex items-center space-x-2">
-                          {getStatusBadge(school.status)}
-                          {getRegistrationBadge(school)}
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-2">
+                            {getStatusBadge(school.status)}
+                            {getRegistrationBadge(school)}
+                          </div>
+
+                          {/* Status Toggle Button */}
+                          <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <Button
+                              onClick={() => handleStatusToggle(school)}
+                              disabled={updatingStatus === school.id}
+                              size="sm"
+                              variant={school.status === 'active' ? 'destructive' : 'default'}
+                              className={`text-xs px-3 py-1 h-7 ${
+                                school.status === 'active'
+                                  ? 'bg-red-100 hover:bg-red-200 text-red-700 border-red-300'
+                                  : 'bg-green-100 hover:bg-green-200 text-green-700 border-green-300'
+                              }`}
+                            >
+                              {updatingStatus === school.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                school.status === 'active' ? 'Deactivate' : 'Activate'
+                              )}
+                            </Button>
+                          </motion.div>
                         </div>
                         <div className="text-right">
                           <span className="text-xs text-gray-500 font-medium">
@@ -662,7 +1591,6 @@ export default function SchoolsManagementPage() {
                           </span>
                         </div>
                       </motion.div>
-                      </div>
                     </CardHeader>
 
                     <CardContent className="space-y-6 relative">
@@ -776,16 +1704,240 @@ export default function SchoolsManagementPage() {
           )}
         </CardContent>
       </Card>
+      </motion.div>
 
-      {/* School Creation Panel */}
-      <SchoolCreationPanel
-        isOpen={isCreationPanelOpen}
-        onClose={() => setIsCreationPanelOpen(false)}
-        onSuccess={() => {
-          fetchSchools();
-          setIsCreationPanelOpen(false);
-        }}
-      />
+      {/* School Creation Modal */}
+      <AnimatePresence>
+        {isCreationPanelOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40"
+            onClick={() => setIsCreationPanelOpen(false)}
+          >
+            {/* Backdrop */}
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="fixed top-4 left-4 right-4 bottom-4 bg-white rounded-lg shadow-xl z-50 overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Create New School</h2>
+                    <p className="text-sm text-gray-600">Set up a new school with admin account</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setIsCreationPanelOpen(false);
+                  // Reset form when closing
+                  setCreationFormData({
+                    name: "",
+                    email: "",
+                    phone: "",
+                    address: "",
+                    primaryColor: "#3B82F6",
+                    secondaryColor: "#1D4ED8",
+                    timezone: "Africa/Addis_Ababa",
+                    defaultCurrency: "ETB",
+                    defaultLanguage: "en",
+                    adminName: "",
+                    adminUsername: "",
+                    adminPassword: "",
+                    adminConfirmPassword: "",
+                    adminPhone: "",
+                    pricingTierId: "",
+                  });
+                  setCreationCurrentStep(1);
+                  setCreationError(null);
+                  setCreationSuccess(false);
+                  setShowCreationPassword(false);
+                }}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              {/* Progress */}
+              <div className="px-6 py-6 bg-gradient-to-r from-blue-50 to-purple-50 border-b">
+                <div className="max-w-md mx-auto">
+                  <div className="flex items-center justify-between mb-4">
+                    {[1, 2, 3].map((step) => (
+                      <div key={step} className="flex items-center flex-1">
+                        <motion.div
+                          animate={{
+                            backgroundColor: step <= creationCurrentStep ? "#3B82F6" : "#E5E7EB",
+                            color: step <= creationCurrentStep ? "#FFFFFF" : "#6B7280",
+                          }}
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shadow-sm"
+                        >
+                          {step <= creationCurrentStep ? (
+                            <CheckCircle className="w-5 h-5" />
+                          ) : (
+                            step
+                          )}
+                        </motion.div>
+                        {step < 3 && (
+                          <motion.div
+                            animate={{
+                              backgroundColor: step < creationCurrentStep ? "#3B82F6" : "#E5E7EB",
+                            }}
+                            className="flex-1 h-1 mx-4 rounded-full"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-between text-xs font-medium text-gray-600">
+                    <div className={`text-center ${creationCurrentStep === 1 ? "text-blue-600" : ""}`}>
+                      <div>School Details</div>
+                      <div className="text-xs text-gray-500 mt-1">Basic information</div>
+                    </div>
+                    <div className={`text-center ${creationCurrentStep === 2 ? "text-blue-600" : ""}`}>
+                      <div>Admin Account</div>
+                      <div className="text-xs text-gray-500 mt-1">Access credentials</div>
+                    </div>
+                    <div className={`text-center ${creationCurrentStep === 3 ? "text-blue-600" : ""}`}>
+                      <div>Configuration</div>
+                      <div className="text-xs text-gray-500 mt-1">Branding & settings</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto px-6 py-6">
+                {creationSuccess ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-12"
+                  >
+                    <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      School Created Successfully!
+                    </h3>
+                    <p className="text-gray-600">
+                      The school and admin account have been created.
+                    </p>
+                  </motion.div>
+                ) : (
+                  <>
+                    {renderCreationStepContent()}
+
+                    {/* Error Alert */}
+                    <AnimatePresence>
+                      {creationError && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="mt-6"
+                        >
+                          <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{creationError}</AlertDescription>
+                          </Alert>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
+              </div>
+
+              {/* Footer */}
+              {!creationSuccess && (
+                <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-6">
+                  <div className="flex justify-between items-center">
+                    <Button
+                      variant="outline"
+                      onClick={creationCurrentStep === 1 ? () => {
+                        setIsCreationPanelOpen(false);
+                        // Reset form when canceling
+                        setCreationFormData({
+                          name: "",
+                          email: "",
+                          phone: "",
+                          address: "",
+                          primaryColor: "#3B82F6",
+                          secondaryColor: "#1D4ED8",
+                          timezone: "Africa/Addis_Ababa",
+                          defaultCurrency: "ETB",
+                          defaultLanguage: "en",
+                          adminName: "",
+                          adminUsername: "",
+                          adminPassword: "",
+                          adminConfirmPassword: "",
+                          adminPhone: "",
+                          pricingTierId: "",
+                        });
+                        setCreationCurrentStep(1);
+                        setCreationError(null);
+                        setCreationSuccess(false);
+                        setShowCreationPassword(false);
+                      } : handleCreationBack}
+                      disabled={creationLoading}
+                      className="flex items-center space-x-2 px-6 py-3"
+                    >
+                      {creationCurrentStep === 1 ? (
+                        <X className="w-4 h-4" />
+                      ) : (
+                        <ChevronLeft className="w-4 h-4" />
+                      )}
+                      <span>{creationCurrentStep === 1 ? "Cancel" : "Back"}</span>
+                    </Button>
+
+                    <div className="flex items-center space-x-4">
+                      <div className="text-sm text-gray-500">
+                        Step {creationCurrentStep} of 3
+                      </div>
+
+                      {creationCurrentStep < 3 ? (
+                        <Button
+                          onClick={handleCreationNext}
+                          disabled={creationLoading}
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 flex items-center space-x-2 px-6 py-3"
+                        >
+                          <span>Next</span>
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={handleCreationSubmit}
+                          disabled={creationLoading}
+                          className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 flex items-center space-x-2 px-8 py-3 text-lg"
+                        >
+                          {creationLoading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                              <span>Creating...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-5 h-5" />
+                              <span>Create School</span>
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Premium Features Panel */}
       <PremiumFeaturesPanel
@@ -826,7 +1978,16 @@ export default function SchoolsManagementPage() {
           fetchSchools(); // Refresh the schools list
         }}
       />
-    </motion.div>
+
+      {/* School Creation Side Panel */}
+      <SchoolCreationPanel
+        isOpen={isCreationPanelOpen}
+        onClose={() => setIsCreationPanelOpen(false)}
+        onSuccess={() => {
+          fetchSchools();
+          setIsCreationPanelOpen(false);
+        }}
+      />
     </motion.div>
   );
 }

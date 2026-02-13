@@ -34,6 +34,81 @@ const createSchoolSchema = z.object({
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
 
+// Validation schema for school status update
+const updateSchoolStatusSchema = z.object({
+  schoolId: z.string(),
+  status: z.enum(["active", "inactive"]),
+  statusReason: z.string().optional(),
+});
+
+// PUT method for updating school status
+export async function PUT(req: NextRequest) {
+  try {
+    // Check super admin authentication
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user as any)?.role !== 'superAdmin') {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const validatedData = updateSchoolStatusSchema.parse(body);
+
+    // Update school status
+    const updatedSchool = await prisma.school.update({
+      where: { id: validatedData.schoolId },
+      data: {
+        status: validatedData.status,
+        statusReason: validatedData.statusReason,
+        statusChangedAt: new Date(),
+        statusChangedById: "78er9w", // Actual SuperAdmin ID
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        status: true,
+        statusReason: true,
+        statusChangedAt: true,
+        email: true,
+        phone: true,
+        address: true,
+        primaryColor: true,
+        secondaryColor: true,
+        timezone: true,
+        defaultCurrency: true,
+        isSelfRegistered: true,
+        registrationStatus: true,
+        createdAt: true,
+        _count: {
+          select: {
+            students: true,
+            admins: true,
+            teachers: true,
+          }
+        }
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      school: updatedSchool
+    });
+
+  } catch (error) {
+    console.error("Error updating school status:", error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: error.errors },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: "Failed to update school status" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Check super admin authentication
@@ -84,6 +159,7 @@ export async function POST(req: NextRequest) {
           defaultCurrency: validatedData.defaultCurrency,
           defaultLanguage: validatedData.defaultLanguage,
           pricingTierId: validatedData.pricingTierId,
+          status: "active", // Default status for super admin created schools
           createdById: "78er9w", // Actual SuperAdmin ID
         },
       });

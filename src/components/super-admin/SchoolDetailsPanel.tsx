@@ -261,103 +261,169 @@ export default function SchoolDetailsPanel({
     }).format(amount);
   };
 
-  if (!school) {
-    return null;
-  }
-
   return (
     <AnimatePresence>
-      {isOpen && (
+      {isOpen && school ? (
         <>
-          {/* Backdrop */}
+          {/* Enhanced Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-gradient-to-br from-black/60 via-gray-900/50 to-black/60 backdrop-blur-md z-40"
+            style={{
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)'
+            }}
             onClick={onClose}
           />
 
-          {/* Side Panel */}
+          {/* Enhanced Side Panel */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "tween", duration: 0.3 }}
-            className="fixed top-0 right-0 h-full w-full max-w-5xl bg-white shadow-2xl z-50 overflow-y-auto"
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+              duration: 0.4
+            }}
+            className="fixed top-0 right-0 h-full w-full max-w-5xl bg-white shadow-2xl z-50 overflow-y-auto border-l border-gray-200"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.98) 100%)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)'
+            }}
           >
-            {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-white via-gray-50 to-white border-b border-gray-200 px-6 py-6 shadow-sm">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-5">
-                  {/* School Avatar with Gradient Border */}
-                  <div className="relative">
-                    <div
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-xl ring-4 ring-white"
-                      style={{
-                        background: `linear-gradient(135deg, ${school.primaryColor}, ${school.secondaryColor})`
-                      }}
-                    >
-                      {school.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="absolute -bottom-1 -right-1">
-                      {getStatusBadge(school.status)}
-                    </div>
-                  </div>
-
-                  {/* School Info */}
-                  <div className="flex-1 min-w-0">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-1">{school.name}</h1>
-                    <p className="text-sm text-gray-600 mb-2">@{school.slug}</p>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4" />
-                        <span>{school._count.students} Students</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <BookOpen className="w-4 h-4" />
-                        <span>{school._count.teachers} Teachers</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Shield className="w-4 h-4" />
-                        <span>{school._count.admins} Admins</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onClose}
-                  className="hover:bg-gray-100 transition-colors"
+            {/* Enhanced Header with Glassmorphism */}
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="sticky top-0 bg-gradient-to-r from-white/90 to-gray-50/90 backdrop-blur-xl border-b border-gray-200/50 px-8 py-6 flex items-center justify-between shadow-sm"
+            >
+              <motion.div
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="flex items-center space-x-6"
+              >
+                {/* Enhanced School Avatar */}
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="relative"
                 >
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
+                  <div
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-xl ring-4 ring-white"
+                    style={{
+                      background: `linear-gradient(135deg, ${school.primaryColor}, ${school.secondaryColor})`
+                    }}
+                  >
+                    {school.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1">
+                    {getStatusBadge(school.status)}
+                  </div>
+                </motion.div>
 
-              {/* Quick Stats Bar */}
-              <div className="mt-6 grid grid-cols-4 gap-4">
-                <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
-                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</div>
-                  <div className="mt-1 text-sm font-semibold text-gray-900 capitalize">{school.status}</div>
+                {/* Enhanced School Info */}
+                <div className="flex-1 min-w-0">
+                  <motion.h1
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-3xl font-bold text-gray-900 mb-1 tracking-tight"
+                  >
+                    {school.name}
+                  </motion.h1>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-sm text-gray-600 mb-3"
+                  >
+                    @{school.slug}
+                  </motion.p>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="flex items-center space-x-6 text-sm text-gray-600"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Users className="w-4 h-4" />
+                      <span className="font-medium">{school._count.students} Students</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <BookOpen className="w-4 h-4" />
+                      <span>{school._count.teachers} Teachers</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Shield className="w-4 h-4" />
+                      <span>{school._count.admins} Admins</span>
+                    </div>
+                  </motion.div>
                 </div>
-                <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
-                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Created</div>
-                  <div className="mt-1 text-sm font-semibold text-gray-900">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onClose}
+                    className="w-10 h-10 rounded-xl hover:bg-gray-100 transition-all duration-200"
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                </motion.div>
+              </motion.div>
+            </motion.div>
+
+            {/* Enhanced Content Area */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="flex-1 px-8 py-8 pb-12 space-y-8"
+              >
+                {/* Quick Stats Bar */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="grid grid-cols-2 md:grid-cols-4 gap-4"
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-gradient-to-br from-white to-gray-50 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 shadow-sm"
+                  >
+                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Status</div>
+                    <div className="text-lg font-bold text-gray-900 capitalize">{school.status}</div>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-gradient-to-br from-white to-gray-50 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 shadow-sm"
+                  >
+                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Created</div>
+                    <div className="text-lg font-bold text-gray-900">
                     {new Date(school.createdAt).toLocaleDateString()}
                   </div>
-                </div>
-                <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
+                </motion.div>
+                <motion.div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Currency</div>
                   <div className="mt-1 text-sm font-semibold text-gray-900">{school.defaultCurrency}</div>
-                </div>
+                </motion.div>
                 <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Timezone</div>
                   <div className="mt-1 text-sm font-semibold text-gray-900 text-xs">{school.timezone}</div>
                 </div>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
 
             {/* Content */}
             <div className="px-6 py-6">
@@ -1035,7 +1101,7 @@ export default function SchoolDetailsPanel({
             </div>
           </motion.div>
         </>
-      )}
+      ) : null}
     </AnimatePresence>
   );
 }

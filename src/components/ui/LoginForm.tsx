@@ -84,7 +84,14 @@ export function LoginForm({
       });
 
       if (res?.error) {
-        setError(res.error);
+        // Handle specific error types
+        if (res.error === "SchoolInactive") {
+          setError("Your school account is currently inactive. Please contact your school administrator or support for assistance.");
+        } else if (res.error === "CredentialsSignin") {
+          setError("Invalid username or password. Please check your credentials and try again.");
+        } else {
+          setError(res.error);
+        }
         setIsSubmitting(false);
       } else {
         // Handle redirection after successful authentication

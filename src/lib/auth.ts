@@ -125,12 +125,28 @@ export const authOptions: NextAuthOptions = {
           try {
             user = await prisma.wpos_wpdatatable_24.findFirst({
               where: { ustazid: credentials.username },
+              include: {
+                school: {
+                  select: {
+                    id: true,
+                    slug: true,
+                    name: true,
+                    status: true,
+                  },
+                },
+              },
             });
             if (!user) {
               return null;
             }
             if (!user.password) {
               return null;
+            }
+
+            // Check if the school is active
+            if (!user.school || user.school.status !== "active") {
+              // Return a specific error for inactive schools
+              throw new Error("SchoolInactive");
             }
 
             // Check if password is hashed (bcrypt hashes start with $2)
@@ -154,6 +170,9 @@ export const authOptions: NextAuthOptions = {
               name: user.ustazname ?? "",
               username: user.ustazid ?? "",
               role,
+              schoolId: user.school.id,
+              schoolSlug: user.school.slug,
+              schoolName: user.school.name,
             };
           } catch (error) {
             console.error("Teacher authentication error:", error);
@@ -193,9 +212,25 @@ export const authOptions: NextAuthOptions = {
         else if (role === "admin") {
           user = await prisma.admin.findFirst({
             where: { username: credentials.username },
+            include: {
+              school: {
+                select: {
+                  id: true,
+                  slug: true,
+                  name: true,
+                  status: true,
+                },
+              },
+            },
           });
 
           if (!user) return null;
+
+          // Check if the school is active
+          if (!user.school || user.school.status !== "active") {
+            // Return a specific error for inactive schools
+            throw new Error("SchoolInactive");
+          }
 
           // Add a type guard to check if user is an admin and has passcode
           if (user && "passcode" in user) {
@@ -212,6 +247,9 @@ export const authOptions: NextAuthOptions = {
               username: adminUser.username ?? "",
               role: adminUser.role ?? "admin",
               code: adminUser.code ?? "",
+              schoolId: user.school.id,
+              schoolSlug: user.school.slug,
+              schoolName: user.school.name,
             };
           }
         }
@@ -228,6 +266,34 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session, token }) {
       if (token) {
+        // Check if the user's school is still active
+        if (token.schoolSlug && (token.role === 'admin' || token.role === 'teacher')) {
+          try {
+            const school = await prisma.school.findUnique({
+              where: { slug: token.schoolSlug },
+              select: { status: true },
+            });
+
+            if (!school || school.status !== 'active') {
+              // School is inactive, return empty session to invalidate
+              return {
+                ...session,
+                user: {
+                  ...session.user,
+                  // Clear user data to effectively log them out
+                  id: '',
+                  name: '',
+                  username: '',
+                  role: '',
+                }
+              };
+            }
+          } catch (error) {
+            console.error('Error checking school status in session:', error);
+            // If database error, allow session to continue but log error
+          }
+        }
+
         session.user.id = token.id as string;
         session.user.name = token.name as string;
         session.user.username = token.username as string;
@@ -249,6 +315,9 @@ export const authOptions: NextAuthOptions = {
         }
         if (token.schoolName) {
           session.user.schoolName = token.schoolName as string;
+        }
+        if (token.hasGlobalAccess) {
+          session.user.hasGlobalAccess = token.hasGlobalAccess;
         }
       }
       return session;
@@ -337,9 +406,9 @@ export const authOptions: NextAuthOptions = {
           } else if (user.role === 'superAdmin') {
             // Super admins don't have a specific school, they can access all schools
             // Set a flag to indicate global access
-            token.schoolId = null;
-            token.schoolSlug = null;
-            token.schoolName = null;
+            token.schoolId = undefined;
+            token.schoolSlug = undefined;
+            token.schoolName = undefined;
             token.hasGlobalAccess = true;
           }
         } catch (error) {
