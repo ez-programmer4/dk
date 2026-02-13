@@ -20,38 +20,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get school ID from session
-    const schoolId = (session as any).schoolId;
-    if (!schoolId) {
-      return NextResponse.json({ error: "School information not found in session" }, { status: 400 });
-    }
-
     // Check if teacher salary visibility is enabled
     const [salaryVisibilitySetting, customMessageSetting, adminContactSetting] =
       await Promise.all([
         prisma.setting.findUnique({
-          where: {
-            key_schoolId: {
-              key: "teacher_salary_visible",
-              schoolId: schoolId,
-            },
-          },
+          where: { key: "teacher_salary_visible" },
         }),
         prisma.setting.findUnique({
-          where: {
-            key_schoolId: {
-              key: "teacher_salary_hidden_message",
-              schoolId: schoolId,
-            },
-          },
+          where: { key: "teacher_salary_hidden_message" },
         }),
         prisma.setting.findUnique({
-          where: {
-            key_schoolId: {
-              key: "admin_contact_info",
-              schoolId: schoolId,
-            },
-          },
+          where: { key: "admin_contact_info" },
         }),
       ]);
 
@@ -77,17 +56,11 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");
-    const fromParam = url.searchParams.get("from");
-    const toParam = url.searchParams.get("to");
-
-    // Support both parameter formats for flexibility
-    const fromDateParam = startDate || fromParam;
-    const toDateParam = endDate || toParam;
 
     // Validate required parameters
-    if (!fromDateParam || !toDateParam) {
+    if (!startDate || !endDate) {
       return NextResponse.json(
-        { error: "Missing startDate/endDate or from/to parameters" },
+        { error: "Missing startDate or endDate" },
         { status: 400 }
       );
     }
@@ -96,8 +69,8 @@ export async function GET(req: NextRequest) {
     // CRITICAL FIX: Parse dates as UTC to prevent timezone offset issues
     // parseISO creates dates in local timezone (UTC+3 in Riyadh)
     // This causes "2025-11-01" to become Oct 31 21:00 UTC, including Oct 31 zoom links!
-    const from = new Date(fromDateParam + "T00:00:00.000Z"); // Force UTC
-    const to = new Date(toDateParam + "T23:59:59.999Z"); // Force UTC
+    const from = new Date(startDate + "T00:00:00.000Z"); // Force UTC
+    const to = new Date(endDate + "T23:59:59.999Z"); // Force UTC
 
     if (isNaN(from.getTime()) || isNaN(to.getTime()) || from > to) {
       return NextResponse.json(

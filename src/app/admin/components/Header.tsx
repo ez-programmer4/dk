@@ -85,7 +85,7 @@ export default function Header({
 
   const handleLogout = async () => {
     try {
-      await signOut({ callbackUrl: `${window.location.origin}/login` });
+      await signOut({ callbackUrl: "/login" });
     } catch (error) {
       }
   };

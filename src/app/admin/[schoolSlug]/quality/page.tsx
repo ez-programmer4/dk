@@ -8,7 +8,6 @@ import {
   FiInfo,
   FiTarget,
 } from "react-icons/fi";
-import { FeatureGate } from "@/components/features";
 import AdminQualityConfigPage from "./config-ui";
 import AdminQualityReviewPage from "./review/page";
 
@@ -57,40 +56,22 @@ export default function AdminQualityTabsPage() {
                   Manage feedback options
                 </span>
               </button>
-              <FeatureGate
-                feature="advanced_analytics"
-                fallback={
-                  <button
-                    className="flex-1 flex flex-col sm:flex-col items-center px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-bold transition-all duration-200 bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border-2 border-yellow-300 cursor-pointer hover:from-yellow-200 hover:to-orange-200"
-                    onClick={() => setTab("review")}
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <FiCheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="text-base sm:text-lg">Review Board ⭐</span>
-                    </div>
-                    <span className="text-xs sm:text-sm opacity-80 text-center">
-                      Premium Feature - Upgrade Required
-                    </span>
-                  </button>
-                }
+              <button
+                className={`flex-1 flex flex-col sm:flex-col items-center px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-bold transition-all duration-200 ${
+                  tab === "review"
+                    ? "bg-black text-white shadow-lg"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                }`}
+                onClick={() => setTab("review")}
               >
-                <button
-                  className={`flex-1 flex flex-col sm:flex-col items-center px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-bold transition-all duration-200 ${
-                    tab === "review"
-                      ? "bg-black text-white shadow-lg"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
-                  }`}
-                  onClick={() => setTab("review")}
-                >
-                  <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                    <FiCheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-base sm:text-lg">Review Board ⭐</span>
-                  </div>
-                  <span className="text-xs sm:text-sm opacity-80 text-center">
-                    Approve & manage quality
-                  </span>
-                </button>
-              </FeatureGate>
+                <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                  <FiCheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg">Review Board ⭐</span>
+                </div>
+                <span className="text-xs sm:text-sm opacity-80 text-center">
+                  Approve & manage quality
+                </span>
+              </button>
             </div>
           </div>
         </div>
@@ -137,35 +118,7 @@ export default function AdminQualityTabsPage() {
             {tab === "config" ? (
               <AdminQualityConfigPage />
             ) : (
-              <FeatureGate
-                feature="advanced_analytics"
-                fallback={
-                  <div className="text-center py-12">
-                    <div className="max-w-md mx-auto">
-                      <div className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-2xl p-8 border-2 border-yellow-300">
-                        <FiTarget className="h-16 w-16 text-yellow-600 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-yellow-800 mb-2">
-                          Premium Feature Required
-                        </h3>
-                        <p className="text-yellow-700 mb-4">
-                          Quality Review Board is a premium feature that helps you manage teacher quality and performance reviews.
-                        </p>
-                        <div className="bg-white rounded-lg p-4 border border-yellow-200">
-                          <h4 className="font-semibold text-yellow-800 mb-2">What you'll get:</h4>
-                          <ul className="text-sm text-yellow-700 space-y-1">
-                            <li>• Weekly quality assessments</li>
-                            <li>• Performance-based bonuses</li>
-                            <li>• Teacher improvement tracking</li>
-                            <li>• Quality metrics dashboard</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                }
-              >
-                <AdminQualityReviewPage />
-              </FeatureGate>
+              <AdminQualityReviewPage />
             )}
           </div>
         </div>

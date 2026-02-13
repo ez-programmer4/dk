@@ -8,8 +8,6 @@ import {
   TeacherSalaryData,
 } from "@/lib/salary-calculator";
 import { parseISO } from "date-fns";
- import { HybridFeatureGate } from "@/lib/features/hybrid-feature-gate";
-import { UpgradePrompt } from "@/components/features";
 
 interface TeacherPaymentsPageProps {
   searchParams: Promise<{
@@ -40,25 +38,6 @@ export default async function TeacherPaymentsPage({
     redirect("/login");
   }
 
-  // Check feature access
-  const userId = (session.user as any).id;
-  const featureAccess = await HybridFeatureGate.evaluateFeatureAccess("teacher_payment", {
-    schoolId: schoolSlug,
-    userId,
-    userRole: "admin"
-  });
-
-  if (featureAccess.access !== 'granted') {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <UpgradePrompt
-          feature="teacher_payment"
-          reason={featureAccess.reason}
-          upgradeOptions={featureAccess.upgradeOptions}
-        />
-      </div>
-    );
-  }
 
   // Await searchParams in Next.js 15
   const searchParamsData = await searchParams;
@@ -103,7 +82,8 @@ export default async function TeacherPaymentsPage({
     // Calculate all teacher salaries
     const teachersData = await calculator.calculateAllTeacherSalaries(
       fromDate,
-      toDate
+      toDate,
+      schoolSlug
     );
     teachers = teachersData || [];
 

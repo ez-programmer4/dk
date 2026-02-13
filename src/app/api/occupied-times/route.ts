@@ -20,56 +20,35 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const schoolSlug = searchParams.get("schoolSlug");
-    const dayPackage = searchParams.get("dayPackage");
+    const studentId = searchParams.get("studentId");
 
-    if (!schoolSlug) {
+    if (!studentId) {
       return NextResponse.json(
-        { message: "School slug is required" },
+        { message: "Student ID is required" },
         { status: 400 }
       );
     }
 
-    // Get school ID from slug
-    const school = await prisma.school.findUnique({
-      where: { slug: schoolSlug },
-      select: { id: true },
+    const occupiedTime = await prisma.wpos_ustaz_occupied_times.findFirst({
+      where: { student_id: parseInt(studentId) },
+      select: { time_slot: true },
     });
 
-    if (!school) {
+    if (!occupiedTime) {
       return NextResponse.json(
-        { message: "School not found" },
+        { message: "No occupied time found" },
         { status: 404 }
       );
     }
 
-    // Build where clause for filtering
-    const whereClause: any = {
-      schoolId: school.id,
-    };
-
-    if (dayPackage) {
-      whereClause.daypackage = dayPackage;
-    }
-
-    const occupiedTimes = await prisma.wpos_ustaz_occupied_times.findMany({
-      where: whereClause,
-      select: {
-        time_slot: true,
-        daypackage: true,
-        ustaz_id: true,
-        student_id: true,
-      },
-    });
-
     return NextResponse.json(
-      { occupiedTimes },
+      { time_slot: occupiedTime.time_slot },
       { status: 200 }
     );
   } catch (error) {
     return NextResponse.json(
       {
-        message: "Error fetching occupied times",
+        message: "Error fetching occupied time",
         error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }

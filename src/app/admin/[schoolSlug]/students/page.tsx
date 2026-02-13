@@ -77,7 +77,6 @@ import {
   FiBarChart,
   FiFileText,
 } from "react-icons/fi";
-import { FeatureGate, GenericFeatureGate } from "@/components/features";
 import { format, parseISO } from "date-fns";
 
 interface Student {
@@ -4011,33 +4010,6 @@ export default function StudentsPage() {
 
         {/* Attendance Section */}
         {activeSection === "attendance" && (
-          <FeatureGate
-            feature="basic_reporting"
-            fallback={
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 border-2 border-blue-200">
-                <div className="text-center">
-                  <div className="bg-blue-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                    <FiBarChart className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-blue-800 mb-2">
-                    📊 Advanced Reporting Required
-                  </h3>
-                  <p className="text-blue-700 mb-4">
-                    Attendance & Absence Analytics is a premium feature that provides detailed insights into student attendance patterns and trends.
-                  </p>
-                  <div className="bg-white rounded-lg p-4 border border-blue-200 max-w-md mx-auto">
-                    <h4 className="font-semibold text-blue-800 mb-2">Premium Features Include:</h4>
-                    <ul className="text-sm text-blue-700 space-y-1 text-left">
-                      <li>• 📈 Monthly attendance trends</li>
-                      <li>• 📊 Absence pattern analysis</li>
-                      <li>• 🎯 Attendance rate calculations</li>
-                      <li>• 📋 Detailed reporting dashboard</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            }
-          >
           <div className="space-y-6 sm:space-y-8 animate-fadeIn">
             <h2 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-4">
               📋 Student Attendance & Absence Analytics
@@ -4635,7 +4607,6 @@ export default function StudentsPage() {
               </div>
             </div>
           </div>
-          </FeatureGate>
         )}
 
         {/* Trends Section */}
@@ -5120,34 +5091,6 @@ export default function StudentsPage() {
 
         {/* Performance Section - Student Analytics */}
         {activeSection === "performance" && (
-          <GenericFeatureGate feature="student_analytics">
-            <FeatureGate
-              feature="advanced_analytics"
-            fallback={
-              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-8 border-2 border-yellow-200">
-                <div className="text-center">
-                  <div className="bg-yellow-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                    <FiTrendingUp className="h-8 w-8 text-yellow-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-yellow-800 mb-2">
-                    🚀 Advanced Analytics Required
-                  </h3>
-                  <p className="text-yellow-700 mb-4">
-                    Performance Analytics & Insights is a premium feature that provides comprehensive multi-dimensional analysis of your school's performance.
-                  </p>
-                  <div className="bg-white rounded-lg p-4 border border-yellow-200 max-w-md mx-auto">
-                    <h4 className="font-semibold text-yellow-800 mb-2">Premium Features Include:</h4>
-                    <ul className="text-sm text-yellow-700 space-y-1 text-left">
-                      <li>• 📊 Multi-dimensional performance radar</li>
-                      <li>• 📈 Advanced trend analysis</li>
-                      <li>• 🎯 Performance scoring system</li>
-                      <li>• 📋 Comprehensive insights dashboard</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            }
-          >
           <div className="space-y-6 sm:space-y-8 animate-fadeIn">
             <div className="bg-gradient-to-r from-cyan-100 to-blue-100 rounded-xl p-6 border-2 border-cyan-300">
               <h2 className="text-2xl font-black bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent mb-2">
@@ -5556,8 +5499,6 @@ export default function StudentsPage() {
               </ChartContainer>
             </div>
           </div>
-            </FeatureGate>
-          </GenericFeatureGate>
         )}
 
         {/* Students Table Section */}

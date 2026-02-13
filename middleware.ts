@@ -44,7 +44,7 @@ export default withAuth(
 
       // Redirect teachers to their school dashboard
       if (userRole === 'teacher' && schoolSlug && pathname === '/teachers') {
-        const teacherUrl = new URL(`/teachers/${schoolSlug}/dashboard`, req.url);
+        const teacherUrl = new URL(`/${schoolSlug}/teachers/dashboard`, req.url);
         return NextResponse.redirect(teacherUrl);
       }
 

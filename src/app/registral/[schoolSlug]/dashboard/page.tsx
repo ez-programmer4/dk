@@ -763,7 +763,7 @@ export default function RegistralDashboard() {
 
   const handleLogout = async () => {
     try {
-      await signOut({ callbackUrl: `${window.location.origin}/login`, redirect: true });
+      await signOut({ callbackUrl: "/login", redirect: true });
     } catch (error) {
       setNotification({
         message: "Failed to logout",

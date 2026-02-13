@@ -72,7 +72,7 @@ export function SchoolSelector({ onSchoolSelect, redirectAfterSelect = true }: S
               redirectUrl = `/admin/${school.slug}`;
               break;
             case 'teacher':
-              redirectUrl = `/teachers/${school.slug}/dashboard`;
+              redirectUrl = `/${school.slug}/teachers/dashboard`;
               break;
             case 'controller':
               redirectUrl = `/controller/${school.slug}/dashboard`;

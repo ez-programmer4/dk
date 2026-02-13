@@ -85,136 +85,86 @@ export default function Header({
 
   const handleLogout = async () => {
     try {
-      await signOut({ callbackUrl: `${window.location.origin}/login` });
+      await signOut({ callbackUrl: "/login" });
     } catch (error) {
       }
   };
 
   return (
-    <header className="flex-shrink-0 bg-white/95 backdrop-blur-xl border-b border-white/20 shadow-lg sticky top-0 z-30 relative overflow-hidden">
-      {/* Subtle Background Pattern */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-50/30 via-transparent to-indigo-50/30" />
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5QzkyQUMiIGZpbGwtb3BhY2l0eT0iMC4wMiI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
-
-      <div className="relative flex items-center justify-between px-6 py-4 sm:px-8">
-        <div className="flex items-center gap-4">
+    <header className="flex-shrink-0 bg-white/90 backdrop-blur border-b border-indigo-100 sticky top-0 z-30">
+      <div className="flex items-center justify-between px-4 py-3 sm:px-6">
+        <div className="flex items-center">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 rounded-xl transition-all duration-200 hover:scale-105"
+            className="lg:hidden mr-4 text-indigo-700 hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
           >
-            <FiMenu size={20} />
+            <FiMenu size={24} />
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full" />
-            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent">
-              {pageTitle}
-            </h1>
-          </div>
+          <h1 className="text-lg sm:text-xl font-semibold text-indigo-900">{pageTitle}</h1>
         </div>
-
         <div className="flex items-center gap-6">
-          {/* Welcome Message */}
-          <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/50">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-              <FiUser className="h-4 w-4 text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-gray-700">Welcome back</span>
-              <span className="text-xs text-gray-500 font-medium">
-                {session?.user?.name || userName}
-              </span>
-            </div>
-          </div>
-
-          {/* Notifications */}
+          <span className="text-sm font-medium text-gray-700">
+            Welcome, {session?.user?.name || userName}
+          </span>
           <div className="relative" ref={notifRef}>
             <button
-              className="relative p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 rounded-xl transition-all duration-200 hover:scale-105"
+              className="relative text-indigo-700 hover:text-indigo-900 focus:outline-none"
               onClick={() => setNotifOpen((o) => !o)}
               aria-label="Notifications"
             >
-              <FiBell size={20} />
+              <FiBell size={22} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full px-2 py-0.5 font-bold border-2 border-white shadow-lg animate-pulse">
-                  {unreadCount > 99 ? '99+' : unreadCount}
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold border border-white">
+                  {unreadCount}
                 </span>
               )}
             </button>
             {notifOpen && (
-              <div className="absolute right-0 mt-3 w-96 bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100/50 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
-                      <FiBell className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="font-bold text-gray-900">
-                      Notifications
-                    </span>
-                    {unreadCount > 0 && (
-                      <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </div>
+              <div className="absolute right-0 mt-2 w-80 bg-white border border-indigo-100 rounded-xl shadow-lg z-50">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-indigo-100">
+                  <span className="font-semibold text-indigo-900">
+                    Notifications
+                  </span>
                   <button
-                    className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="text-xs text-indigo-700 hover:text-indigo-900 hover:underline disabled:opacity-50"
                     onClick={markAllAsRead}
                     disabled={unreadCount === 0}
                   >
-                    Mark all read
+                    Mark all as read
                   </button>
                 </div>
-
-                {/* Content */}
-                <div className="max-h-80 overflow-y-auto">
+                <div className="max-h-80 overflow-y-auto divide-y divide-indigo-50">
                   {notifLoading ? (
-                    <div className="p-8 text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-blue-500 mx-auto mb-3"></div>
-                      <p className="text-gray-600 font-medium">Loading notifications...</p>
+                    <div className="p-4 text-center text-indigo-700">
+                      Loading...
                     </div>
                   ) : notifications.length === 0 ? (
-                    <div className="p-8 text-center">
-                      <div className="p-4 bg-gray-100 rounded-full w-fit mx-auto mb-3">
-                        <FiBell className="h-6 w-6 text-gray-400" />
-                      </div>
-                      <p className="text-gray-500 font-medium">No notifications yet</p>
-                      <p className="text-sm text-gray-400 mt-1">We'll notify you when there's something new</p>
+                    <div className="p-4 text-center text-gray-400">
+                      No notifications
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-100/50">
-                      {notifications.map((n) => (
-                        <button
-                          key={n.id}
-                          className={`w-full text-left px-6 py-4 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all duration-200 group ${
-                            n.read ? "" : "bg-gradient-to-r from-blue-50/30 to-indigo-50/30 border-l-4 border-blue-500"
+                    notifications.map((n) => (
+                      <button
+                        key={n.id}
+                        className={`w-full text-left px-4 py-3 hover:bg-indigo-50 transition flex flex-col gap-1 ${
+                          n.read ? "" : "bg-indigo-50"
+                        }`}
+                        onClick={() => markAsRead(n.id)}
+                      >
+                        <span
+                          className={`font-medium ${
+                            n.read ? "text-gray-700" : "text-indigo-900"
                           }`}
-                          onClick={() => markAsRead(n.id)}
                         >
-                          <div className="flex items-start gap-3">
-                            <div className={`p-2 rounded-lg mt-0.5 ${
-                              n.read
-                                ? 'bg-gray-100 text-gray-500'
-                                : 'bg-blue-100 text-blue-600'
-                            }`}>
-                              <FiBell className="h-3 w-3" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className={`font-semibold text-sm leading-tight ${
-                                n.read ? "text-gray-700" : "text-gray-900"
-                              }`}>
-                                {n.title || n.message || "Notification"}
-                              </p>
-                              {n.createdAt && (
-                                <p className="text-xs text-gray-500 mt-1 font-medium">
-                                  {new Date(n.createdAt).toLocaleString()}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+                          {n.title || n.message || "Notification"}
+                        </span>
+                        {n.createdAt && (
+                          <span className="text-xs text-gray-400">
+                            {new Date(n.createdAt).toLocaleString()}
+                          </span>
+                        )}
+                      </button>
+                    ))
                   )}
                 </div>
               </div>

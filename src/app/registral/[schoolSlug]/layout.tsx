@@ -42,7 +42,6 @@ interface SchoolBranding {
   primaryColor: string;
   secondaryColor: string;
   logo: string;
-  logoUrl?: string;
   name: string;
   theme: string;
   supportEmail?: string;
@@ -182,28 +181,6 @@ export default function RegistralLayout({
   // Enhanced sidebar state
   const [sidebarSearchQuery, setSidebarSearchQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-
-  // Initialize mobile state on mount
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 1024);
-  }, []);
-
-  // Mobile detection and responsive handling
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 1024; // lg breakpoint
-      setIsMobile(mobile);
-      if (mobile && !mobileSidebarOpen) {
-        setSidebarCollapsed(true); // Collapse sidebar on mobile by default
-      }
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, [mobileSidebarOpen]);
 
   // Fetch sidebar stats
   useEffect(() => {
@@ -1054,22 +1031,10 @@ export default function RegistralLayout({
                 </motion.button>
               </div>
 
-              {/* Mobile Sidebar Menu Button */}
-              {isMobile && (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-                  className="p-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors border border-gray-200 shadow-sm"
-                  title={mobileSidebarOpen ? "Close Menu" : "Open Menu"}
-                >
-                  <motion.div
-                    animate={{ rotate: mobileSidebarOpen ? 90 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <FiSettings className="w-6 h-6" />
-                  </motion.div>
-                </motion.button>
-              )}
+              {/* Mobile Menu Button */}
+              <button className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
+                <FiSearch className="w-5 h-5" />
+              </button>
 
               {/* Notifications */}
               <div className="relative">
@@ -1127,7 +1092,7 @@ export default function RegistralLayout({
                     <div className="border-t border-gray-100 my-2"></div>
                     <button
                       onClick={() =>
-                        signOut({ callbackUrl: `${window.location.origin}/login`, redirect: true })
+                        signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
                       }
                       className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
@@ -1168,15 +1133,9 @@ export default function RegistralLayout({
 
         {/* Enhanced Sidebar */}
         <motion.nav
-          initial={{ x: isMobile ? -1000 : -300 }}
-          animate={{
-            x: isMobile ? (mobileSidebarOpen ? 0 : -1000) : 0,
-            width: isMobile ? "100vw" : (sidebarCollapsed ? 72 : 320)
-          }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          className={`bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 fixed top-32 left-0 z-40 ${
-            isMobile ? 'h-full' : 'h-[calc(100vh-8rem)]'
-          } ${isMobile && !mobileSidebarOpen ? 'hidden' : ''}`}
+          initial={{ x: -300 }}
+          animate={{ x: 0 }}
+          className="w-80 bg-gradient-to-b from-white via-gray-50 to-white shadow-xl border-r border-gray-200 h-[calc(100vh-8rem)] fixed top-32 z-30"
           style={{
             background: `linear-gradient(135deg, ${primaryColor}05 0%, ${secondaryColor}08 100%)`,
           }}
@@ -1190,16 +1149,6 @@ export default function RegistralLayout({
               background: `linear-gradient(135deg, ${primaryColor}10 0%, ${secondaryColor}15 100%)`,
             }}
           >
-            {/* Mobile Close Button */}
-            {isMobile && (
-              <button
-                onClick={() => setMobileSidebarOpen(false)}
-                className="absolute top-4 right-4 p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200 z-50"
-                title="Close Menu"
-              >
-                <FiX className="w-5 h-5" />
-              </button>
-            )}
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-10">
               <div
@@ -1276,8 +1225,8 @@ export default function RegistralLayout({
             </div>
           </div>
 
-          {/* Enhanced Quick Stats - Hidden when collapsed on desktop */}
-          {(!sidebarCollapsed || isMobile) && (
+          {/* Enhanced Quick Stats - Hidden when collapsed */}
+          {!sidebarCollapsed && (
             <QuickStatsWidget
               stats={sidebarStats}
               primaryColor={primaryColor}
@@ -1285,8 +1234,8 @@ export default function RegistralLayout({
             />
           )}
 
-          {/* Navigation Search - Hidden when collapsed on desktop */}
-          {(!sidebarCollapsed || isMobile) && (
+          {/* Navigation Search - Hidden when collapsed */}
+          {!sidebarCollapsed && (
             <NavigationSearch
               searchQuery={sidebarSearchQuery}
               setSearchQuery={setSidebarSearchQuery}
@@ -1296,7 +1245,7 @@ export default function RegistralLayout({
           )}
 
           {/* Navigation Groups */}
-          <div className={`${isMobile ? 'px-6' : 'px-4'} pb-4 space-y-2`}>
+          <div className="px-4 pb-4 space-y-2">
             {navGroups
               .filter((group) => {
                 if (!sidebarSearchQuery) return true;
@@ -1328,7 +1277,7 @@ export default function RegistralLayout({
                     primaryColor={primaryColor}
                     secondaryColor={secondaryColor}
                     schoolSlug={schoolSlug}
-                    isCollapsed={sidebarCollapsed && !isMobile}
+                    isCollapsed={sidebarCollapsed}
                   />
                 );
               })}
@@ -1360,7 +1309,7 @@ export default function RegistralLayout({
           </div>
 
           {/* User Profile Section */}
-          <div className={`${isMobile ? 'p-6' : 'p-4'} border-t border-gray-200 bg-gray-50/50`}>
+          <div className="p-4 border-t border-gray-200 bg-gray-50/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
@@ -1377,7 +1326,7 @@ export default function RegistralLayout({
               </div>
               <button
                 onClick={() =>
-                  signOut({ callbackUrl: `${window.location.origin}/login`, redirect: true })
+                  signOut({ callbackUrl: `${window.location.protocol}//${window.location.host}/login`, redirect: true })
                 }
                 className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
                 title="Logout"
@@ -1389,28 +1338,13 @@ export default function RegistralLayout({
         </div>
       </motion.nav>
 
-      {/* Mobile Sidebar Backdrop */}
-      {isMobile && mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 z-30"
-          style={{
-            background: `linear-gradient(135deg, ${primaryColor}90 0%, ${secondaryColor}85 100%)`,
-            backdropFilter: "blur(8px)",
-          }}
-          onClick={() => setMobileSidebarOpen(false)}
-        />
-      )}
-
       {/* Main Content */}
       <motion.main
         animate={{
-          paddingLeft: isMobile ? 0 : (sidebarCollapsed ? 72 : 320),
-          marginTop: isMobile ? "8rem" : "8rem"
+          paddingLeft: sidebarCollapsed ? 72 : 320
         }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className={`min-h-[calc(100vh-5rem)] transition-all duration-300 ${
-          isMobile ? 'p-4 sm:p-6' : 'p-8'
-        }`}
+        className="min-h-[calc(100vh-5rem)] p-8"
       >
         <BrandingContext.Provider value={branding}>
           <AnimatePresence mode="wait">{children}</AnimatePresence>

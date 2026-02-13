@@ -74,7 +74,7 @@ export function useAuth(options: UseAuthOptions = {}) {
             break;
           case 'teacher':
             if (schoolSlug) {
-              redirectUrl = `/teachers/${schoolSlug}/dashboard`;
+              redirectUrl = `/${schoolSlug}/teachers/dashboard`;
             } else {
               // No school assigned, redirect to school selector
               redirectUrl = '/school-selector';

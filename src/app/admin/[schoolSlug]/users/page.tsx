@@ -1,6 +1,25 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+
+// Add custom CSS animations
+const customStyles = `
+  @keyframes gradient-x {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .animate-gradient-x {
+    background-size: 400% 400%;
+    animation: gradient-x 15s ease infinite;
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = customStyles;
+  document.head.appendChild(styleSheet);
+}
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -250,22 +269,22 @@ const ScheduleGenerator = ({
       {/* Select All / Deselect All Buttons */}
       <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            type="button"
-            onClick={selectAllTimes}
+        <button
+          type="button"
+          onClick={selectAllTimes}
             className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-4 rounded-xl font-bold transition-all hover:scale-105 hover:shadow-lg flex items-center justify-center gap-3"
-          >
+        >
             <FiCheck className="h-5 w-5" />
             Select All Prayer Time Slots
-          </button>
-          <button
-            type="button"
-            onClick={deselectAllTimes}
+        </button>
+        <button
+          type="button"
+          onClick={deselectAllTimes}
             className="flex-1 bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400 text-gray-800 px-6 py-4 rounded-xl font-bold transition-all hover:scale-105 hover:shadow-lg flex items-center justify-center gap-3"
-          >
+        >
             <FiX className="h-5 w-5" />
             Clear All Selections
-          </button>
+        </button>
         </div>
       </div>
 
@@ -305,8 +324,8 @@ const ScheduleGenerator = ({
                     <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg"></div>
                     <div>
                       <h4 className="font-bold text-xl text-gray-800">
-                        {prayer} Period
-                      </h4>
+                      {prayer} Period
+                    </h4>
                       <p className="text-sm text-gray-600 font-medium">
                         {prayerPeriods[prayer as keyof typeof prayerPeriods]}
                       </p>
@@ -556,7 +575,7 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     if (schoolSlug && status === "authenticated") {
-      fetchControllers();
+    fetchControllers();
     }
   }, [schoolSlug, status]);
 
@@ -628,7 +647,10 @@ export default function UserManagementPage() {
       ) {
         setGeneratedUsername(result.generatedUsername);
         setGeneratedPassword(result.generatedPassword);
-        setShowCredentials(true);
+        setIsModalOpen(false); // Close the main modal
+        setShowCredentials(true); // Show the side panel
+        fetchUsers(); // Refresh the user list
+        resetForm(); // Reset form for next use
       } else {
         setIsModalOpen(false);
         fetchUsers();
@@ -707,64 +729,107 @@ export default function UserManagementPage() {
   if (loading) {
     return (
       <div
-        className="min-h-screen flex items-center justify-center"
+        className="min-h-screen flex items-center justify-center relative overflow-hidden"
         style={{
-          background: `linear-gradient(135deg, ${getBrandedColor('primary', '#f9fafb', schoolBranding)} 0%, ${getBrandedColor('secondary', '#f3f4f6', schoolBranding)} 100%)`
+          background: `linear-gradient(135deg, ${getBrandedColor('primary', '#f9fafb', schoolBranding)} 0%, ${getBrandedColor('secondary', '#f3f4f6', schoolBranding)}20 50%, ${getBrandedColor('primary', '#f9fafb', schoolBranding)} 100%)`
         }}
       >
-        <div className="bg-white rounded-2xl shadow-2xl p-12 text-center border border-gray-100/50">
+        {/* Animated background elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full blur-xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-20 w-40 h-40 bg-gradient-to-br from-green-200/20 to-teal-200/20 rounded-full blur-xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-gradient-to-br from-pink-200/20 to-rose-200/20 rounded-full blur-xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        </div>
+
+        <div className="relative">
+          {/* Enhanced loading card */}
+          <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-12 text-center border border-white/50 max-w-md mx-auto">
+            {/* Animated logo/icon */}
           <div className="relative mb-8">
-            <div
-              className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200 mx-auto"
-              style={{
-                borderTopColor: getBrandedColor('primary', '#2563eb', schoolBranding)
-              }}
-            ></div>
-            <div
-              className="absolute inset-0 rounded-full border-4 border-transparent animate-spin mx-auto"
-              style={{
-                animationDirection: 'reverse',
-                animationDuration: '1.5s',
-                borderTopColor: getBrandedColor('secondary', '#7c3aed', schoolBranding)
-              }}
-            ></div>
-            {/* School Logo in center if available */}
-            {schoolBranding.logoUrl && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <img
-                  src={schoolBranding.logoUrl}
-                  alt="Loading..."
-                  className="w-8 h-8 rounded-lg opacity-20"
-                />
-              </div>
-            )}
+              <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-white to-gray-50 shadow-lg">
+                {/* Rotating border */}
+                <div
+                  className="absolute inset-0 rounded-full animate-spin border-4 border-transparent"
+                  style={{
+                    borderTopColor: getBrandedColor('primary', '#2563eb', schoolBranding),
+                    animationDuration: '1.5s'
+                  }}
+                ></div>
+                {/* Inner rotating border */}
+                <div
+                  className="absolute inset-2 rounded-full animate-spin border-3 border-transparent"
+                  style={{
+                    borderTopColor: getBrandedColor('secondary', '#7c3aed', schoolBranding),
+                    animationDuration: '1s',
+                    animationDirection: 'reverse'
+                  }}
+                ></div>
+                {/* Center icon */}
+                <div className="relative z-10">
+                  {schoolBranding.logoUrl ? (
+                    <img
+                      src={schoolBranding.logoUrl}
+                      alt="Loading..."
+                      className="w-8 h-8 rounded-lg opacity-80"
+                    />
+                  ) : (
+                    <FiUsers
+                      className="w-8 h-8"
+                      style={{ color: getBrandedColor('primary', '#6b7280', schoolBranding) }}
+                    />
+                  )}
           </div>
-          <h2
-            className="text-2xl font-bold mb-3"
-            style={{ color: getBrandedColor('primary', '#111827', schoolBranding) }}
-          >
-            Loading Users
-          </h2>
-          <p
-            className="text-lg"
-            style={{ color: `${getBrandedColor('primary', '#6b7280', schoolBranding)}cc` }}
-          >
-            {schoolBranding.name ? `Loading ${schoolBranding.name} user data` : 'Please wait while we fetch the data'}
-          </p>
-          <div className="mt-6 flex justify-center">
-            <div className="flex space-x-2">
-              <div
-                className="w-2 h-2 rounded-full animate-bounce"
-                style={{ backgroundColor: getBrandedColor('primary', '#2563eb', schoolBranding) }}
-              ></div>
-              <div
-                className="w-2 h-2 rounded-full animate-bounce"
-                style={{ animationDelay: '0.1s', backgroundColor: getBrandedColor('secondary', '#7c3aed', schoolBranding) }}
-              ></div>
-              <div
-                className="w-2 h-2 rounded-full animate-bounce"
-                style={{ animationDelay: '0.2s', backgroundColor: getBrandedColor('primary', '#06b6d4', schoolBranding) }}
-              ></div>
+              </div>
+            </div>
+
+            {/* Loading text with animation */}
+            <div className="space-y-4">
+              <h2
+                className="text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent animate-pulse"
+                style={{
+                  backgroundImage: `linear-gradient(135deg, ${getBrandedColor('primary', '#1f2937', schoolBranding)}, ${getBrandedColor('secondary', '#374151', schoolBranding)})`
+                }}
+              >
+                Loading Users
+              </h2>
+              <p
+                className="text-lg font-medium animate-pulse"
+                style={{
+                  color: `${getBrandedColor('primary', '#6b7280', schoolBranding)}cc`,
+                  animationDelay: '0.2s'
+                }}
+              >
+                {schoolBranding.name ? `Loading ${schoolBranding.name} user data` : 'Fetching user information...'}
+              </p>
+            </div>
+
+            {/* Enhanced progress dots */}
+            <div className="mt-8 flex justify-center">
+              <div className="flex space-x-3">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="w-3 h-3 rounded-full animate-bounce shadow-lg"
+                    style={{
+                      backgroundColor: getBrandedColor('primary', '#2563eb', schoolBranding),
+                      animationDelay: `${i * 0.2}s`,
+                      boxShadow: `0 0 10px ${getBrandedColor('primary', '#2563eb', schoolBranding)}40`
+                    }}
+                  ></div>
+                ))}
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="mt-6 px-4">
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r rounded-full animate-pulse"
+                  style={{
+                    background: `linear-gradient(90deg, ${getBrandedColor('primary', '#2563eb', schoolBranding)}, ${getBrandedColor('secondary', '#7c3aed', schoolBranding)})`
+                  }}
+                ></div>
+              </div>
             </div>
           </div>
         </div>
@@ -774,71 +839,112 @@ export default function UserManagementPage() {
 
   return (
     <div
-      className="min-h-screen"
+      className="min-h-screen relative overflow-hidden"
       style={{
         background: `linear-gradient(135deg, ${getBrandedColor('primary', '#f9fafb', schoolBranding)} 0%, ${getBrandedColor('secondary', '#f3f4f6', schoolBranding)}20 50%, ${getBrandedColor('primary', '#f9fafb', schoolBranding)} 100%)`
       }}
     >
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-        {/* Modern Header with School Branding */}
-        <div className="relative overflow-hidden bg-white rounded-2xl shadow-lg border border-gray-100/50 p-8 lg:p-10 backdrop-blur-sm">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-5">
-            <div className="absolute inset-0" style={{
-              background: `linear-gradient(135deg, ${getBrandedColor('primary', '#667eea', schoolBranding)} 0%, ${getBrandedColor('secondary', '#764ba2', schoolBranding)} 100%)`
-            }}></div>
+      {/* Animated background elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-10 left-10 w-64 h-64 bg-gradient-to-br from-blue-200/10 to-purple-200/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-gradient-to-br from-green-200/10 to-teal-200/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-1/3 right-1/4 w-48 h-48 bg-gradient-to-br from-pink-200/10 to-rose-200/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
+        <div className="absolute bottom-1/3 left-1/4 w-56 h-56 bg-gradient-to-br from-indigo-200/10 to-blue-200/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+              </div>
+
+      {/* Grid pattern overlay */}
+      <div className="absolute inset-0 bg-grid-slate-100/5 [mask-image:radial-gradient(ellipse_at_center,white,transparent)]"></div>
+
+      <div className="relative max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        {/* Enhanced Header with School Branding */}
+        <div className="relative overflow-hidden bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8 lg:p-12 group hover:shadow-3xl transition-all duration-500">
+          {/* Animated background gradient */}
+          <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
+            <div
+              className="absolute inset-0 animate-gradient-x"
+              style={{
+                background: `linear-gradient(135deg, ${getBrandedColor('primary', '#667eea', schoolBranding)} 0%, ${getBrandedColor('secondary', '#764ba2', schoolBranding)} 25%, ${getBrandedColor('primary', '#f093fb', schoolBranding)} 50%, ${getBrandedColor('secondary', '#f5576c', schoolBranding)} 75%, ${getBrandedColor('primary', '#667eea', schoolBranding)} 100%)`,
+                backgroundSize: '400% 400%'
+              }}
+            ></div>
+          </div>
+
+          {/* Floating particles effect */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-4 right-4 w-2 h-2 bg-blue-400/30 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+            <div className="absolute top-8 right-12 w-1 h-1 bg-purple-400/30 rounded-full animate-bounce" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute bottom-6 left-8 w-1.5 h-1.5 bg-green-400/30 rounded-full animate-bounce" style={{ animationDelay: '2s' }}></div>
+            <div className="absolute bottom-8 right-8 w-1 h-1 bg-pink-400/30 rounded-full animate-bounce" style={{ animationDelay: '0.5s' }}></div>
           </div>
 
           <div className="relative flex flex-col lg:flex-row lg:items-center gap-8 mb-8">
-            <div className="flex items-center gap-6">
-              {/* School Logo or Default Icon */}
+            <div className="flex items-center gap-6 group">
+              {/* Enhanced School Logo or Default Icon */}
               {schoolBranding.logoUrl ? (
-                <div className="p-1 bg-white rounded-2xl shadow-lg border-4 border-white">
+                <div className="relative p-1 bg-white rounded-3xl shadow-xl border-4 border-white group-hover:scale-110 transition-all duration-300">
                   <img
                     src={schoolBranding.logoUrl}
                     alt={`${schoolBranding.name} Logo`}
-                    className="w-16 h-16 rounded-xl object-cover"
+                    className="w-16 h-16 rounded-2xl object-cover shadow-lg"
                   />
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-3xl blur-lg -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </div>
               ) : (
                 <div
-                  className="p-4 rounded-2xl shadow-lg border-4 border-white"
+                  className="relative p-4 rounded-3xl shadow-xl border-4 border-white group-hover:scale-110 transition-all duration-300"
                   style={{
                     background: `linear-gradient(135deg, ${getBrandedColor('primary', '#1f2937', schoolBranding)}, ${getBrandedColor('secondary', '#374151', schoolBranding)})`
                   }}
                 >
-                  <FiUsers className="h-8 w-8 text-white" />
+                  <FiUsers className="h-8 w-8 text-white drop-shadow-lg" />
+                  {/* Glow effect */}
+                  <div
+                    className="absolute inset-0 rounded-3xl blur-lg -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{
+                      background: `linear-gradient(135deg, ${getBrandedColor('primary', '#1f2937', schoolBranding)}40, ${getBrandedColor('secondary', '#374151', schoolBranding)}40)`
+                    }}
+                  ></div>
                 </div>
               )}
-              <div>
+              <div className="space-y-2">
                 <h1
-                  className="text-4xl lg:text-5xl font-bold mb-2"
+                  className="text-4xl lg:text-6xl font-bold mb-3 group-hover:scale-105 transition-transform duration-300"
                   style={{
                     background: `linear-gradient(135deg, ${getBrandedColor('primary', '#1f2937', schoolBranding)}, ${getBrandedColor('secondary', '#374151', schoolBranding)})`,
                     WebkitBackgroundClip: 'text',
                     backgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
+                    WebkitTextFillColor: 'transparent',
+                    textShadow: `0 2px 4px ${getBrandedColor('primary', '#000000', schoolBranding)}10`
                   }}
                 >
                   User Management
                 </h1>
-                <p className="text-gray-600 text-lg lg:text-xl font-medium">
+                <p className="text-gray-600 text-lg lg:text-xl font-medium group-hover:text-gray-700 transition-colors duration-300">
                   {schoolBranding.name ? `${schoolBranding.name} - ` : ''}Manage system users, roles, and permissions
                 </p>
+                {/* Animated underline */}
+                <div
+                  className="h-1 w-24 rounded-full group-hover:w-32 transition-all duration-500"
+                  style={{
+                    background: `linear-gradient(135deg, ${getBrandedColor('primary', '#2563eb', schoolBranding)}, ${getBrandedColor('secondary', '#7c3aed', schoolBranding)})`
+                  }}
+                ></div>
               </div>
             </div>
           </div>
 
           {/* Enhanced Controls with Branding */}
           <div
-            className="rounded-2xl p-8 border border-gray-100/50 shadow-lg backdrop-blur-sm"
+            className="rounded-3xl p-8 border border-white/50 shadow-xl backdrop-blur-xl hover:shadow-2xl transition-all duration-300"
             style={{
-              background: `linear-gradient(135deg, ${getBrandedColor('primary', '#f9fafb', schoolBranding)}10 0%, ${getBrandedColor('secondary', '#f3f4f6', schoolBranding)}10 100%)`
+              background: `linear-gradient(135deg, ${getBrandedColor('primary', '#f9fafb', schoolBranding)}20 0%, ${getBrandedColor('secondary', '#f3f4f6', schoolBranding)}20 100%)`,
+              boxShadow: `0 20px 25px -5px ${getBrandedColor('primary', '#000000', schoolBranding)}10, 0 10px 10px -5px ${getBrandedColor('secondary', '#000000', schoolBranding)}5`
             }}
           >
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
               <div className="lg:col-span-4">
-                <label className="block text-sm font-bold mb-3 flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm font-bold mb-3">
                   <div
                     className="p-1.5 rounded-lg"
                     style={{ backgroundColor: `${getBrandedColor('primary', '#6b7280', schoolBranding)}20` }}
@@ -849,7 +955,7 @@ export default function UserManagementPage() {
                     />
                   </div>
                   <span style={{ color: getBrandedColor('primary', '#111827', schoolBranding) }}>
-                    Search Users
+                  Search Users
                   </span>
                 </label>
                 <input
@@ -859,13 +965,12 @@ export default function UserManagementPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 bg-white text-gray-900 shadow-sm transition-all duration-200 text-base hover:shadow-md"
                   style={{
-                    borderColor: `${getBrandedColor('primary', '#d1d5db', schoolBranding)}50`,
-                    focusRingColor: getBrandedColor('primary', '#000000', schoolBranding)
+                    borderColor: `${getBrandedColor('primary', '#d1d5db', schoolBranding)}50`
                   }}
                 />
               </div>
               <div className="lg:col-span-4">
-                <label className="block text-sm font-bold mb-3 flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm font-bold mb-3">
                   <div
                     className="p-1.5 rounded-lg"
                     style={{ backgroundColor: `${getBrandedColor('secondary', '#6b7280', schoolBranding)}20` }}
@@ -876,7 +981,7 @@ export default function UserManagementPage() {
                     />
                   </div>
                   <span style={{ color: getBrandedColor('secondary', '#111827', schoolBranding) }}>
-                    Filter by Role
+                  Filter by Role
                   </span>
                 </label>
                 <select
@@ -884,8 +989,7 @@ export default function UserManagementPage() {
                   onChange={(e) => setRoleFilter(e.target.value)}
                   className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 bg-white text-gray-900 shadow-sm transition-all duration-200 text-base hover:shadow-md"
                   style={{
-                    borderColor: `${getBrandedColor('secondary', '#d1d5db', schoolBranding)}50`,
-                    focusRingColor: getBrandedColor('secondary', '#000000', schoolBranding)
+                    borderColor: `${getBrandedColor('secondary', '#d1d5db', schoolBranding)}50`
                   }}
                 >
                   <option value="">All Roles</option>
@@ -961,34 +1065,38 @@ export default function UserManagementPage() {
             };
 
             return (
-              <div
+              <motion.div
                 key={role}
-                className="bg-white rounded-2xl shadow-lg border overflow-hidden backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: roleOrder.indexOf(role) * 0.1 }}
+                className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl border overflow-hidden hover:shadow-2xl transition-all duration-500 group"
                 style={{
-                  borderColor: `${roleColors[role].border}30`,
-                  boxShadow: `0 10px 25px -5px ${roleColors[role].border}20`
+                  borderColor: `${roleColors[role].border}40`,
+                  boxShadow: `0 20px 25px -5px ${roleColors[role].border}15, 0 10px 10px -5px ${roleColors[role].border}10`
                 }}
+                whileHover={{ y: -8, scale: 1.02 }}
               >
                 <div
-                  className="cursor-pointer transition-all duration-300 group"
+                  className="cursor-pointer transition-all duration-500 group-hover:scale-[1.02]"
                   style={{
-                    background: `linear-gradient(135deg, ${roleColors[role].bg} 0%, rgba(255,255,255,0.9) 100%)`,
-                    borderBottom: `1px solid ${roleColors[role].border}20`
+                    background: `linear-gradient(135deg, ${roleColors[role].bg} 0%, rgba(255,255,255,0.95) 100%)`,
+                    borderBottom: `2px solid ${roleColors[role].border}30`
                   }}
                   onClick={() => toggleRoleExpansion(role)}
                 >
                   <div className="p-8">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-5">
                         <div
                           className="p-3 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
                           style={{
                             background: `linear-gradient(135deg, ${roleColors[role].icon}, ${roleColors[role].text})`
                           }}
                         >
-                          <RoleIcon className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
+                        <RoleIcon className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
                           <h2
                             className="text-2xl font-bold transition-colors group-hover:scale-105"
                             style={{
@@ -996,18 +1104,18 @@ export default function UserManagementPage() {
                               textShadow: `0 1px 2px ${roleColors[role].border}20`
                             }}
                           >
-                            {roleLabels[role]}
-                          </h2>
+                          {roleLabels[role]}
+                        </h2>
                           <p
                             className="font-medium"
                             style={{ color: `${roleColors[role].text}cc` }}
                           >
-                            {roleUsers.length} users
-                          </p>
-                        </div>
+                          {roleUsers.length} users
+                        </p>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <RoleBadge role={role} />
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <RoleBadge role={role} />
                         <div
                           className="p-2 rounded-lg transition-all duration-200 hover:scale-110"
                           style={{
@@ -1015,11 +1123,11 @@ export default function UserManagementPage() {
                             color: roleColors[role].icon
                           }}
                         >
-                          {expandedRoles[role] ? (
+                        {expandedRoles[role] ? (
                             <FiChevronDown className="h-6 w-6" />
-                          ) : (
+                        ) : (
                             <FiChevronRightIcon className="h-6 w-6" />
-                          )}
+                        )}
                         </div>
                       </div>
                     </div>
@@ -1053,9 +1161,9 @@ export default function UserManagementPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto rounded-xl border border-gray-200">
-                        <table className="min-w-full text-sm divide-y divide-gray-200">
-                          <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                      <div className="overflow-x-auto rounded-2xl border border-gray-200/50 shadow-xl bg-white/95 backdrop-blur-sm">
+                        <table className="min-w-full text-sm divide-y divide-gray-100/50">
+                          <thead className="bg-gradient-to-r from-slate-50 via-gray-50 to-slate-50 backdrop-blur-sm">
                             <tr>
                               <th className="px-6 py-5 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">
                                 User
@@ -1080,9 +1188,13 @@ export default function UserManagementPage() {
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-100">
                             {roleUsers.map((user, index) => (
-                              <tr
+                              <motion.tr
                                 key={user.id}
-                                className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent transition-all duration-200 group"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.3, delay: index * 0.05 }}
+                                className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/30 transition-all duration-300 group hover:shadow-lg hover:scale-[1.01] border-b border-gray-50/50"
+                                whileHover={{ y: -2 }}
                               >
                                 <td className="px-6 py-4">
                                   <div className="flex items-center gap-3">
@@ -1180,7 +1292,7 @@ export default function UserManagementPage() {
                                     </button>
                                   </div>
                                 </td>
-                              </tr>
+                              </motion.tr>
                             ))}
                           </tbody>
                         </table>
@@ -1188,14 +1300,19 @@ export default function UserManagementPage() {
                     )}
                   </div>
                 )}
-              </div>
+              </motion.div>
             );
           })}
         </div>
 
-        {/* Modern Pagination */}
+        {/* Enhanced Pagination */}
         {totalPages > 1 && (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-8 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-8 hover:shadow-2xl transition-all duration-300"
+          >
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gray-100 rounded-lg">
@@ -1224,25 +1341,42 @@ export default function UserManagementPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* Modern Side Drawer Modal */}
+        {/* Enhanced Side Drawer Modal */}
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
           <div className="fixed inset-0 z-50 flex">
-            {/* Backdrop */}
+            {/* Enhanced Backdrop */}
             <div
-              className={`absolute inset-0 bg-black/30 backdrop-blur-md transition-opacity duration-500 ${
+              className={`absolute inset-0 bg-black/40 backdrop-blur-xl transition-all duration-700 ${
                 isModalOpen ? "opacity-100" : "opacity-0"
               }`}
               onClick={() => setIsModalOpen(false)}
-            />
+            >
+              {/* Animated particles in backdrop */}
+              <div className="absolute inset-0 overflow-hidden">
+                {[...Array(20)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute w-1 h-1 bg-white/20 rounded-full animate-pulse"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                      animationDelay: `${Math.random() * 3}s`,
+                      animationDuration: `${2 + Math.random() * 2}s`
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
 
-            {/* Drawer */}
-            <div
-              className={`relative ml-auto h-full w-full max-w-5xl bg-white shadow-2xl transform transition-transform duration-500 ease-out overflow-hidden ${
-                isModalOpen ? "translate-x-0" : "translate-x-full"
-              }`}
+            {/* Enhanced Drawer */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: isModalOpen ? 0 : "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="relative ml-auto h-full w-full max-w-6xl bg-white/95 backdrop-blur-xl shadow-2xl overflow-hidden border-l border-white/50"
             >
               <div className="flex h-full">
                 {/* Left Sidebar */}
@@ -1378,18 +1512,18 @@ export default function UserManagementPage() {
                             WebkitTextFillColor: 'transparent'
                           }}
                         >
-                          {editingUser
-                            ? "Update User Information"
-                            : "Create New User Account"}
-                        </h1>
+                      {editingUser
+                        ? "Update User Information"
+                        : "Create New User Account"}
+                    </h1>
                         <p
                           className="text-xl font-medium"
                           style={{ color: `${getBrandedColor('primary', '#4b5563', schoolBranding)}dd` }}
                         >
-                          {editingUser
-                            ? "Modify user details and permissions below"
-                            : "Fill in the details to create a new user account"}
-                        </p>
+                      {editingUser
+                        ? "Modify user details and permissions below"
+                        : "Fill in the details to create a new user account"}
+                    </p>
                       </div>
                     </div>
                   </div>
@@ -1410,8 +1544,8 @@ export default function UserManagementPage() {
                             </div>
                             <div>
                               <h3 className="text-2xl font-bold text-gray-900">
-                                Basic Information
-                              </h3>
+                              Basic Information
+                            </h3>
                               <p className="text-gray-600 font-medium">Enter the user's personal details</p>
                             </div>
                           </div>
@@ -1489,8 +1623,8 @@ export default function UserManagementPage() {
                           </div>
                           <div>
                             <h3 className="text-2xl font-bold text-gray-900">
-                              Controller Assignment
-                            </h3>
+                            Controller Assignment
+                          </h3>
                             <p className="text-gray-600 font-medium">Assign a controller to supervise this teacher</p>
                           </div>
                         </div>
@@ -1572,10 +1706,10 @@ export default function UserManagementPage() {
                           </div>
                           <div>
                             <h3 className="text-2xl font-bold text-gray-900">
-                              Teaching Schedule
-                            </h3>
+                            Teaching Schedule
+                          </h3>
                             <p className="text-gray-600 font-medium">Configure available time slots for this teacher</p>
-                          </div>
+                        </div>
                         </div>
                         <div className="bg-gradient-to-br from-gray-50 to-purple-50/50 rounded-2xl p-8 border border-purple-200 shadow-inner">
                           <ScheduleGenerator
@@ -1621,111 +1755,220 @@ export default function UserManagementPage() {
                 </div>
               </div>
             </div>
-          </div>
+            </motion.div>
           </div>
         </Modal>
 
-        {/* Modern Generated Credentials Modal */}
-        <Modal
-          isOpen={showCredentials}
-          onClose={() => {
+        {/* Enhanced Generated Credentials Side Panel */}
+        {showCredentials && (
+          <>
+            {/* Backdrop for mobile */}
+            <div
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+              onClick={() => {
             setShowCredentials(false);
             setIsModalOpen(false);
             fetchUsers();
             resetForm();
           }}
-        >
-          <div className="bg-white rounded-2xl p-8 max-w-lg mx-auto shadow-2xl border border-gray-100/50">
-            <div className="text-center mb-8">
+            />
+
+            {/* Side Panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: showCredentials ? 0 : "100%" }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 z-50 h-full w-full max-w-sm sm:max-w-md lg:max-w-lg bg-white shadow-2xl border-l border-gray-300 md:top-4 md:right-4 md:bottom-4 md:h-auto md:max-h-[calc(100vh-2rem)] md:rounded-3xl"
+            >
+              {/* Mobile Close Button */}
+              <button
+                onClick={() => {
+                  setShowCredentials(false);
+                  setIsModalOpen(false);
+                  fetchUsers();
+                  resetForm();
+                }}
+                className="absolute top-4 right-4 z-10 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors md:hidden"
+              >
+                <FiX className="h-5 w-5 text-gray-600" />
+              </button>
+
+              {/* Desktop Close Button */}
+              <button
+                onClick={() => {
+                  setShowCredentials(false);
+                  setIsModalOpen(false);
+                  fetchUsers();
+                  resetForm();
+                }}
+                className="hidden md:block absolute top-4 right-4 z-10 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+              >
+                <FiX className="h-5 w-5 text-gray-600" />
+              </button>
+
+              {/* Scrollable Content */}
+              <div className="h-full overflow-y-auto">
+                {/* Mobile header */}
+                <div className="md:hidden p-6 pb-4 border-b border-gray-200 bg-gray-50/50">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="p-3 rounded-2xl"
+                      style={{
+                        background: `linear-gradient(135deg, ${getBrandedColor('primary', '#10b981', schoolBranding)}, ${getBrandedColor('secondary', '#059669', schoolBranding)})`
+                      }}
+                    >
+                      <FiCheck className="h-6 w-6 text-white" />
+              </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">
+                        {newUserRole === 'teacher' ? 'Teacher' : 'User'} Created
+                      </h3>
+                      <p className="text-sm text-gray-600">Credentials ready to share</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-6">
+                {/* Desktop Header */}
+                <div className="hidden md:block mb-6 pb-4 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="p-2 rounded-xl"
+                      style={{
+                        background: `linear-gradient(135deg, ${getBrandedColor('primary', '#10b981', schoolBranding)}, ${getBrandedColor('secondary', '#059669', schoolBranding)})`
+                      }}
+                    >
+                      <FiCheck className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        {newUserRole === 'teacher' ? 'Teacher' : 'User'} Created
+                      </h3>
+                      <p className="text-sm text-gray-600">Credentials ready to share</p>
+                    </div>
+                  </div>
+                </div>
+            <div className="text-center mb-6 sm:mb-8">
               <div
-                className="p-4 rounded-2xl w-fit mx-auto mb-6 shadow-lg"
+                className="p-3 sm:p-4 rounded-2xl w-fit mx-auto mb-4 sm:mb-6 shadow-lg"
                 style={{
                   background: `linear-gradient(135deg, ${getBrandedColor('primary', '#10b981', schoolBranding)}, ${getBrandedColor('secondary', '#059669', schoolBranding)})`
                 }}
               >
-                <FiCheck className="h-8 w-8 text-white" />
+                <FiCheck className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
               <h2
-                className="text-3xl font-bold mb-3"
+                className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 px-2"
                 style={{ color: getBrandedColor('primary', '#111827', schoolBranding) }}
               >
                 {newUserRole === 'teacher' ? 'Teacher' : 'User'} Created Successfully!
               </h2>
               <p
-                className="text-lg"
+                className="text-sm sm:text-base lg:text-lg px-2"
                 style={{ color: `${getBrandedColor('primary', '#6b7280', schoolBranding)}cc` }}
               >
                 {newUserRole === 'teacher' ? 'Here are the auto-generated credentials:' : 'User account has been created successfully.'}
               </p>
             </div>
 
-            <div className="space-y-6">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <FiUser className="h-5 w-5 text-blue-600" />
+            <div className="space-y-4 sm:space-y-6">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border border-blue-100">
+                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+                    <FiUser className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                   </div>
-                  <label className="text-lg font-bold text-blue-900">
+                  <label className="text-base sm:text-lg font-bold text-blue-900">
                     Username
                   </label>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                   <input
                     type="text"
                     value={generatedUsername}
                     readOnly
-                    className="flex-1 px-4 py-3 bg-white border border-blue-200 rounded-xl font-mono font-bold text-lg shadow-sm"
+                    className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-blue-200 rounded-xl font-mono font-bold text-sm sm:text-base lg:text-lg shadow-sm"
                   />
                   <button
                     onClick={() => copyToClipboard(generatedUsername)}
-                    className="px-4 py-3 text-white rounded-xl transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
+                    className="w-full sm:w-auto px-3 sm:px-4 py-2.5 sm:py-3 text-white rounded-xl transition-all duration-200 font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 text-sm sm:text-base"
                     style={{
                       background: `linear-gradient(135deg, ${getBrandedColor('primary', '#2563eb', schoolBranding)}, ${getBrandedColor('secondary', '#1d4ed8', schoolBranding)})`
                     }}
                   >
-                    <FiCopy className="h-5 w-5" />
+                    <FiCopy className="h-4 w-4 sm:h-5 sm:w-5" />
                     Copy
                   </button>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <FiShield className="h-5 w-5 text-purple-600" />
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 sm:p-6 border border-purple-100">
+                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
+                    <FiShield className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
                   </div>
-                  <label className="text-lg font-bold text-purple-900">
+                  <label className="text-base sm:text-lg font-bold text-purple-900">
                     Password
                   </label>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                   <input
                     type="text"
                     value={generatedPassword}
                     readOnly
-                    className="flex-1 px-4 py-3 bg-white border border-purple-200 rounded-xl font-mono font-bold text-lg shadow-sm"
+                    className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-purple-200 rounded-xl font-mono font-bold text-sm sm:text-base lg:text-lg shadow-sm"
                   />
                   <button
                     onClick={() => copyToClipboard(generatedPassword)}
-                    className="px-4 py-3 text-white rounded-xl transition-all duration-200 font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
+                    className="w-full sm:w-auto px-3 sm:px-4 py-2.5 sm:py-3 text-white rounded-xl transition-all duration-200 font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 text-sm sm:text-base"
                     style={{
                       background: `linear-gradient(135deg, ${getBrandedColor('secondary', '#7c3aed', schoolBranding)}, ${getBrandedColor('primary', '#6d28d9', schoolBranding)})`
                     }}
                   >
-                    <FiCopy className="h-5 w-5" />
+                    <FiCopy className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100">
+                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
+                    <FiSettings className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                  </div>
+                  <label className="text-base sm:text-lg font-bold text-green-900">
+                    Login Link
+                  </label>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <input
+                    type="text"
+                    value={`${window.location.origin}/login`}
+                    readOnly
+                    className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-green-200 rounded-xl font-mono text-xs sm:text-sm shadow-sm"
+                  />
+                  <button
+                    onClick={() => copyToClipboard(`${window.location.origin}/login`)}
+                    className="w-full sm:w-auto px-3 sm:px-4 py-2.5 sm:py-3 text-white rounded-xl transition-all duration-200 font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 text-sm sm:text-base"
+                    style={{
+                      background: `linear-gradient(135deg, ${getBrandedColor('primary', '#059669', schoolBranding)}, ${getBrandedColor('secondary', '#047857', schoolBranding)})`
+                    }}
+                  >
+                    <FiCopy className="h-4 w-4 sm:h-5 sm:w-5" />
                     Copy
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200 shadow-sm">
+            <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200 shadow-sm">
               <div className="flex items-start gap-3">
-                <FiAlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                <FiAlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-bold text-yellow-900 mb-1">Important</h4>
-                  <p className="text-sm text-yellow-800">
-                    Please copy and share these credentials with the teacher. They cannot be retrieved later.
+                  <h4 className="font-bold text-yellow-900 mb-1 text-sm sm:text-base">Important</h4>
+                  <p className="text-xs sm:text-sm text-yellow-800 leading-relaxed">
+                    Please copy and share these credentials and login link with the teacher. They cannot be retrieved later.
                   </p>
                 </div>
               </div>
@@ -1738,7 +1981,7 @@ export default function UserManagementPage() {
                 fetchUsers();
                 resetForm();
               }}
-              className="w-full mt-8 px-6 py-4 text-white rounded-xl transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105"
+              className="w-full mt-6 sm:mt-8 px-4 sm:px-6 py-3 sm:py-4 text-white rounded-xl transition-all duration-200 font-bold text-base sm:text-lg shadow-lg hover:shadow-xl hover:scale-105"
               style={{
                 background: `linear-gradient(135deg, ${getBrandedColor('primary', '#10b981', schoolBranding)}, ${getBrandedColor('secondary', '#059669', schoolBranding)})`
               }}
@@ -1746,7 +1989,10 @@ export default function UserManagementPage() {
               Done
             </button>
           </div>
-        </Modal>
+              </div>
+            </motion.div>
+          </>
+        )}
 
         {/* Confirm Delete Modal */}
         <ConfirmModal

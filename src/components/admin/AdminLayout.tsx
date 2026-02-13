@@ -82,7 +82,7 @@ const SidebarContent = () => {
       </nav>
       <div className="px-4 py-4 border-t border-blue-700 bg-blue-900">
         <button
-          onClick={() => signOut({ callbackUrl: `${window.location.origin}/login` })}
+          onClick={() => signOut({ callbackUrl: "/login" })}
           className="w-full flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-gray-300 hover:bg-blue-700 hover:text-white transition-colors"
         >
           <LogOut className="h-5 w-5" />

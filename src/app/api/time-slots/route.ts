@@ -42,56 +42,32 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get school slug from URL params or query params
-    const { searchParams } = new URL(request.url);
-    const schoolSlug = searchParams.get("schoolSlug");
-
-    if (!schoolSlug) {
-      return NextResponse.json(
-        { message: "School slug is required" },
-        { status: 400 }
-      );
-    }
-
-    // Get school ID from slug
-    const school = await prisma.school.findUnique({
-      where: { slug: schoolSlug },
-      select: { id: true },
-    });
-
-    if (!school) {
-      return NextResponse.json(
-        { message: "School not found" },
-        { status: 404 }
-      );
-    }
-
     let ustazs;
-    const baseWhere = {
-      schedule: {
-        not: "",
-      },
-      schoolId: school.id, // Filter by school
-    };
-
     if (session.role === "admin") {
-      // For admin, get all ustaz schedules for this school
-      ustazs = await prisma.wpos_wpdatatable_24.findMany({
-        select: { schedule: true },
-        where: baseWhere,
-      });
-    } else if (session.role === "registral") {
-      // For registral, get all ustaz schedules for this school
-      ustazs = await prisma.wpos_wpdatatable_24.findMany({
-        select: { schedule: true },
-        where: baseWhere,
-      });
-    } else if (session.role === "controller") {
-      // For controller, get ustazs assigned to this controller for this school
+      // For admin, get all ustaz schedules
       ustazs = await prisma.wpos_wpdatatable_24.findMany({
         select: { schedule: true },
         where: {
-          ...baseWhere,
+          schedule: {
+            not: "",
+          },
+        },
+      });
+    } else if (session.role === "registral") {
+      // For registral, get all ustaz schedules (same as admin for now)
+      ustazs = await prisma.wpos_wpdatatable_24.findMany({
+        select: { schedule: true },
+        where: {
+          schedule: {
+            not: "",
+          },
+        },
+      });
+    } else if (session.role === "controller") {
+      // For controller, get ustazs assigned to this controller
+      ustazs = await prisma.wpos_wpdatatable_24.findMany({
+        select: { schedule: true },
+        where: {
           control: {
             in: await prisma.wpos_wpdatatable_28
               .findMany({
@@ -103,6 +79,9 @@ export async function GET(request: NextRequest) {
                   .map((c) => c.code)
                   .filter((code): code is string => code !== null)
               ),
+          },
+          schedule: {
+            not: "",
           },
         },
       });

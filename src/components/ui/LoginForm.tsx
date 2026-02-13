@@ -117,7 +117,7 @@ export function LoginForm({
                 break;
               case 'teacher':
                 if (schoolSlug) {
-                  redirectUrl = `/teachers/${schoolSlug}/dashboard`;
+                  redirectUrl = `/${schoolSlug}/teachers/dashboard`;
                 } else {
                   redirectUrl = '/school-selector';
                 }
