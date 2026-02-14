@@ -109,9 +109,6 @@ model SuperAdmin {
     isActive  Boolean   @default(true)
     lastLogin DateTime?
 
-    // Global bot token for all schools
-    telegramBotToken String? @db.VarChar(255)
-
     // Audit fields
     createdAt DateTime @default(now())
 
@@ -121,10 +118,34 @@ model SuperAdmin {
     auditLogs             SuperAdminAuditLog[]  @relation("SuperAdminAuditLogs")
     schoolStatusChanges   SchoolStatusHistory[] @relation("SchoolStatusHistoryChangedBy")
 
+    // Relations - System settings management
+    createdSystemSettings SystemSettings[] @relation("SystemSettingsCreatedBy")
+    updatedSystemSettings SystemSettings[] @relation("SystemSettingsUpdatedBy")
+
     @@map("super_admins")
 }
 
-// Simplified pricing tiers for realistic school management
+model SystemSettings {
+    id          String   @id @default(cuid())
+    key         String   @unique @db.VarChar(100) // Setting key (e.g., 'telegram_bot_token')
+    value       String   @db.Text // Encrypted value
+    description String?  @db.VarChar(255)
+    category    String   @default("general") @db.VarChar(50) // general, integrations, security, etc.
+    isEncrypted Boolean  @default(false)
+    isPublic    Boolean  @default(false) // Can be exposed to frontend
+
+    // Audit fields
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    createdById String? // Super admin who created/updated
+    updatedById String? // Super admin who last updated
+
+    // Relations
+    createdBy SuperAdmin? @relation("SystemSettingsCreatedBy", fields: [createdById], references: [id])
+    updatedBy SuperAdmin? @relation("SystemSettingsUpdatedBy", fields: [updatedById], references: [id])
+
+    @@map("system_settings")
+}
 model PricingTier {
     id          String  @id @default(cuid())
     name        String  @db.VarChar(50) // "Free", "Basic", "Pro", "Enterprise"
@@ -314,6 +335,14 @@ model SchoolPayment {
     totalAmount     Decimal   @db.Decimal(10, 2)
     status          String    @default("pending") // pending, paid, failed
     stripeInvoiceId String?   @db.VarChar(255)
+    paymentSlipUrl  String?   @db.VarChar(500) // URL to uploaded payment slip
+    notes           String?   @db.Text // Payment submission notes
+    transactionId   String?   @db.VarChar(255) // Bank transaction ID
+    bankAccount     String?   @db.VarChar(50) // Bank account used (cbe, telebirr)
+    submittedAt     DateTime? // When payment slip was submitted
+    approvedBy      String?   // Super admin ID who approved
+    approvedAt      DateTime? // When payment was approved
+    approvalNotes   String?   @db.Text // Admin notes during approval
     paidAt          DateTime?
 
     school School @relation(fields: [schoolId], references: [id])

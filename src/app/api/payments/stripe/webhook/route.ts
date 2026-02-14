@@ -2061,12 +2061,13 @@ If you need to update your payment method or cancel your subscription, please co
       }
     } else if (subscription.student.chatId) {
       // Send Telegram notification for other students
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      const { getGlobalBotToken } = await import("@/lib/bot-token");
+      const botToken = await getGlobalBotToken();
 
       if (!botToken) {
         paymentLogger.warn(
           WEBHOOK_CONTEXT,
-          "Telegram bot token not configured"
+          "Telegram bot token not found in SystemSettings"
         );
       } else {
         try {

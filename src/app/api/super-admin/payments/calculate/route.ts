@@ -27,6 +27,9 @@ interface PaymentCalculation {
   totalMonthlyPayment: number;
   period: string; // YYYY-MM
   currency: string;
+  paymentStatus?: string;
+  lastPaymentDate?: string | null;
+  daysOverdue?: number | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -206,6 +209,50 @@ export async function POST(req: NextRequest) {
 
       const totalMonthlyPayment = baseSalary + totalPremiumCost;
 
+      // Get payment status for this school and period
+      const existingPayment = await prisma.schoolPayment.findFirst({
+        where: {
+          schoolId: school.id,
+          period: calculationPeriod,
+        },
+        select: {
+          id: true,
+          status: true,
+          createdAt: true,
+          submittedAt: true,
+          approvedAt: true,
+          paidAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      // Determine payment status
+      let paymentStatus: string = 'none';
+      let lastPaymentDate: string | null = null;
+      let daysOverdue: number | null = null;
+
+      if (existingPayment) {
+        // Calculate days overdue if applicable
+        if (existingPayment.status === 'pending' || existingPayment.status === 'generated') {
+          const dueDate = new Date(existingPayment.createdAt);
+          dueDate.setDate(dueDate.getDate() + 30); // Assuming 30-day payment terms
+          const today = new Date();
+
+          if (today > dueDate) {
+            daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+            paymentStatus = 'overdue';
+          } else {
+            paymentStatus = existingPayment.status === 'generated' ? 'generated' : 'pending';
+          }
+        } else if (existingPayment.status === 'submitted') {
+          paymentStatus = 'submitted';
+        } else if (existingPayment.status === 'paid') {
+          paymentStatus = 'approved';
+        }
+
+        lastPaymentDate = existingPayment.submittedAt?.toISOString() || existingPayment.createdAt.toISOString();
+      }
+
       calculations.push({
         schoolId: school.id,
         schoolName: school.name,
@@ -215,7 +262,7 @@ export async function POST(req: NextRequest) {
           name: school.pricingTier.name,
           monthlyFee: Number(school.pricingTier.monthlyFee.toNumber()),
           currency: school.pricingTier.currency,
-          features: Array.isArray(school.pricingTier.features) 
+          features: Array.isArray(school.pricingTier.features)
             ? school.pricingTier.features.filter((f): f is string => typeof f === 'string')
             : [],
         } : null,
@@ -225,6 +272,9 @@ export async function POST(req: NextRequest) {
         totalMonthlyPayment,
         period: calculationPeriod,
         currency,
+        paymentStatus,
+        lastPaymentDate,
+        daysOverdue,
       });
     }
 

@@ -9,18 +9,31 @@ export const revalidate = 0;
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const schoolSlug = searchParams.get("schoolSlug");
     const from = searchParams.get("from");
     const to = searchParams.get("to");
-    if (!from || !to) {
+
+    if (!schoolSlug || !from || !to) {
       return NextResponse.json(
-        { error: "from, to are required (YYYY-MM-DD)" },
+        { error: "schoolSlug, from, to are required (YYYY-MM-DD)" },
         { status: 400 }
       );
     }
 
-    // Distinct teachers that have links in range
+    // Get school for multi-tenancy
+    const school = await prisma.school.findUnique({
+      where: { slug: schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
+    }
+
+    // Distinct teachers that have links in range (multi-tenant)
     const teacherIds = await prisma.wpos_zoom_links.findMany({
       where: {
+        schoolId: school.id, // Multi-tenancy filter
         sent_time: {
           gte: new Date(`${from}T00:00:00`),
           lte: new Date(`${to}T23:59:59`),
@@ -46,7 +59,7 @@ export async function GET(req: NextRequest) {
       try {
         const url = `${base}/api/teacher-payments/zoom-based?teacherId=${encodeURIComponent(
           t.ustazid
-        )}&from=${from}&to=${to}`;
+        )}&schoolSlug=${encodeURIComponent(schoolSlug)}&from=${from}&to=${to}`;
         const res = await fetch(url, { cache: "no-store" });
         const json = await res.json();
         if (res.ok && json?.success) {

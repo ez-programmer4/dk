@@ -68,6 +68,13 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
       badge: null,
     },
     {
+      name: "Payment Approvals",
+      href: "/super-admin/payments/approvals",
+      icon: FileText,
+      description: "Review Submissions",
+      badge: null,
+    },
+    {
       name: "Premium Features",
       href: "/super-admin/premium-features",
       icon: Crown,

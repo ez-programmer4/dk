@@ -798,6 +798,12 @@ export default function AdminLayout({
           icon: FiAward,
           description: "Registrar pay",
         },
+        {
+          href: `/admin/${schoolSlug}/school-payments`,
+          label: "School Payments",
+          icon: FiCreditCard,
+          description: "Monthly billing & payments",
+        },
       ],
     },
     {

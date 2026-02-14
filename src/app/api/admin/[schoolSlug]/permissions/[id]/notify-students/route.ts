@@ -220,7 +220,8 @@ export async function POST(
     }
 
     // Send Telegram notifications (if bot token is available)
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const { getGlobalBotToken } = await import("@/lib/bot-token");
+    const botToken = await getGlobalBotToken();
     if (botToken) {
       for (const student of studentsToNotify) {
         if (student.chatId) {

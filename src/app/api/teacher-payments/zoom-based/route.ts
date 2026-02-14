@@ -21,24 +21,36 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const teacherId = searchParams.get("teacherId");
+    const schoolSlug = searchParams.get("schoolSlug");
     const from = searchParams.get("from");
     const to = searchParams.get("to");
 
-    if (!teacherId || !from || !to) {
+    if (!teacherId || !schoolSlug || !from || !to) {
       return NextResponse.json(
-        { error: "teacherId, from, to are required (YYYY-MM-DD)" },
+        { error: "teacherId, schoolSlug, from, to are required (YYYY-MM-DD)" },
         { status: 400 }
       );
+    }
+
+    // Get school for multi-tenancy
+    const school = await prisma.school.findUnique({
+      where: { slug: schoolSlug },
+      select: { id: true, name: true },
+    });
+
+    if (!school) {
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
     const fromDate = new Date(`${from}T00:00:00`);
     const toDate = new Date(`${to}T23:59:59`);
     const includeSundays = await getIncludeSundays();
 
-    // 1) Pull all zoom links for this teacher in range (teacher change is inherent: ustazid)
+    // 1) Pull all zoom links for this teacher in range (multi-tenant: filter by school)
     const links = await prisma.wpos_zoom_links.findMany({
       where: {
         ustazid: teacherId,
+        schoolId: school.id, // Multi-tenancy filter
         sent_time: { gte: fromDate, lte: toDate },
       },
       select: { sent_time: true, studentid: true },

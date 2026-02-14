@@ -1,19 +1,31 @@
 import { prisma } from "@/lib/prisma";
+import { safeDecrypt } from "@/lib/encryption";
 
 /**
- * Get the global Telegram bot token from the SuperAdmin settings
+ * Get the global Telegram bot token from the SystemSettings
  * This token is used by all schools for Telegram bot interactions
+ * Token is encrypted in the database for security
  */
 export async function getGlobalBotToken(): Promise<string | null> {
   try {
-    // Get the first SuperAdmin (assuming there's only one main SuperAdmin)
-    const superAdmin = await prisma.superAdmin.findFirst({
-      select: {
-        telegramBotToken: true,
-      },
+    // Get the telegram bot token from system settings
+    const setting = await prisma.systemSettings.findUnique({
+      where: { key: 'telegramBotToken' }
     });
 
-    return superAdmin?.telegramBotToken || null;
+    if (!setting) {
+      console.log("No telegram bot token configured in system settings");
+      return null;
+    }
+
+    // Decrypt the token if it's encrypted
+    if (setting.isEncrypted) {
+      const decryptedToken = safeDecrypt(setting.value);
+      return decryptedToken || null;
+    }
+
+    // Return as-is if not encrypted (fallback for migration)
+    return setting.value || null;
   } catch (error) {
     console.error("Failed to get global bot token:", error);
     return null;

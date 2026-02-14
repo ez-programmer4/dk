@@ -38,7 +38,6 @@ export async function GET(
         defaultLanguage: true,
         createdAt: true,
         logoUrl: true,
-        telegramBotToken: true,
         features: true,
         _count: {
           select: {

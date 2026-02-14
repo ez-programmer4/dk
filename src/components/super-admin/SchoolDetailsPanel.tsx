@@ -79,7 +79,6 @@ interface SchoolDetails {
   defaultLanguage: string;
   createdAt: string;
   logoUrl?: string;
-  telegramBotToken?: string;
   features?: any;
   _count: {
     students: number;

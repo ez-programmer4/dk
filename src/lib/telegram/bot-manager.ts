@@ -41,19 +41,8 @@ export class CentralizedBotManager {
         };
       }
 
-      // Check teacher table
-      const teacher = await prisma.wpos_wpdatatable_24.findFirst({
-        where: { chat_id: telegramId.toString() },
-        include: { school: true },
-      });
-
-      if (teacher) {
-        return {
-          type: 'teacher',
-          user: teacher,
-          school: teacher.school,
-        };
-      }
+      // Note: Teachers don't use chat_id for zoom link notifications
+      // Zoom links are sent directly to students
 
       // Check student table
       const student = await prisma.wpos_wpdatatable_23.findFirst({
@@ -247,6 +236,7 @@ export class CentralizedBotManager {
     };
   }
 
+
   /**
    * Send Zoom link notification to student
    */
@@ -268,7 +258,8 @@ export class CentralizedBotManager {
         return false;
       }
 
-      const message = `📅 New Zoom Class Available!\n\nClass: ${className}\nZoom Link: ${zoomLink}\n\nJoin on time! 📚`;
+      const schoolName = student.school?.name || 'Your School';
+      const message = `📚 **${schoolName} Online Class Invitation**\n\nClass: ${className}\nZoom Link: ${zoomLink}\n\nJoin on time! 📚`;
 
       // Send message via Telegram API
       const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {

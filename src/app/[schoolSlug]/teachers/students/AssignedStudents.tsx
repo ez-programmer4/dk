@@ -503,21 +503,20 @@ export default function AssignedStudents({ schoolSlug }: AssignedStudentsProps) 
         credentials: "include",
       });
 
-      if (!res.ok) {
-        let errorMessage = "Failed to send Zoom link";
-        try {
-          const errorData = await res.json();
-          errorMessage = errorData.error || errorMessage;
-          console.error("Zoom API error:", errorData);
-        } catch {
-          const errorText = await res.text();
-          errorMessage = errorText || errorMessage;
-          console.error("Zoom API error text:", errorText);
-        }
-        throw new Error(errorMessage);
+      let responseData;
+      try {
+        responseData = await res.json();
+      } catch (parseError) {
+        // If JSON parsing fails, try to get text
+        const responseText = await res.text();
+        throw new Error(`Failed to parse response: ${responseText}`);
       }
 
-      const responseData = await res.json();
+      if (!res.ok) {
+        const errorMessage = responseData.error || "Failed to send Zoom link";
+        console.error("Zoom API error:", responseData);
+        throw new Error(errorMessage);
+      }
 
       // Show success message with notification details
       const successMessage = responseData.notification_sent

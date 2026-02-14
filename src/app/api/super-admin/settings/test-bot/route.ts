@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { safeDecrypt } from "@/lib/encryption";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +14,22 @@ export async function POST(req: NextRequest) {
 
     const { token } = await req.json();
 
-    if (!token || !token.trim()) {
+    // If no token provided, try to get it from settings
+    let botToken = token;
+    if (!botToken || !botToken.trim()) {
+      // Get token from system settings
+      const setting = await prisma.systemSettings.findUnique({
+        where: { key: 'telegramBotToken' }
+      });
+
+      if (setting && setting.isEncrypted) {
+        botToken = safeDecrypt(setting.value);
+      } else if (setting) {
+        botToken = setting.value;
+      }
+    }
+
+    if (!botToken || !botToken.trim()) {
       return NextResponse.json(
         { error: "Bot token is required" },
         { status: 400 }
@@ -20,7 +37,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate token format
-    const trimmedToken = token.trim();
+    const trimmedToken = botToken.trim();
     const isValid = trimmedToken.startsWith('bot') && trimmedToken.length > 40 ||
                    /^\d{8,10}:[a-zA-Z0-9_-]{35}$/.test(trimmedToken);
 
@@ -33,8 +50,8 @@ export async function POST(req: NextRequest) {
 
     // Test the bot token by making a request to Telegram API
     try {
-      const botToken = trimmedToken.startsWith('bot') ? trimmedToken : `bot${trimmedToken}`;
-      const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`, {
+      const apiToken = trimmedToken.startsWith('bot') ? trimmedToken : `bot${trimmedToken}`;
+      const response = await fetch(`https://api.telegram.org/bot${apiToken}/getMe`, {
         timeout: 10000, // 10 second timeout
       });
 

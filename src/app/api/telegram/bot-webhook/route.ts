@@ -34,11 +34,12 @@ export async function POST(req: NextRequest) {
     console.log("📨 Update received:", JSON.stringify(update, null, 2));
 
     // Get bot manager instance
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const { getGlobalBotToken } = await import("@/lib/bot-token");
+    const botToken = await getGlobalBotToken();
     const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/telegram/bot-webhook`;
 
     if (!botToken) {
-      console.error("❌ TELEGRAM_BOT_TOKEN not configured");
+      console.error("❌ Telegram bot token not found in SystemSettings");
       return NextResponse.json({ error: "Bot not configured" }, { status: 500 });
     }
 

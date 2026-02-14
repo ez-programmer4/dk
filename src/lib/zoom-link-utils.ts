@@ -17,32 +17,48 @@ export async function createZoomLinkWithPackage(
     select: { package: true },
   });
 
-  if (!student?.package) {
-    throw new Error("Student package not found");
+  // Default values for when package is not found
+  let packageId: string | null = null;
+  let packageRate: number = 0;
+
+  // Try to get package information if available
+  if (student?.package) {
+    const packageSalary = await prisma.packageSalary.findFirst({
+      where: { packageName: student.package },
+    });
+
+    if (packageSalary) {
+      packageId = student.package;
+      packageRate = packageSalary.salaryPerStudent;
+    } else {
+      console.warn(`Package salary not found for ${student.package}, using default values`);
+    }
+  } else {
+    console.warn(`Student ${studentId} has no package assigned, using default values`);
   }
 
-  // Get package rate
-  const packageSalary = await prisma.packageSalary.findFirst({
-    where: { packageName: student.package },
+  // Get student info (notifications are sent to students only)
+  const studentInfo = await prisma.wpos_wpdatatable_23.findUnique({
+    where: { wdt_ID: studentId },
+    select: { name: true },
   });
 
-  if (!packageSalary) {
-    throw new Error(`Package salary not found for ${student.package}`);
-  }
-
-  // Create zoom link with package info
+  // Create zoom link with package info (or default values)
   // Use Ethiopian local time (UTC+3)
   const result = await prisma.wpos_zoom_links.create({
     data: {
       ustazid: teacherId,
-      studentid: studentId,
+      studentid: parseInt(studentId),
       link: zoomLink,
       tracking_token: `${teacherId}_${studentId}_${Date.now()}`,
       sent_time: getEthiopianTime(),
-      packageId: student.package,
-      packageRate: packageSalary.salaryPerStudent,
+      packageId: packageId,
+      packageRate: packageRate,
     },
   });
+
+  // Note: Zoom link notifications are sent to students via the API route
+  // Teachers receive zoom links through the web interface, not Telegram notifications
 
   // Clear salary cache for this teacher to ensure dynamic updates
   SalaryCalculator.clearGlobalTeacherCache(teacherId);
