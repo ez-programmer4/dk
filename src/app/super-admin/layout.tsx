@@ -60,7 +60,6 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
       description: "Manage Schools",
       badge: null,
     },
-  
     {
       name: "Payments",
       href: "/super-admin/payments",
@@ -74,6 +73,13 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
       icon: Crown,
       description: "Feature Management",
       badge: "Pro",
+    },
+    {
+      name: "Settings",
+      href: "/super-admin/settings",
+      icon: Settings,
+      description: "System Configuration",
+      badge: null,
     },
   ];
 

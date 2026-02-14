@@ -13,7 +13,6 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
-  Check,
   Eye,
   EyeOff,
   Sparkles,
@@ -611,39 +610,17 @@ export default function SchoolCreationPanel({
                 </CardHeader>
                 <CardContent className="space-y-6">
 
-                {/* Enhanced Color Palette Selector */}
+                {/* Color Palette Selector */}
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <Label className="text-sm font-medium text-gray-700">
-                      Brand Colors
-                    </Label>
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className="w-4 h-4 rounded-full border-2 border-white shadow-sm ring-1 ring-gray-200"
-                          style={{ backgroundColor: formData.primaryColor }}
-                        />
-                        <span className="text-xs text-gray-500">Primary</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className="w-4 h-4 rounded-full border-2 border-white shadow-sm ring-1 ring-gray-200"
-                          style={{ backgroundColor: formData.secondaryColor }}
-                        />
-                        <span className="text-xs text-gray-500">Secondary</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                    {colorPalettes.map((palette, index) => (
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block">
+                    Professional Color Palettes
+                  </Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                    {colorPalettes.map((palette) => (
                       <motion.button
                         key={palette.name}
                         type="button"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ scale: 1.03, y: -2 }}
+                        whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
                           setFormData(prev => ({
@@ -652,266 +629,105 @@ export default function SchoolCreationPanel({
                             secondaryColor: palette.secondary,
                           }));
                         }}
-                        className={`group relative p-4 rounded-2xl border-2 transition-all duration-300 overflow-hidden ${
+                        className={`p-4 rounded-xl border-2 transition-all duration-200 ${
                           formData.primaryColor === palette.primary
-                            ? "border-gray-800 shadow-xl ring-2 ring-gray-300 bg-gray-50"
-                            : "border-gray-200 hover:border-gray-300 hover:shadow-lg bg-white"
+                            ? "border-purple-500 shadow-lg ring-2 ring-purple-200"
+                            : "border-gray-200 hover:border-gray-300 hover:shadow-md"
                         }`}
                       >
-                        {/* Selected indicator */}
-                        {formData.primaryColor === palette.primary && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="absolute top-2 right-2 w-5 h-5 bg-gray-800 rounded-full flex items-center justify-center"
-                          >
-                            <Check className="w-3 h-3 text-white" />
-                          </motion.div>
-                        )}
-
-                        {/* Color gradient background */}
-                        <div
-                          className="absolute inset-0 opacity-10 rounded-2xl"
-                          style={{
-                            background: `linear-gradient(135deg, ${palette.primary}, ${palette.secondary})`
-                          }}
-                        />
-
-                        {/* Color circles */}
-                        <div className="relative flex items-center justify-center space-x-1 mb-3">
-                          <motion.div
-                            className="w-6 h-6 rounded-full border-2 border-white shadow-md"
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div
+                            className="w-5 h-5 rounded-full border-2 border-white shadow-sm"
                             style={{ backgroundColor: palette.primary }}
-                            whileHover={{ scale: 1.1 }}
                           />
-                          <motion.div
-                            className="w-6 h-6 rounded-full border-2 border-white shadow-md"
+                          <div
+                            className="w-5 h-5 rounded-full border-2 border-white shadow-sm"
                             style={{ backgroundColor: palette.secondary }}
-                            whileHover={{ scale: 1.1 }}
                           />
-                          <motion.div
-                            className="w-4 h-4 rounded-full border border-white shadow-sm"
+                          <div
+                            className="w-3 h-3 rounded-full border border-white shadow-sm"
                             style={{ backgroundColor: palette.accent }}
-                            whileHover={{ scale: 1.1 }}
                           />
                         </div>
-
-                        <span className={`text-sm font-semibold relative z-10 ${
-                          formData.primaryColor === palette.primary ? "text-gray-900" : "text-gray-700"
-                        }`}>
-                          {palette.name}
-                        </span>
-
-                        {/* Hover effect */}
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
-                        />
+                        <span className="text-sm font-medium text-gray-900">{palette.name}</span>
                       </motion.button>
                     ))}
                   </div>
                 </div>
 
-                {/* Enhanced Custom Color Picker */}
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium text-gray-700">
-                      Custom Color Picker
-                    </Label>
-                    <div className="flex items-center space-x-3">
+                {/* Custom Color Picker */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block">
+                    Custom Colors
+                  </Label>
+                  <div className="grid grid-cols-6 gap-2 mb-4">
+                    {predefinedColors.map((color) => (
                       <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        key={color}
+                        type="button"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
                         onClick={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            primaryColor: "#3B82F6",
-                            secondaryColor: "#1D4ED8",
-                          }));
+                          if (formData.primaryColor === color) {
+                            setFormData(prev => ({
+                              ...prev,
+                              secondaryColor: color,
+                            }));
+                          } else {
+                            setFormData(prev => ({
+                              ...prev,
+                              primaryColor: color,
+                            }));
+                          }
                         }}
-                        className="text-xs text-gray-500 hover:text-gray-700 underline"
-                      >
-                        Reset to default
-                      </motion.button>
-                    </div>
+                        className={`w-10 h-10 rounded-lg border-2 transition-all ${
+                          formData.primaryColor === color || formData.secondaryColor === color
+                            ? "border-gray-900 shadow-lg"
+                            : "border-gray-200 hover:border-gray-400"
+                        }`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
                   </div>
 
-                  {/* Quick Color Palette */}
-                  <div>
-                    <Label className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-3 block">
-                      Quick Colors
-                    </Label>
-                    <div className="grid grid-cols-8 gap-2 mb-4">
-                      {predefinedColors.slice(0, 16).map((color, index) => (
-                        <motion.button
-                          key={color}
-                          type="button"
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: index * 0.02 }}
-                          whileHover={{ scale: 1.2, z: 10 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => {
-                            // Toggle between primary and secondary
-                            if (formData.primaryColor === color) {
-                              setFormData(prev => ({
-                                ...prev,
-                                secondaryColor: color,
-                              }));
-                            } else {
-                              setFormData(prev => ({
-                                ...prev,
-                                primaryColor: color,
-                              }));
-                            }
-                          }}
-                          className={`relative w-8 h-8 rounded-xl border-2 transition-all duration-200 shadow-sm ${
-                            formData.primaryColor === color
-                              ? "border-gray-900 shadow-lg ring-2 ring-gray-300"
-                              : formData.secondaryColor === color
-                              ? "border-gray-600 shadow-md ring-1 ring-gray-200"
-                              : "border-white hover:border-gray-300 hover:shadow-md"
-                          }`}
-                          style={{ backgroundColor: color }}
-                        >
-                          {/* Selection indicators */}
-                          {formData.primaryColor === color && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="absolute -top-1 -right-1 w-3 h-3 bg-gray-900 rounded-full flex items-center justify-center"
-                            >
-                              <span className="text-xs text-white font-bold">P</span>
-                            </motion.div>
-                          )}
-                          {formData.secondaryColor === color && formData.primaryColor !== color && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="absolute -top-1 -right-1 w-3 h-3 bg-gray-600 rounded-full flex items-center justify-center"
-                            >
-                              <span className="text-xs text-white font-bold">S</span>
-                            </motion.div>
-                          )}
-                        </motion.button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Advanced Color Controls */}
-                  <div className="border-t border-gray-200 pt-6">
-                    <Label className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-4 block">
-                      Advanced Controls
-                    </Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Primary Color */}
-                      <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="space-y-3"
-                      >
-                        <Label className="text-sm font-medium text-gray-700 flex items-center">
-                          <div
-                            className="w-4 h-4 rounded-full border-2 border-white shadow-sm mr-2"
-                            style={{ backgroundColor: formData.primaryColor }}
-                          />
-                          Primary Color
-                        </Label>
-                        <div className="flex items-center space-x-3">
-                          <motion.div
-                            whileHover={{ scale: 1.05 }}
-                            className="relative"
-                          >
-                            <Input
-                              type="color"
-                              value={formData.primaryColor}
-                              onChange={(e) => handleInputChange("primaryColor", e.target.value)}
-                              className="w-12 h-10 rounded-lg border-2 border-gray-200 cursor-pointer"
-                            />
-                          </motion.div>
-                          <Input
-                            type="text"
-                            value={formData.primaryColor}
-                            onChange={(e) => handleInputChange("primaryColor", e.target.value)}
-                            placeholder="#000000"
-                            className="flex-1 h-10 font-mono text-sm"
-                          />
-                        </div>
-                      </motion.div>
-
-                      {/* Secondary Color */}
-                      <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.4 }}
-                        className="space-y-3"
-                      >
-                        <Label className="text-sm font-medium text-gray-700 flex items-center">
-                          <div
-                            className="w-4 h-4 rounded-full border-2 border-white shadow-sm mr-2"
-                            style={{ backgroundColor: formData.secondaryColor }}
-                          />
-                          Secondary Color
-                        </Label>
-                        <div className="flex items-center space-x-3">
-                          <motion.div
-                            whileHover={{ scale: 1.05 }}
-                            className="relative"
-                          >
-                            <Input
-                              type="color"
-                              value={formData.secondaryColor}
-                              onChange={(e) => handleInputChange("secondaryColor", e.target.value)}
-                              className="w-12 h-10 rounded-lg border-2 border-gray-200 cursor-pointer"
-                            />
-                          </motion.div>
-                          <Input
-                            type="text"
-                            value={formData.secondaryColor}
-                            onChange={(e) => handleInputChange("secondaryColor", e.target.value)}
-                            placeholder="#000000"
-                            className="flex-1 h-10 font-mono text-sm"
-                          />
-                        </div>
-                      </motion.div>
-                    </div>
-
-                    {/* Color Harmony Preview */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 }}
-                      className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200"
-                    >
-                      <Label className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-3 block">
-                        Color Harmony Preview
+                  {/* Manual Color Input */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="primaryColor" className="text-sm font-medium text-gray-700">
+                        Primary Color
                       </Label>
-                      <div className="flex items-center space-x-4">
-                        <motion.div
-                          className="flex-1 h-16 rounded-lg shadow-sm border-2 border-white"
-                          style={{
-                            background: `linear-gradient(135deg, ${formData.primaryColor}, ${formData.secondaryColor})`
-                          }}
-                          whileHover={{ scale: 1.02 }}
+                      <div className="flex items-center space-x-2 mt-1">
+                        <div
+                          className="w-8 h-8 rounded-lg border-2 border-gray-200 shadow-sm"
+                          style={{ backgroundColor: formData.primaryColor }}
                         />
-                        <div className="text-xs text-gray-500 space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <div
-                              className="w-3 h-3 rounded-full border border-white shadow-sm"
-                              style={{ backgroundColor: formData.primaryColor }}
-                            />
-                            <span>{formData.primaryColor}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <div
-                              className="w-3 h-3 rounded-full border border-white shadow-sm"
-                              style={{ backgroundColor: formData.secondaryColor }}
-                            />
-                            <span>{formData.secondaryColor}</span>
-                          </div>
-                        </div>
+                        <Input
+                          id="primaryColor"
+                          type="color"
+                          value={formData.primaryColor}
+                          onChange={(e) => handleInputChange("primaryColor", e.target.value)}
+                          className="flex-1 h-10"
+                        />
                       </div>
-                    </motion.div>
+                    </div>
+                    <div>
+                      <Label htmlFor="secondaryColor" className="text-sm font-medium text-gray-700">
+                        Secondary Color
+                      </Label>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <div
+                          className="w-8 h-8 rounded-lg border-2 border-gray-200 shadow-sm"
+                          style={{ backgroundColor: formData.secondaryColor }}
+                        />
+                        <Input
+                          id="secondaryColor"
+                          type="color"
+                          value={formData.secondaryColor}
+                          onChange={(e) => handleInputChange("secondaryColor", e.target.value)}
+                          className="flex-1 h-10"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1303,227 +1119,95 @@ export default function SchoolCreationPanel({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Enhanced Backdrop */}
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-gradient-to-br from-black/60 via-gray-900/50 to-black/60 backdrop-blur-md z-40"
-            style={{
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)'
-            }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
             onClick={onClose}
           />
 
-          {/* Enhanced Side Panel */}
+          {/* Side Panel */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30,
-              duration: 0.4
-            }}
-            className="fixed top-0 right-0 h-full w-full max-w-4xl bg-white shadow-2xl z-50 overflow-y-auto border-l border-gray-200"
-            style={{
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.98) 100%)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)'
-            }}
+            transition={{ type: "tween", duration: 0.3 }}
+            className="fixed top-0 right-0 h-full w-full max-w-4xl bg-white shadow-2xl z-50 overflow-y-auto"
           >
-            {/* Enhanced Header with Glassmorphism */}
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="sticky top-0 bg-gradient-to-r from-white/90 to-gray-50/90 backdrop-blur-xl border-b border-gray-200/50 px-6 py-6 flex items-center justify-between shadow-sm"
-            >
-              <motion.div
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="flex items-center space-x-4"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.05, rotate: 5 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-12 h-12 bg-gradient-to-br from-gray-800 to-black rounded-2xl flex items-center justify-center shadow-lg"
-                >
-                  <Building2 className="w-6 h-6 text-white" />
-                </motion.div>
-                <div>
-                  <motion.h2
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-2xl font-bold text-gray-900 tracking-tight"
-                  >
-                    {isViewMode ? "School Registration Details" : "Create New School"}
-                  </motion.h2>
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-sm text-gray-600 mt-1"
-                  >
-                    {isViewMode ? "View school registration information" : "Set up a new school with admin account"}
-                  </motion.p>
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-white" />
                 </div>
-              </motion.div>
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
-              >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="w-10 h-10 rounded-xl hover:bg-gray-100 transition-all duration-200"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              </motion.div>
-            </motion.div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {isViewMode ? "School Registration Details" : "Create New School"}
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    {isViewMode ? "View school registration information" : "Set up a new school with admin account"}
+                  </p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
 
-            {/* Enhanced Progress Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="px-6 py-8 bg-gradient-to-r from-gray-50/80 to-gray-100/80 backdrop-blur-sm border-b border-gray-200/50"
-            >
-              <div className="max-w-lg mx-auto">
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="flex items-center justify-between mb-6"
-                >
-                  {[1, 2, 3].map((step, index) => (
-                    <motion.div
-                      key={step}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 + index * 0.1 }}
-                      className="flex items-center flex-1"
-                    >
+            {/* Progress */}
+            <div className="px-6 py-6 bg-gradient-to-r from-blue-50 to-purple-50 border-b">
+              <div className="max-w-md mx-auto">
+                <div className="flex items-center justify-between mb-4">
+                  {[1, 2, 3].map((step) => (
+                    <div key={step} className="flex items-center flex-1">
                       <motion.div
                         initial={false}
                         animate={{
-                          background: step <= currentStep
-                            ? "linear-gradient(135deg, #374151 0%, #1f2937 100%)"
-                            : "#f3f4f6",
-                          color: step <= currentStep ? "#FFFFFF" : "#6b7280",
-                          boxShadow: step <= currentStep
-                            ? "0 4px 14px 0 rgba(55, 65, 81, 0.3)"
-                            : "0 2px 8px 0 rgba(0, 0, 0, 0.1)",
+                          backgroundColor: step <= currentStep ? "#3B82F6" : "#E5E7EB",
+                          color: step <= currentStep ? "#FFFFFF" : "#6B7280",
                         }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-bold relative overflow-hidden"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shadow-sm"
                       >
-                        <motion.div
-                          initial={false}
-                          animate={{
-                            scale: step <= currentStep ? 0 : 1,
-                            opacity: step <= currentStep ? 0 : 1,
-                          }}
-                          className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200"
-                        />
-                        <motion.div
-                          initial={false}
-                          animate={{
-                            scale: step <= currentStep ? 1 : 0,
-                            opacity: step <= currentStep ? 1 : 0,
-                          }}
-                          className="relative z-10"
-                        >
-                          {step <= currentStep ? (
-                            <CheckCircle className="w-6 h-6" />
-                          ) : (
-                            step
-                          )}
-                        </motion.div>
+                        {step <= currentStep ? (
+                          <CheckCircle className="w-5 h-5" />
+                        ) : (
+                          step
+                        )}
                       </motion.div>
                       {step < 3 && (
                         <motion.div
                           initial={false}
                           animate={{
-                            background: step < currentStep
-                              ? "linear-gradient(90deg, #374151 0%, #1f2937 100%)"
-                              : "#e5e7eb",
-                            boxShadow: step < currentStep
-                              ? "0 2px 8px 0 rgba(55, 65, 81, 0.2)"
-                              : "none",
+                            backgroundColor: step < currentStep ? "#3B82F6" : "#E5E7EB",
                           }}
-                          className="flex-1 h-1 mx-6 rounded-full relative overflow-hidden"
-                        >
-                          <motion.div
-                            initial={false}
-                            animate={{
-                              x: step < currentStep ? "0%" : "-100%",
-                            }}
-                            transition={{ duration: 0.6, ease: "easeInOut" }}
-                            className="absolute inset-0 bg-gradient-to-r from-gray-700 to-gray-900 rounded-full"
-                          />
-                        </motion.div>
+                          className="flex-1 h-1 mx-4 rounded-full"
+                        />
                       )}
-                    </motion.div>
+                    </div>
                   ))}
-                </motion.div>
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="flex justify-between text-sm font-medium"
-                >
-                  <motion.div
-                    animate={{
-                      color: currentStep === 1 ? "#374151" : "#9ca3af",
-                      fontWeight: currentStep === 1 ? "600" : "500",
-                    }}
-                    className="text-center flex-1"
-                  >
-                    <div className="text-sm">School Details</div>
+                <div className="flex justify-between text-xs font-medium text-gray-600">
+                  <div className={`text-center ${currentStep === 1 ? "text-blue-600" : ""}`}>
+                    <div>School Details</div>
                     <div className="text-xs text-gray-500 mt-1">Basic information</div>
-                  </motion.div>
-                  <motion.div
-                    animate={{
-                      color: currentStep === 2 ? "#374151" : "#9ca3af",
-                      fontWeight: currentStep === 2 ? "600" : "500",
-                    }}
-                    className="text-center flex-1"
-                  >
-                    <div className="text-sm">Admin Account</div>
+                  </div>
+                  <div className={`text-center ${currentStep === 2 ? "text-blue-600" : ""}`}>
+                    <div>Admin Account</div>
                     <div className="text-xs text-gray-500 mt-1">Access credentials</div>
-                  </motion.div>
-                  <motion.div
-                    animate={{
-                      color: currentStep === 3 ? "#374151" : "#9ca3af",
-                      fontWeight: currentStep === 3 ? "600" : "500",
-                    }}
-                    className="text-center flex-1"
-                  >
-                    <div className="text-sm">Configuration</div>
+                  </div>
+                  <div className={`text-center ${currentStep === 3 ? "text-blue-600" : ""}`}>
+                    <div>Configuration</div>
                     <div className="text-xs text-gray-500 mt-1">Branding & settings</div>
-                  </motion.div>
-                </motion.div>
+                  </div>
+                </div>
               </div>
-            </motion.div>
+            </div>
 
-            {/* Enhanced Content Area */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="flex-1 px-8 py-8 space-y-6"
-            >
+            {/* Content */}
+            <div className="px-6 py-6">
               {isViewMode ? (
                 renderViewMode()
               ) : success ? (
@@ -1562,109 +1246,71 @@ export default function SchoolCreationPanel({
                   </AnimatePresence>
                 </>
               )}
-            </motion.div>
+            </div>
 
-            {/* Enhanced Footer */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="sticky bottom-0"
-            >
-              {isViewMode ? (
-                <motion.div
-                  className="bg-gradient-to-r from-white/95 to-gray-50/95 backdrop-blur-xl border-t border-gray-200/50 px-8 py-6"
-                >
-                  <div className="flex justify-end">
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Button
-                        onClick={onClose}
-                        className="bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                      >
-                        Close
-                      </Button>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              ) : !success && (
-                <motion.div
-                  className="bg-gradient-to-r from-white/95 to-gray-50/95 backdrop-blur-xl border-t border-gray-200/50 px-8 py-6 shadow-lg mb-4"
-                >
-                  <div className="flex justify-between items-center">
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Button
-                        variant="outline"
-                        onClick={currentStep === 1 ? onClose : handleBack}
-                        disabled={loading}
-                        className="flex items-center space-x-2 px-6 py-3 rounded-xl border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-300"
-                      >
-                        {currentStep === 1 ? (
-                          <X className="w-4 h-4" />
-                        ) : (
-                          <ChevronLeft className="w-4 h-4" />
-                        )}
-                        <span className="font-medium">{currentStep === 1 ? "Cancel" : "Back"}</span>
-                      </Button>
-                    </motion.div>
+            {/* Footer */}
+            {isViewMode ? (
+              <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-6">
+                <div className="flex justify-end">
+                  <Button onClick={onClose} className="bg-gray-800 hover:bg-gray-900 text-white px-8 py-2">
+                    Close
+                  </Button>
+                </div>
+              </div>
+            ) : !success && (
+              <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-6">
+                <div className="flex justify-between items-center">
+                  <Button
+                    variant="outline"
+                    onClick={currentStep === 1 ? onClose : handleBack}
+                    disabled={loading}
+                    className="flex items-center space-x-2 px-6 py-3"
+                  >
+                    {currentStep === 1 ? (
+                      <X className="w-4 h-4" />
+                    ) : (
+                      <ChevronLeft className="w-4 h-4" />
+                    )}
+                    <span>{currentStep === 1 ? "Cancel" : "Back"}</span>
+                  </Button>
 
-                    <div className="flex items-center space-x-6">
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full"
-                      >
-                        Step {currentStep} of {totalSteps}
-                      </motion.div>
-
-                      {currentStep < totalSteps ? (
-                        <motion.div
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <Button
-                            onClick={handleNext}
-                            disabled={loading}
-                            className="bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white flex items-center space-x-2 px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                          >
-                            <span className="font-medium">Next</span>
-                            <ChevronRight className="w-4 h-4" />
-                          </Button>
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <Button
-                            onClick={handleSubmit}
-                            disabled={loading}
-                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white flex items-center space-x-3 px-10 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-lg"
-                          >
-                            {loading ? (
-                              <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                <span className="font-medium">Creating...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Save className="w-5 h-5" />
-                                <span className="font-medium">Create School</span>
-                              </>
-                            )}
-                          </Button>
-                        </motion.div>
-                      )}
+                  <div className="flex items-center space-x-4">
+                    <div className="text-sm text-gray-500">
+                      Step {currentStep} of {totalSteps}
                     </div>
+
+                    {currentStep < totalSteps ? (
+                      <Button
+                        onClick={handleNext}
+                        disabled={loading}
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 flex items-center space-x-2 px-6 py-3"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 flex items-center space-x-2 px-8 py-3 text-lg"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Creating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-5 h-5" />
+                            <span>Create School</span>
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
-                </motion.div>
-              )}
-            </motion.div>
+                </div>
+              </div>
+            )}
           </motion.div>
         </>
       )}

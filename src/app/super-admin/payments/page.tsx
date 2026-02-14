@@ -316,8 +316,9 @@ export default function PaymentsPage() {
 
     const headers = [
       "School Name",
-      "Students",
-      "Base Salary",
+      "Active Students",
+      "Base Rate per Student",
+      "Total Base Payment",
       "Premium Features Cost",
       "Total Monthly Payment",
       "Currency",
@@ -330,7 +331,8 @@ export default function PaymentsPage() {
         [
           `"${payment.schoolName}"`,
           payment.currentStudents,
-          payment.baseSalary,
+          payment.baseSalary, // Per-student rate
+          payment.baseSalary * payment.currentStudents, // Total base payment
           payment.totalPremiumCost,
           payment.totalMonthlyPayment,
           payment.currency,
@@ -362,43 +364,94 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">School Payments</h1>
-          <p className="text-gray-600 mt-1">
-            Manage and calculate monthly payments for all schools
-          </p>
-        </div>
-        <div className="flex items-center space-x-3">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      {/* Enhanced Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white/80 backdrop-blur-xl shadow-sm border-b border-gray-200/50"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-blue-500 rounded-2xl blur opacity-20" />
+                  <div className="relative bg-gradient-to-r from-green-500 to-blue-500 p-4 rounded-2xl">
+                    <DollarSign className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    School Payments
+                  </h1>
+                  <p className="text-gray-600 mt-2 text-lg">
+                    Active student-based billing & premium features management
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-center space-x-3"
+            >
+              <div className="flex items-center space-x-3">
           <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center space-x-2">
+              <Button variant="outline" className="backdrop-blur-sm bg-white/50 hover:bg-white/70 border-gray-200 hover:border-gray-300 flex items-center space-x-2 shadow-lg">
                 <Settings className="w-4 h-4" />
-                <span>Configure Base Salary</span>
+                <span>Configure Pricing</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Payment Configuration</DialogTitle>
+                <DialogTitle className="flex items-center">
+                  <DollarSign className="w-5 h-5 mr-2 text-emerald-600" />
+                  Active Student Billing Configuration
+                </DialogTitle>
+                <p className="text-sm text-gray-600 mt-2">
+                  Set the base payment rate per active student. Schools pay only for students currently enrolled and active.
+                </p>
               </DialogHeader>
-              <div className="space-y-4">
+              <div className="space-y-6">
+                <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Users className="w-4 h-4 text-emerald-600" />
+                    <span className="font-medium text-emerald-900">Active Student Model</span>
+                  </div>
+                  <p className="text-sm text-emerald-700">
+                    Schools are billed only for their currently active students. Inactive or suspended students are not charged.
+                  </p>
+                </div>
+
                 <div>
-                  <Label htmlFor="baseSalary">Base Salary per Student (ETB)</Label>
+                  <Label htmlFor="baseSalary" className="text-base font-medium">
+                    Base Rate per Active Student (ETB)
+                  </Label>
                   <Input
                     id="baseSalary"
                     type="number"
                     placeholder="50"
                     value={baseSalaryInput}
                     onChange={(e) => setBaseSalaryInput(e.target.value)}
-                    className="mt-1"
+                    className="mt-2 text-lg"
                     min="0"
                     step="0.01"
                   />
-                  <p className="text-sm text-gray-500 mt-1">
-                    This is the base payment per active student per month
-                  </p>
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-700">
+                      <strong>Example Calculation:</strong><br />
+                      School with 100 active students × {formatCurrency(parseFloat(baseSalaryInput) || 50)} per student<br />
+                      <span className="font-bold text-blue-800">= {formatCurrency((parseFloat(baseSalaryInput) || 50) * 100)} monthly base payment</span>
+                    </p>
+                  </div>
                 </div>
                 <div className="flex justify-end space-x-2">
                   <Button
@@ -437,36 +490,68 @@ export default function PaymentsPage() {
             <Download className="w-4 h-4" />
             <span>Export CSV</span>
           </Button>
-        </div>
-      </div>
-
-      {/* Configuration Overview */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-blue-900">Payment Configuration</h3>
-                <p className="text-blue-700">
-                  Base salary: <span className="font-bold">{formatCurrency(config?.baseSalary || 50)}</span> per student per month
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-blue-600">Last updated</div>
-              <div className="text-sm font-medium text-blue-900">
-                {config?.lastUpdated
-                  ? new Date(config.lastUpdated).toLocaleDateString()
-                  : "Never"
-                }
-              </div>
-            </div>
+            </motion.div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </motion.div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Enhanced Configuration Overview */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+        <Card className="bg-gradient-to-r from-emerald-50 via-blue-50 to-purple-50 border-emerald-200 backdrop-blur-sm">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl blur opacity-20" />
+                  <div className="relative bg-gradient-to-r from-emerald-500 to-blue-500 p-4 rounded-2xl">
+                    <DollarSign className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-bold text-gray-900">Active Student Billing</h3>
+                  <div className="space-y-1">
+                    <p className="text-gray-700 flex items-center">
+                      <span className="font-semibold text-lg">{formatCurrency(config?.baseSalary || 50)}</span>
+                      <span className="mx-2">×</span>
+                      <Users className="w-4 h-4 mr-1" />
+                      <span className="font-medium">active students</span>
+                      <span className="mx-2">=</span>
+                      <span className="font-bold text-emerald-600">monthly payment</span>
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Schools pay only for their currently active students, plus premium features
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right space-y-1">
+                <div className="text-sm font-medium text-gray-600">Configuration Updated</div>
+                <div className="text-lg font-bold text-gray-900">
+                  {config?.lastUpdated
+                    ? new Date(config.lastUpdated).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })
+                    : "Never"
+                  }
+                </div>
+                <div className="flex items-center text-sm text-emerald-600">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Active student model
+                </div>
+              </div>
+            </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
 
       {/* Period Selector and Controls */}
       <Card>
@@ -540,69 +625,78 @@ export default function PaymentsPage() {
         </CardContent>
       </Card>
 
-      {/* Summary Cards */}
+      {/* Enhanced Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        >
+          <Card className="backdrop-blur-sm bg-white/50 hover:bg-white/70 transition-all duration-300 hover:shadow-lg border-blue-200/50">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-blue-600" />
+                <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Building2 className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{summary.totalSchools}</div>
-                  <div className="text-sm text-gray-600">Total Schools</div>
+                  <div className="text-3xl font-bold text-gray-900">{summary.totalSchools}</div>
+                  <div className="text-sm font-medium text-gray-600">Active Schools</div>
+                  <div className="text-xs text-blue-600 mt-1">Paying customers</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/50 hover:bg-white/70 transition-all duration-300 hover:shadow-lg border-green-200/50">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Users className="w-6 h-6 text-green-600" />
+                <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Users className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{summary.totalStudents}</div>
-                  <div className="text-sm text-gray-600">Active Students</div>
+                  <div className="text-3xl font-bold text-gray-900">{summary.totalStudents.toLocaleString()}</div>
+                  <div className="text-sm font-medium text-gray-600">Active Students</div>
+                  <div className="text-xs text-green-600 mt-1">Billed students only</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/50 hover:bg-white/70 transition-all duration-300 hover:shadow-lg border-purple-200/50">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Crown className="w-6 h-6 text-purple-600" />
+                <div className="w-14 h-14 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Crown className="w-7 h-7 text-white" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-gray-900">
                     {formatCurrency(summary.totalPremiumCost)}
                   </div>
-                  <div className="text-sm text-gray-600">Premium Features</div>
+                  <div className="text-sm font-medium text-gray-600">Premium Add-ons</div>
+                  <div className="text-xs text-purple-600 mt-1">Additional features</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+          <Card className="bg-gradient-to-r from-emerald-50 via-green-50 to-blue-50 border-emerald-200 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-white" />
+                <div className="w-14 h-14 bg-gradient-to-r from-emerald-500 via-green-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <DollarSign className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-green-600">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
                     {formatCurrency(summary.totalMonthlyPayment)}
                   </div>
-                  <div className="text-sm text-gray-600">Total Monthly Revenue</div>
+                  <div className="text-sm font-medium text-gray-600">Monthly Revenue</div>
+                  <div className="text-xs text-emerald-600 mt-1 font-medium">💰 Total earnings</div>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       )}
 
       {/* Payments Table */}
@@ -611,11 +705,16 @@ export default function PaymentsPage() {
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center">
               <BarChart3 className="w-5 h-5 mr-2" />
-              School Payment Breakdown
+              Active Student Billing Breakdown
             </span>
-            <Badge variant="secondary" className="text-sm">
-              {selectedPeriod}
-            </Badge>
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary" className="text-sm">
+                {selectedPeriod}
+              </Badge>
+              <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200">
+                Active Students Only
+              </Badge>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -686,12 +785,12 @@ export default function PaymentsPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-sm font-medium text-gray-600">Base Salary</div>
+                      <div className="text-sm font-medium text-gray-600">Base Rate × Active Students</div>
                       <div className="text-lg font-semibold text-gray-900">
-                        {formatCurrency(payment.baseSalary, payment.currency)}
+                        {formatCurrency(payment.baseSalary * payment.currentStudents, payment.currency)}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {formatCurrency(payment.baseSalary / payment.currentStudents, payment.currency)} × {payment.currentStudents} students
+                        {formatCurrency(payment.baseSalary, payment.currency)} × {payment.currentStudents} active students
                       </div>
                     </div>
 

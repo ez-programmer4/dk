@@ -389,7 +389,7 @@ export default function SchoolDetailsPanel({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="flex-1 px-8 py-8 pb-12 space-y-8"
+                className="flex-1 px-8 py-8 space-y-8"
               >
                 {/* Quick Stats Bar */}
                 <motion.div

@@ -83,10 +83,8 @@ export default withAuth(
 
           if (!school || school.status !== "active") {
             // School is inactive or doesn't exist
-            // For teachers, redirect to their specific school login page
-            const teacherLoginPath = `/${token.schoolSlug}/teachers/login?error=SchoolInactive`;
             return NextResponse.redirect(
-              new URL(token.role === "teacher" ? teacherLoginPath : "/login?error=SchoolInactive", req.url)
+              new URL("/login?error=SchoolInactive", req.url)
             );
           }
         } catch (error) {

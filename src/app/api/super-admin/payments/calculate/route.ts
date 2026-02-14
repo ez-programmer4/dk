@@ -73,7 +73,15 @@ export async function POST(req: NextRequest) {
     // Set period to current month if not provided
     const calculationPeriod = period || new Date().toISOString().slice(0, 7); // YYYY-MM
 
-    // Get schools with their pricing tiers and subscription info
+    // First, let's check what student data looks like
+    const sampleStudents = await prisma.wpos_wpdatatable_23.findMany({
+      where: { schoolId: { in: schoolIds } },
+      select: { status: true, exitdate: true, schoolId: true },
+      take: 10
+    });
+    console.log('Sample student status data:', sampleStudents);
+
+    // Get schools with their pricing tiers
     const schools = await prisma.school.findMany({
       where: {
         id: { in: schoolIds },
@@ -91,23 +99,40 @@ export async function POST(req: NextRequest) {
             features: true,
           },
         },
-        subscription: {
-          select: {
-            status: true,
-            currentStudents: true,
-          },
-        },
       },
     });
+
+    // Get active student counts for each school using direct query on wpos_wpdatatable_23
+    const studentCounts = await Promise.all(
+      schools.map(async (school) => {
+        const count = await prisma.wpos_wpdatatable_23.count({
+          where: {
+            schoolId: school.id,
+            AND: [
+              {
+                OR: [
+                  { status: null }, // No status set (assume active)
+                  { status: { notIn: ["inactive", "Inactive", "INACTIVE", "exited", "Exited", "EXITED", "cancelled", "Cancelled", "CANCELLED"] } }
+                ]
+              },
+              { exitdate: null } // No exit date (still active)
+            ]
+          }
+        });
+        return { schoolId: school.id, activeStudents: count };
+      })
+    );
 
     const calculations: PaymentCalculation[] = [];
 
     for (const school of schools) {
-      const currentStudents = school.subscription?.currentStudents || 0;
+      const currentStudents = studentCounts.find(sc => sc.schoolId === school.id)?.activeStudents || 0;
+      console.log(`School ${school.name}: ${currentStudents} active students`);
       const currency = school.pricingTier?.currency || "ETB";
 
-      // Calculate base salary (fixed monthly fee)
-      const baseSalary = school.pricingTier?.monthlyFee || 0;
+      // Calculate base payment: base salary per active student × number of active students
+      const baseSalaryPerStudent = effectiveBaseSalary;
+      const baseSalary = baseSalaryPerStudent * currentStudents;
 
       // Check if school has premium package enabled
       const schoolPremiumPackage = await prisma.schoolPremiumPackage.findFirst({
@@ -127,7 +152,7 @@ export async function POST(req: NextRequest) {
         // Use package pricing - all features included
         const pkg = schoolPremiumPackage.package;
         const costPerStudent = schoolPremiumPackage.customPricePerStudent || pkg.packagePricePerStudent;
-        const totalCost = costPerStudent * currentStudents;
+        const totalCost = Number(costPerStudent) * currentStudents;
 
         // Get all features for display (even though they're bundled)
         const allFeatures = await prisma.premiumFeature.findMany({
@@ -146,7 +171,7 @@ export async function POST(req: NextRequest) {
         premiumFeatures.unshift({
           featureCode: "premium_package",
           featureName: `${pkg.name} (All Features)`,
-          costPerStudent,
+          costPerStudent: Number(costPerStudent),
           totalCost,
         });
 
@@ -166,12 +191,12 @@ export async function POST(req: NextRequest) {
         for (const schoolFeature of schoolPremiumFeatures) {
           const feature = schoolFeature.feature;
           const costPerStudent = schoolFeature.customPricePerStudent || feature.basePricePerStudent;
-          const totalCost = costPerStudent * currentStudents;
+          const totalCost = Number(costPerStudent) * currentStudents;
 
           premiumFeatures.push({
             featureCode: feature.code,
             featureName: feature.name,
-            costPerStudent,
+            costPerStudent: Number(costPerStudent),
             totalCost,
           });
 
@@ -185,8 +210,16 @@ export async function POST(req: NextRequest) {
         schoolId: school.id,
         schoolName: school.name,
         currentStudents,
-        pricingTier: school.pricingTier,
-        baseSalary,
+        pricingTier: school.pricingTier && typeof school.pricingTier === 'object' ? {
+          id: school.pricingTier.id,
+          name: school.pricingTier.name,
+          monthlyFee: Number(school.pricingTier.monthlyFee.toNumber()),
+          currency: school.pricingTier.currency,
+          features: Array.isArray(school.pricingTier.features) 
+            ? school.pricingTier.features.filter((f): f is string => typeof f === 'string')
+            : [],
+        } : null,
+        baseSalary: baseSalaryPerStudent, // Per-student rate for display
         premiumFeatures,
         totalPremiumCost,
         totalMonthlyPayment,

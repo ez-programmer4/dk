@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { signIn, getSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Label } from "./label";
@@ -35,41 +34,6 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Get appropriate label and placeholder based on role
-  const getUsernameLabel = () => {
-    switch (role) {
-      case "teacher":
-        return "Teacher ID";
-      case "controller":
-        return "Username";
-      case "registral":
-        return "Username";
-      case "admin":
-        return "Username";
-      case "superAdmin":
-        return "Email";
-      default:
-        return "Username";
-    }
-  };
-
-  const getUsernamePlaceholder = () => {
-    switch (role) {
-      case "teacher":
-        return "Enter your teacher ID";
-      case "controller":
-        return "Enter your username";
-      case "registral":
-        return "Enter your username";
-      case "admin":
-        return "Enter your username";
-      case "superAdmin":
-        return "Enter your email";
-      default:
-        return "Enter your username";
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -84,72 +48,24 @@ export function LoginForm({
       });
 
       if (res?.error) {
-        // Handle specific error types
-        if (res.error === "SchoolInactive") {
-          setError("Your school account is currently inactive. Please contact your school administrator or support for assistance.");
-        } else if (res.error === "CredentialsSignin") {
-          setError("Invalid username or password. Please check your credentials and try again.");
-        } else {
-          setError(res.error);
-        }
+        setError(res.error);
         setIsSubmitting(false);
       } else {
-        // Handle redirection after successful authentication
-        if (callbackUrl) {
-          router.push(callbackUrl);
-        } else {
-          // Get the updated session and redirect based on role and school
-          console.log('LoginForm: Getting session after authentication...');
-          const session = await getSession();
-          console.log('LoginForm: Session retrieved:', session?.user);
-
-          if (session?.user) {
-            const userRole = session.user.role;
-            const schoolSlug = session.user.schoolSlug;
-
-            console.log('LoginForm: Redirect logic', { userRole, schoolSlug });
-
-            let redirectUrl = '/login'; // fallback
-
-            switch (userRole) {
-              case 'superAdmin':
-                redirectUrl = '/super-admin/dashboard';
-                break;
-              case 'admin':
-                if (schoolSlug) {
-                  redirectUrl = `/admin/${schoolSlug}`;
-                } else {
-                  redirectUrl = '/school-selector';
-                }
-                break;
-              case 'teacher':
-                if (schoolSlug) {
-                  redirectUrl = `/${schoolSlug}/teachers/dashboard`;
-                } else {
-                  redirectUrl = '/school-selector';
-                }
-                break;
-              case 'controller':
-                if (schoolSlug) {
-                  redirectUrl = `/controller/${schoolSlug}/dashboard`;
-                } else {
-                  redirectUrl = '/school-selector';
-                }
-                break;
-              case 'registral':
-                if (schoolSlug) {
-                  redirectUrl = `/registral/${schoolSlug}/dashboard`;
-                } else {
-                  redirectUrl = '/school-selector';
-                }
-                break;
-            }
-
-            console.log('LoginForm: Redirecting to:', redirectUrl);
-            router.push(redirectUrl);
-          } else {
-            console.log('LoginForm: No session found, staying on login page');
+        // Redirect based on role if no callbackUrl is provided
+        if (!callbackUrl) {
+          if (role === "teacher") {
+            router.push("/teachers/dashboard");
+          } else if (role === "controller") {
+            router.push("/controller");
+          } else if (role === "registral") {
+            router.push("/dashboard");
+          } else if (role === "admin") {
+            router.push("/admin");
+          } else if (role === "superAdmin") {
+            router.push("/super-admin/dashboard");
           }
+        } else {
+          router.push(callbackUrl);
         }
       }
     } catch (error) {
@@ -172,7 +88,7 @@ export function LoginForm({
             htmlFor="username"
             className="block text-sm font-semibold text-gray-700 mb-1.5 group-focus-within:text-blue-600 transition-colors duration-200"
           >
-            {getUsernameLabel()}
+            Username
           </Label>
           <div className="relative">
             <Input
@@ -183,7 +99,7 @@ export function LoginForm({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ease-in-out bg-gray-50/50 hover:bg-white"
-              placeholder={getUsernamePlaceholder()}
+              placeholder="Enter your username"
             />
           </div>
         </div>
@@ -277,16 +193,6 @@ export function LoginForm({
             "Sign in"
           )}
         </Button>
-      </div>
-
-      {/* Super Admin Link */}
-      <div className="text-center pt-4 border-t border-gray-100">
-        <Link
-          href="/super-admin/login"
-          className="text-sm text-blue-600 hover:text-blue-800 underline transition-colors"
-        >
-          Platform Administration →
-        </Link>
       </div>
     </form>
   );

@@ -74,8 +74,6 @@ function LoginPageContent() {
     const authError = searchParams.get("error");
     if (authError === "AccessDenied") {
       setError("You do not have permission to access this page.");
-    } else if (authError === "SchoolInactive") {
-      setError("Your school account is currently inactive. Please contact support for assistance.");
     } else if (authError) {
       setError("An authentication error occurred. Please try again.");
     }

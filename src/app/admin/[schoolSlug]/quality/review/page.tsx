@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import {
   FiCheck,
   FiLoader,
@@ -19,13 +18,10 @@ import {
 import { startOfWeek, format, addWeeks } from "date-fns";
 import { toast } from "@/components/ui/use-toast";
 
-// apiUrl will be constructed dynamically using schoolSlug
+const apiUrl = "/api/admin/quality-review";
 const qualityLevels = ["Bad", "Good", "Better", "Excellent", "Exceptional"];
 
 export default function AdminQualityReviewPage() {
-  const params = useParams();
-  const schoolSlug = params.schoolSlug as string;
-
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +37,6 @@ export default function AdminQualityReviewPage() {
   const [itemsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
 
-
   useEffect(() => {
     fetchData();
   }, [weekStart]);
@@ -51,7 +46,7 @@ export default function AdminQualityReviewPage() {
     setError(null);
     try {
       const weekStartStr = weekStart.toISOString().split("T")[0] + "T00:00:00.000Z";
-      const res = await fetch(`/api/admin/${schoolSlug}/quality-review?weekStart=${weekStartStr}`);
+      const res = await fetch(`${apiUrl}?weekStart=${weekStartStr}`);
       if (!res.ok) throw new Error("Failed to fetch quality review data");
       const data = await res.json();
       setTeachers(data);
@@ -79,7 +74,7 @@ export default function AdminQualityReviewPage() {
     setBonusHistory([]);
     setShowBonusHistory(true);
     try {
-      const res = await fetch(`/api/admin/${schoolSlug}/bonus-history?teacherId=${teacherId}`);
+      const res = await fetch(`/api/admin/bonus-history?teacherId=${teacherId}`);
       if (!res.ok) throw new Error("Failed to fetch bonus history");
       const data = await res.json();
       setBonusHistory(data.bonuses || []);
@@ -105,7 +100,7 @@ export default function AdminQualityReviewPage() {
         bonus: managerOverrides[teacherId] === "Exceptional" ? (bonus[teacherId] || 0) : 0,
       };
 
-      const res = await fetch(`/api/admin/${schoolSlug}/quality-review?teacherId=${teacherId}&weekStart=${weekStartStr}`, {
+      const res = await fetch(`${apiUrl}?teacherId=${teacherId}&weekStart=${weekStartStr}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),

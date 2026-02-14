@@ -924,7 +924,7 @@ export default function SchoolEditPanel({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="flex-1 px-8 py-8 pb-12 space-y-6"
+              className="flex-1 px-8 py-8 space-y-6"
             >
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-12">
@@ -960,7 +960,7 @@ export default function SchoolEditPanel({
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.6 }}
-              className="sticky bottom-0 mb-4"
+              className="sticky bottom-0"
             >
               {!loading && (
                 <motion.div

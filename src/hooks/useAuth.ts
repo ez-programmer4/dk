@@ -27,13 +27,6 @@ export function useAuth(options: UseAuthOptions = {}) {
   const { requiredRole, redirectTo, redirectIfFound } = options;
 
   useEffect(() => {
-    console.log('useAuth: Effect triggered', {
-      status,
-      redirectIfFound,
-      sessionUser: session?.user,
-      hasSchoolSlug: !!session?.user?.schoolSlug,
-      timestamp: new Date().toISOString()
-    });
     setLoading(true);
     // If still loading, do nothing
     if (status === "loading") return;
@@ -47,64 +40,8 @@ export function useAuth(options: UseAuthOptions = {}) {
 
     // If authenticated and redirectIfFound is true
     if (status === "authenticated" && redirectIfFound) {
-      let redirectUrl = redirectTo;
-
-      if (!redirectUrl && session?.user) {
-        // Role-based redirects with school-specific URLs
-        const userRole = session.user.role;
-        const schoolSlug = session.user.schoolSlug;
-
-        console.log('useAuth: Redirect logic', {
-          userRole,
-          schoolSlug,
-          user: session.user
-        });
-
-        switch (userRole) {
-          case 'superAdmin':
-            redirectUrl = '/super-admin/dashboard';
-            break;
-          case 'admin':
-            if (schoolSlug) {
-              redirectUrl = `/admin/${schoolSlug}`;
-            } else {
-              // No school assigned, redirect to school selector
-              redirectUrl = '/school-selector';
-            }
-            break;
-          case 'teacher':
-            if (schoolSlug) {
-              redirectUrl = `/${schoolSlug}/teachers/dashboard`;
-            } else {
-              // No school assigned, redirect to school selector
-              redirectUrl = '/school-selector';
-            }
-            break;
-          case 'controller':
-            if (schoolSlug) {
-              redirectUrl = `/controller/${schoolSlug}/dashboard`;
-            } else {
-              // No school assigned, redirect to school selector
-              redirectUrl = '/school-selector';
-            }
-            break;
-          case 'registral':
-            if (schoolSlug) {
-              redirectUrl = `/registral/${schoolSlug}/dashboard`;
-            } else {
-              // No school assigned, redirect to school selector
-              redirectUrl = '/school-selector';
-            }
-            break;
-          case 'parent':
-            redirectUrl = '/parent/dashboard';
-            break;
-          default:
-            redirectUrl = '/login';
-        }
-      }
-
-      router.push(redirectUrl || '/login');
+      const redirectUrl = redirectTo || "/teachers/dashboard";
+      router.push(redirectUrl);
       setLoading(false);
       return;
     }
