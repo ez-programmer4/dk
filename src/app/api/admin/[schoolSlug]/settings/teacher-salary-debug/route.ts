@@ -7,16 +7,26 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token || token.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true },
+    });
+
+    if (!school) {
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
+    }
+
     // Check current setting
-    const setting = await prisma.setting.findUnique({
-      where: { key: "show_teacher_salary" },
+    const setting = await prisma.setting.findFirst({
+      where: { key: "show_teacher_salary", schoolId: school.id },
     });
 
     // If setting doesn't exist, create it with default value true
@@ -24,6 +34,7 @@ export async function GET(req: NextRequest) {
       await prisma.setting.create({
         data: {
           key: "show_teacher_salary",
+          schoolId: school.id,
           value: "true",
           updatedAt: new Date(),
         },

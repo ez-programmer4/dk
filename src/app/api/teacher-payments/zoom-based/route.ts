@@ -101,6 +101,7 @@ export async function GET(req: NextRequest) {
         where: {
           teacherId,
           deductionType: "absence",
+          schoolId: school.id,
           deductionDate: { gte: fromDate, lte: toDate },
         },
         select: { deductionDate: true },

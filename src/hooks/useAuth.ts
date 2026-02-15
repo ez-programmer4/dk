@@ -40,8 +40,25 @@ export function useAuth(options: UseAuthOptions = {}) {
 
     // If authenticated and redirectIfFound is true
     if (status === "authenticated" && redirectIfFound) {
-      const redirectUrl = redirectTo || "/teachers/dashboard";
-      router.push(redirectUrl);
+      if (redirectTo) {
+        router.push(redirectTo);
+      } else {
+        // Use school-specific routes if available
+        const user = session?.user as AuthUser;
+        let defaultUrl = "/teachers/dashboard";
+        if (user?.schoolSlug) {
+          if (user.role === "teacher") {
+            defaultUrl = `/${user.schoolSlug}/teachers/dashboard`;
+          } else if (user.role === "admin") {
+            defaultUrl = `/admin/${user.schoolSlug}`;
+          } else if (user.role === "controller") {
+            defaultUrl = `/controller/${user.schoolSlug}/dashboard`;
+          } else if (user.role === "registral") {
+            defaultUrl = `/registral/${user.schoolSlug}/dashboard`;
+          }
+        }
+        router.push(defaultUrl);
+      }
       setLoading(false);
       return;
     }

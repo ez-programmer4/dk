@@ -950,6 +950,11 @@ export default function AdminLayout({
   // Fetch sidebar stats
   useEffect(() => {
     const fetchSidebarStats = async () => {
+      // Don't fetch if user is not authenticated
+      if (status !== "authenticated" || !session?.user) {
+        return;
+      }
+
       try {
         // Fetch students count
         const studentsRes = await fetch(
@@ -994,7 +999,7 @@ export default function AdminLayout({
     if (schoolSlug) {
       fetchSidebarStats();
     }
-  }, [schoolSlug]);
+  }, [schoolSlug, status, session]);
 
   // Handle global search
   const handleSearch = (query: string) => {

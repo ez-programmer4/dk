@@ -22,7 +22,7 @@ export interface SalaryConfig {
  * Load salary configuration from database
  * This is called dynamically to ensure fresh configuration
  */
-export async function getSalaryConfig(): Promise<SalaryConfig> {
+export async function getSalaryConfig(schoolId?: string): Promise<SalaryConfig> {
   // Load all configuration in parallel for better performance
   const [
     sundaySetting,
@@ -31,12 +31,18 @@ export async function getSalaryConfig(): Promise<SalaryConfig> {
     latenessConfigs,
     packageSalaries,
   ] = await Promise.all([
-    prisma.setting.findUnique({
-      where: { key: "include_sundays_in_salary" },
+    prisma.setting.findFirst({
+      where: {
+        key: "include_sundays_in_salary",
+        schoolId: schoolId || null
+      },
       select: { value: true },
     }),
-    prisma.setting.findUnique({
-      where: { key: "teacher_salary_visibility" },
+    prisma.setting.findFirst({
+      where: {
+        key: "teacher_salary_visibility",
+        schoolId: schoolId || null
+      },
       select: { value: true },
     }),
     prisma.packageDeduction.findMany(),

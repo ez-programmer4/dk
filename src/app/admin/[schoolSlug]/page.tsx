@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   FiUsers,
   FiBookOpen,
@@ -108,6 +109,7 @@ export default function AdminDashboardPage() {
   const params = useParams();
   const router = useRouter();
   const schoolSlug = params.schoolSlug as string;
+  const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -248,6 +250,11 @@ export default function AdminDashboardPage() {
   // Load dashboard data
   useEffect(() => {
     const loadDashboard = async () => {
+      // Don't load data if user is not authenticated
+      if (status !== "authenticated" || !session?.user) {
+        return;
+      }
+
       setLoading(true);
       try {
         // Fetch school branding
@@ -290,7 +297,7 @@ export default function AdminDashboardPage() {
     };
 
     loadDashboard();
-  }, [schoolSlug]);
+  }, [schoolSlug, status, session]);
 
   // Apply dynamic branding styles
   useEffect(() => {

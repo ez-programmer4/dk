@@ -34,16 +34,9 @@ export function LoginForm({ role: initialRole, defaultRole }: LoginFormProps) {
         setError(res.error);
         setIsSubmitting(false);
       } else {
-        // Redirect on success
-        if (role === "teacher") {
-          router.push("/teachers/dashboard"); // Or wherever the teacher portal will be
-        } else if (role === "controller") {
-          router.push("/controller");
-        } else if (role === "registral") {
-          router.push("/dashboard");
-        } else if (role === "admin") {
-          router.push("/admin");
-        }
+        // Let NextAuth handle the redirect automatically
+        // The middleware will redirect authenticated users away from login pages
+        // No manual redirect needed here
       }
     } catch (error) {
       setError(

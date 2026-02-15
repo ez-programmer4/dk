@@ -95,3 +95,4 @@ export function isEncrypted(text: string): boolean {
          parts[1].length === TAG_LENGTH * 2 && // Auth tag in hex
          parts[2].length > 0; // Encrypted data
 }
+

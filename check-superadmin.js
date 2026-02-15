@@ -10,7 +10,9 @@ async function checkSuperAdmin() {
       select: {
         id: true,
         name: true,
+        username: true,
         email: true,
+        password: true,
         role: true,
         isActive: true
       }
@@ -18,7 +20,9 @@ async function checkSuperAdmin() {
 
     console.log('Found SuperAdmins:', superAdmins.length);
     superAdmins.forEach(admin => {
-      console.log(`- ID: ${admin.id}, Name: ${admin.name}, Email: ${admin.email}, Active: ${admin.isActive}`);
+      const hasPassword = admin.password ? 'YES' : 'NO';
+      const passwordType = admin.password && admin.password.startsWith('$2') ? 'HASHED' : 'PLAIN';
+      console.log(`- ID: ${admin.id}, Username: ${admin.username}, Name: ${admin.name}, Email: ${admin.email}, Password: ${hasPassword} (${passwordType}), Active: ${admin.isActive}`);
     });
 
     if (superAdmins.length === 0) {
@@ -47,6 +51,7 @@ async function checkSuperAdmin() {
 }
 
 checkSuperAdmin();
+
 
 
 

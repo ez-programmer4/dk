@@ -21,7 +21,40 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
+    const schoolSlug = searchParams.get("schoolSlug");
+    const dayPackage = searchParams.get("dayPackage");
 
+    // Handle the case where we want occupied times for a school and day package
+    if (schoolSlug && dayPackage) {
+      // Get school ID for multi-tenancy
+      const school = await prisma.school.findUnique({
+        where: { slug: schoolSlug },
+        select: { id: true },
+      });
+
+      if (!school) {
+        return NextResponse.json({ message: "School not found" }, { status: 404 });
+      }
+
+      const occupiedTimes = await prisma.wpos_ustaz_occupied_times.findMany({
+        where: {
+          daypackage: dayPackage,
+          schoolId: school.id,
+        },
+        select: {
+          time_slot: true,
+          daypackage: true,
+          student_id: true,
+        },
+      });
+
+      return NextResponse.json(
+        { occupiedTimes },
+        { status: 200 }
+      );
+    }
+
+    // Handle the original case for a specific student
     if (!studentId) {
       return NextResponse.json(
         { message: "Student ID is required" },

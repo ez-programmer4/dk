@@ -35,6 +35,11 @@ export default function AttendancePage() {
 
   useEffect(() => {
     const fetchControllers = async () => {
+      // Don't fetch if user is not authenticated
+      if (status !== "authenticated" || !session?.user) {
+        return;
+      }
+
       try {
         const res = await fetch("/api/control-options", { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to fetch controllers");
@@ -47,7 +52,7 @@ export default function AttendancePage() {
       } catch (err) {}
     };
     fetchControllers();
-  }, []);
+  }, [status, session]);
 
   useEffect(() => {
     if (session?.user?.role === "admin") {

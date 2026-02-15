@@ -137,13 +137,36 @@ export async function POST(
       );
     }
 
-    const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === "darulkubra" ? null : schoolSlug;
+    // For registral users, always use their associated school, not the URL school
+    // This ensures registral users can only access students from their own school
+    const registralSchoolSlug = session.schoolSlug || "darulkubra";
 
-    // Verify the registral belongs to the correct school
-    if (schoolId && session.schoolSlug !== schoolSlug) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    // Get the actual school ID from the slug
+    let schoolId = null;
+    if (registralSchoolSlug !== "darulkubra") {
+      try {
+        const school = await prismaClient.school.findUnique({
+          where: { slug: registralSchoolSlug },
+          select: { id: true }
+        });
+        schoolId = school?.id || null;
+      } catch (error) {
+        console.error('Error fetching school ID for registral:', error);
+        schoolId = null;
+      }
     }
+
+    console.log('Registral API: Using registral school', {
+      registralSchoolSlug,
+      schoolId,
+      sessionSchoolSlug: session.schoolSlug,
+      urlSchoolSlug: params.schoolSlug,
+      sessionRole: session.role,
+      sessionUsername: session.username
+    });
+
+    // Registral users can only access their own school's data
+    // The URL school parameter is ignored for security
 
     const body = await request.json();
     const {
@@ -459,18 +482,43 @@ export async function GET(
       );
     }
 
-    const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === "darulkubra" ? null : schoolSlug;
+    // For registral users, always use their associated school, not the URL school
+    // This ensures registral users can only access students from their own school
+    const registralSchoolSlug = session.schoolSlug || "darulkubra";
 
-    // Verify the registral belongs to the correct school
-    if (schoolId && session.schoolSlug !== schoolSlug) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    // Get the actual school ID from the slug
+    let schoolId = null;
+    if (registralSchoolSlug !== "darulkubra") {
+      try {
+        const school = await prismaClient.school.findUnique({
+          where: { slug: registralSchoolSlug },
+          select: { id: true }
+        });
+        schoolId = school?.id || null;
+      } catch (error) {
+        console.error('Error fetching school ID for registral:', error);
+        schoolId = null;
+      }
     }
+
+    console.log('Registral API: Using registral school', {
+      registralSchoolSlug,
+      schoolId,
+      sessionSchoolSlug: session.schoolSlug,
+      urlSchoolSlug: params.schoolSlug,
+      sessionRole: session.role,
+      sessionUsername: session.username
+    });
+
+    // Registral users can only access their own school's data
+    // The URL school parameter is ignored for security
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const student = searchParams.get("student");
     const daypackage = searchParams.get("daypackage");
+
+    console.log('Registral API: Request params', { id, student, daypackage, schoolId });
 
     // Handle student slot count request
     if (student && daypackage) {
@@ -490,11 +538,11 @@ export async function GET(
       }
     }
 
-    if (id) {
+    if (id && id !== 'undefined' && !isNaN(parseInt(id))) {
+
       const registration = (await prismaClient.wpos_wpdatatable_23.findUnique({
         where: {
           wdt_ID: parseInt(id),
-          rigistral: session.username,
           ...(schoolId ? { schoolId } : { schoolId: null }),
         },
         select: {
@@ -521,6 +569,7 @@ export async function GET(
           },
         },
       })) as any;
+
 
       if (!registration) {
         return NextResponse.json(
@@ -560,7 +609,6 @@ export async function GET(
     // Get all registrations for this registral
     const registrations = await prismaClient.wpos_wpdatatable_23.findMany({
       where: {
-        rigistral: session.username,
         ...(schoolId ? { schoolId } : { schoolId: null }),
       },
       select: {
@@ -613,19 +661,42 @@ export async function PUT(
       );
     }
 
-    const schoolSlug = params.schoolSlug;
-    const schoolId = schoolSlug === "darulkubra" ? null : schoolSlug;
+    // For registral users, always use their associated school, not the URL school
+    // This ensures registral users can only access students from their own school
+    const registralSchoolSlug = session.schoolSlug || "darulkubra";
 
-    // Verify the registral belongs to the correct school
-    if (schoolId && session.schoolSlug !== schoolSlug) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    // Get the actual school ID from the slug
+    let schoolId = null;
+    if (registralSchoolSlug !== "darulkubra") {
+      try {
+        const school = await prismaClient.school.findUnique({
+          where: { slug: registralSchoolSlug },
+          select: { id: true }
+        });
+        schoolId = school?.id || null;
+      } catch (error) {
+        console.error('Error fetching school ID for registral:', error);
+        schoolId = null;
+      }
     }
+
+    console.log('Registral API: Using registral school', {
+      registralSchoolSlug,
+      schoolId,
+      sessionSchoolSlug: session.schoolSlug,
+      urlSchoolSlug: params.schoolSlug,
+      sessionRole: session.role,
+      sessionUsername: session.username
+    });
+
+    // Registral users can only access their own school's data
+    // The URL school parameter is ignored for security
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
-    if (!id) {
+    if (!id || id === 'undefined' || isNaN(parseInt(id))) {
       return NextResponse.json(
-        { message: "Registration ID is required" },
+        { message: "Valid registration ID is required" },
         { status: 400 }
       );
     }

@@ -41,7 +41,7 @@ async function getSalaryCalculator(): Promise<SalaryCalculator> {
 
   let calculator = getCachedCalculator(cacheKey);
   if (!calculator) {
-    calculator = await createSalaryCalculator();
+    calculator = await createSalaryCalculator(school.id);
     setCachedCalculator(cacheKey, calculator);
   }
 

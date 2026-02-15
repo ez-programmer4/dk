@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import {
   FiPlus,
   FiSettings,
@@ -19,6 +20,8 @@ import {
 import { toast } from "@/components/ui/use-toast";
 
 export default function StudentConfigPage() {
+  const params = useParams();
+  const schoolSlug = params.schoolSlug as string;
   const [statuses, setStatuses] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
@@ -79,7 +82,7 @@ export default function StudentConfigPage() {
   const fetchConfigurations = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/student-config");
+      const res = await fetch(`/api/admin/${schoolSlug}/student-config`);
       if (res.ok) {
         const data = await res.json();
         setStatuses(data.statuses || []);
@@ -106,7 +109,7 @@ export default function StudentConfigPage() {
 
     setInitializing(true);
     try {
-      const res = await fetch("/api/admin/student-config", {
+      const res = await fetch(`/api/admin/${schoolSlug}/student-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "init" }),
@@ -146,7 +149,7 @@ export default function StudentConfigPage() {
     setLoading(true);
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/admin/student-config", {
+      const res = await fetch(`/api/admin/${schoolSlug}/student-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, name: name.trim(), action: "add" }),
@@ -191,7 +194,7 @@ export default function StudentConfigPage() {
 
     setDeletingId(id);
     try {
-      const res = await fetch("/api/admin/student-config", {
+      const res = await fetch(`/api/admin/${schoolSlug}/student-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, id, action: "delete" }),
@@ -248,7 +251,7 @@ export default function StudentConfigPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/student-config", {
+      const res = await fetch(`/api/admin/${schoolSlug}/student-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

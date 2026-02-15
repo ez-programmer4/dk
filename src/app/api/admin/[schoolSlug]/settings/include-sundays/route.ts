@@ -14,8 +14,18 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const setting = await prisma.setting.findUnique({
-      where: { key: "include_sundays_in_salary" },
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true },
+    });
+
+    if (!school) {
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
+    }
+
+    const setting = await prisma.setting.findFirst({
+      where: { key: "include_sundays_in_salary", schoolId: school.id },
     });
 
     return NextResponse.json({
@@ -37,6 +47,16 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true },
+    });
+
+    if (!school) {
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
+    }
+
     const { includeSundays } = await req.json();
 
     if (typeof includeSundays !== "boolean") {
@@ -47,10 +67,16 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
     }
 
     await prisma.setting.upsert({
-      where: { key: "include_sundays_in_salary" },
+      where: {
+        key_schoolId: {
+          key: "include_sundays_in_salary",
+          schoolId: school.id,
+        }
+      },
       update: { value: includeSundays.toString() },
       create: {
         key: "include_sundays_in_salary",
+        schoolId: school.id,
         value: includeSundays.toString(),
         updatedAt: new Date(),
       },

@@ -23,14 +23,14 @@ export async function GET(req: NextRequest) {
     // Check if teacher salary visibility is enabled
     const [salaryVisibilitySetting, customMessageSetting, adminContactSetting] =
       await Promise.all([
-        prisma.setting.findUnique({
-          where: { key: "teacher_salary_visible" },
+        prisma.setting.findFirst({
+          where: { key: "teacher_salary_visible", schoolId: session.schoolId },
         }),
-        prisma.setting.findUnique({
-          where: { key: "teacher_salary_hidden_message" },
+        prisma.setting.findFirst({
+          where: { key: "teacher_salary_hidden_message", schoolId: session.schoolId },
         }),
-        prisma.setting.findUnique({
-          where: { key: "admin_contact_info" },
+        prisma.setting.findFirst({
+          where: { key: "admin_contact_info", schoolId: session.schoolId },
         }),
       ]);
 
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get teacher's salary data using the SAME calculator as admin
-    const calculator = await createSalaryCalculator();
+    const calculator = await createSalaryCalculator(session.schoolId);
     const salaryData = await calculator.calculateTeacherSalary(
       session.id,
       from,

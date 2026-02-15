@@ -6,13 +6,15 @@ import { prisma } from "@/lib/prisma";
 export async function isDeductionWaived(
   teacherId: string,
   deductionDate: Date,
-  deductionType: 'lateness' | 'absence'
+  deductionType: 'lateness' | 'absence',
+  schoolId: string
 ): Promise<boolean> {
   try {
     const waiver = await prisma.deduction_waivers.findFirst({
       where: {
         teacherId,
         deductionType,
+        schoolId,
         deductionDate: {
           gte: new Date(deductionDate.getFullYear(), deductionDate.getMonth(), deductionDate.getDate()),
           lt: new Date(deductionDate.getFullYear(), deductionDate.getMonth(), deductionDate.getDate() + 1)
@@ -34,11 +36,13 @@ export async function getTeacherWaivers(
   teacherId: string,
   startDate: Date,
   endDate: Date,
+  schoolId: string,
   deductionType?: 'lateness' | 'absence'
 ) {
   try {
     const where: any = {
       teacherId,
+      schoolId,
       deductionDate: { gte: startDate, lte: endDate }
     };
 

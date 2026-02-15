@@ -1057,8 +1057,22 @@ function RegistrationContent() {
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/login");
+      return;
     }
-  }, [status, session, router]);
+
+    if (status === "authenticated" && session?.user) {
+      // Check if registral is accessing their correct school
+      const userSchoolSlug = (session.user as any).schoolSlug || "darulkubra";
+      if (schoolSlug !== userSchoolSlug) {
+        console.log('Registral accessing wrong school in registration, redirecting', {
+          requested: schoolSlug,
+          userSchool: userSchoolSlug
+        });
+        router.replace(`/registral/${userSchoolSlug}/registration`);
+        return;
+      }
+    }
+  }, [status, session, router, schoolSlug]);
 
   const fetchOccupiedTimes = useCallback(async () => {
     if (!selectedDayPackage) return;

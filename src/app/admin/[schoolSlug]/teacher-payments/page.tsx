@@ -89,7 +89,18 @@ export default async function TeacherPaymentsPage({
   let error: string | null = null;
 
   try {
-    const calculator = await createSalaryCalculator();
+    // Get school information first
+    const { prisma } = await import("@/lib/prisma");
+    const school = await prisma.school.findUnique({
+      where: { slug: schoolSlug },
+      select: { id: true },
+    });
+
+    if (!school) {
+      throw new Error("School not found");
+    }
+
+    const calculator = await createSalaryCalculator(school.id);
 
     // Clear cache if requested
     if (searchParamsData.clearCache === "true") {
@@ -99,7 +110,8 @@ export default async function TeacherPaymentsPage({
     // Calculate all teacher salaries
     const teachersData = await calculator.calculateAllTeacherSalaries(
       fromDate,
-      toDate
+      toDate,
+      school.id
     );
     teachers = teachersData || [];
 

@@ -1252,6 +1252,7 @@ model deduction_waivers {
     originalAmount Decimal  @db.Decimal(10, 2)
     reason         String   @db.Text
     adminId        String   @db.VarChar(255)
+    schoolId       String   // Multi-tenant field
     createdAt      DateTime @default(now())
 
     @@unique([teacherId, deductionType, deductionDate], name: "unique_waiver")

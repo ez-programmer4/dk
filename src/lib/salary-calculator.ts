@@ -182,7 +182,7 @@ export class SalaryCalculator {
       // Debug configuration disabled for production
 
       // Get teacher info
-      const teacher = await this.getTeacherInfo(teacherId);
+      const teacher = await this.getTeacherInfo(teacherId, schoolId);
       if (!teacher) {
         throw new Error(`Teacher not found: ${teacherId}`);
       }
@@ -393,8 +393,14 @@ export class SalaryCalculator {
     toDate: Date,
     schoolId: string
   ): Promise<TeacherSalaryData[]> {
-    // Get all teachers from main table
+    // Get all teachers for this school
     const mainTableTeachers = await prisma.wpos_wpdatatable_24.findMany({
+      where: {
+        OR: [
+          { schoolId: schoolId }, // Teachers specifically assigned to this school
+          { schoolId: null } // Legacy teachers (darulkubra school)
+        ]
+      },
       select: { ustazid: true, ustazname: true },
     });
 
@@ -405,6 +411,7 @@ export class SalaryCalculator {
           gte: fromDate,
           lte: toDate,
         },
+        schoolId: schoolId,
       },
       select: {
         ustazid: true,
@@ -430,13 +437,33 @@ export class SalaryCalculator {
     });
 
     // Create final teacher list with names
+    // Get admin names for teachers not found in main table
+    const teacherIdsToLookup = Array.from(allTeacherIds).filter(
+      (teacherId) => !mainTableTeachers.find((t) => t.ustazid === teacherId)
+    );
+
+    const adminTeachers = await prisma.admin.findMany({
+      where: {
+        username: { in: teacherIdsToLookup },
+        OR: [
+          { schoolId: schoolId },
+          { schoolId: null }
+        ]
+      },
+      select: { username: true, name: true },
+    });
+
     const finalTeachers = Array.from(allTeacherIds).map((teacherId) => {
       const mainTeacher = mainTableTeachers.find(
         (t) => t.ustazid === teacherId
       );
+      const adminTeacher = adminTeachers.find(
+        (a) => a.username === teacherId
+      );
+
       return {
         ustazid: teacherId,
-        ustazname: mainTeacher?.ustazname || `Teacher ${teacherId}`,
+        ustazname: mainTeacher?.ustazname || adminTeacher?.name || `Teacher ${teacherId}`,
       };
     });
 
@@ -543,18 +570,42 @@ export class SalaryCalculator {
     };
   }
 
-  private async getTeacherInfo(teacherId: string) {
+  private async getTeacherInfo(teacherId: string, schoolId?: string) {
     // First try to find teacher in main table
     let teacher = await prisma.wpos_wpdatatable_24.findUnique({
       where: { ustazid: teacherId },
       select: { ustazid: true, ustazname: true },
     });
 
-    // If not found in main table, check if teacher exists in zoom links
+    // If not found in main table, try to find as admin
     if (!teacher) {
-      // Check if this teacher has any zoom links
+      const admin = await prisma.admin.findFirst({
+        where: {
+          username: teacherId,
+          OR: [
+            { schoolId: schoolId },
+            { schoolId: null }
+          ]
+        },
+        select: { name: true },
+      });
+
+      if (admin) {
+        teacher = {
+          ustazid: teacherId,
+          ustazname: admin.name,
+        };
+      }
+    }
+
+    // If still not found, check if teacher exists in zoom links for this school
+    if (!teacher && schoolId) {
+      // Check if this teacher has any zoom links in this school
       const zoomLinkCount = await prisma.wpos_zoom_links.count({
-        where: { ustazid: teacherId },
+        where: {
+          ustazid: teacherId,
+          schoolId: schoolId
+        },
       });
 
       if (zoomLinkCount > 0) {
@@ -751,7 +802,8 @@ export class SalaryCalculator {
     const teacherChangePeriods = await getTeacherChangePeriods(
       teacherId,
       fromDate,
-      toDate
+      toDate,
+      schoolId
     );
 
     // Get students who were assigned to this teacher during the period
@@ -769,6 +821,7 @@ export class SalaryCalculator {
           // Current assignment (any status, will filter by zoom links later)
           {
             ustaz: teacherId,
+            schoolId: schoolId,
             occupiedTimes: {
               some: {
                 ustaz_id: teacherId,
@@ -779,6 +832,7 @@ export class SalaryCalculator {
           },
           // Historical assignment via occupiedTimes (any status)
           {
+            schoolId: schoolId,
             occupiedTimes: {
               some: {
                 ustaz_id: teacherId,
@@ -859,6 +913,7 @@ export class SalaryCalculator {
         ? await prisma.wpos_wpdatatable_23.findMany({
             where: {
               wdt_ID: { in: Array.from(historicalStudentIds) },
+              schoolId: schoolId,
               // No status filter - include all students with zoom links during period
             },
             select: {
@@ -918,6 +973,7 @@ export class SalaryCalculator {
     const zoomLinkIds = await prisma.wpos_zoom_links.findMany({
       where: {
         ustazid: teacherId,
+        schoolId: schoolId,
         sent_time: { gte: fromDate, lte: toDate }, // Only this period
       },
       select: {
@@ -936,6 +992,7 @@ export class SalaryCalculator {
         ? await prisma.wpos_wpdatatable_23.findMany({
             where: {
               wdt_ID: { in: studentIds },
+              schoolId: schoolId,
             },
             select: {
               wdt_ID: true,
@@ -1085,12 +1142,14 @@ export class SalaryCalculator {
     // Find all "Not Succeed" students who have zoom links from this teacher
     const notSucceedStudents = await prisma.wpos_wpdatatable_23.findMany({
       where: {
+        schoolId: schoolId,
         status: {
           contains: "Not succeed",
         },
         zoom_links: {
           some: {
             ustazid: teacherId,
+            schoolId: schoolId,
             sent_time: { gte: fromDate, lte: toDate },
           },
         },
@@ -1156,12 +1215,14 @@ export class SalaryCalculator {
     // Find all "Completed" students who have zoom links from this teacher
     const completedStudents = await prisma.wpos_wpdatatable_23.findMany({
       where: {
+        schoolId: schoolId,
         status: {
           contains: "Completed",
         },
         zoom_links: {
           some: {
             ustazid: teacherId,
+            schoolId: schoolId,
             sent_time: { gte: fromDate, lte: toDate },
           },
         },
@@ -1364,9 +1425,7 @@ export class SalaryCalculator {
     teacherId: string,
     schoolId: string
   ) {
-    const packageSalaries = await prisma.packageSalary.findMany({
-      where: { schoolId }
-    });
+    const packageSalaries = await prisma.packageSalary.findMany();
     const salaryMap: Record<string, number> = {};
     packageSalaries.forEach((pkg) => {
       salaryMap[pkg.packageName] = Number(pkg.salaryPerStudent);
@@ -2284,7 +2343,7 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
       },
     });
 
-    // 🆕 Get package salaries to calculate daily rates (instead of using packageDeduction table)
+    // 🆕 Get package salaries to calculate daily rates (instead of using packageDedistance table)
     const packageSalaries = await prisma.packageSalary.findMany();
     const salaryMap: Record<string, number> = {};
     packageSalaries.forEach((pkg) => {
@@ -2314,12 +2373,12 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
     const latenessWaivers = await prisma.deduction_waivers.findMany({
       where: {
         teacherId,
-        schoolId,
         deductionType: "lateness",
         deductionDate: {
           gte: fromDate,
           lte: toDate,
         },
+        schoolId,
       },
       select: { deductionDate: true, reason: true },
     });
@@ -2588,12 +2647,12 @@ Teacher Change Period: ${student.teacherChangePeriod ? "Yes" : "No"}`;
         prisma.deduction_waivers.findMany({
           where: {
             teacherId,
-            schoolId,
             deductionType: "absence",
             deductionDate: {
               gte: fromDate,
               lte: effectiveToDate,
             },
+            schoolId,
           },
           select: { deductionDate: true, reason: true },
         }),

@@ -79,17 +79,17 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
     }
 
     // Get salary calculator with current configuration
-    const calculator = await createSalaryCalculator();
+    const calculator = await createSalaryCalculator(school.id);
 
     // Debug: Log current Sunday configuration
-    const sundayConfig = await prisma.setting.findUnique({
-      where: { key: "include_sundays_in_salary" },
+    const sundayConfig = await prisma.setting.findFirst({
+      where: { key: "include_sundays_in_salary", schoolId: school.id },
     });
 
     // Check if teacher salary visibility is enabled for teachers
     if (token.role === "teacher") {
-      const salaryVisibilitySetting = await prisma.setting.findUnique({
-        where: { key: "teacher_salary_visible" },
+      const salaryVisibilitySetting = await prisma.setting.findFirst({
+        where: { key: "teacher_salary_visible", schoolId: school.id },
       });
 
       if (salaryVisibilitySetting?.value !== "true") {

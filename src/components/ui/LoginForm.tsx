@@ -51,22 +51,9 @@ export function LoginForm({
         setError(res.error);
         setIsSubmitting(false);
       } else {
-        // Redirect based on role if no callbackUrl is provided
-        if (!callbackUrl) {
-          if (role === "teacher") {
-            router.push("/teachers/dashboard");
-          } else if (role === "controller") {
-            router.push("/controller");
-          } else if (role === "registral") {
-            router.push("/dashboard");
-          } else if (role === "admin") {
-            router.push("/admin");
-          } else if (role === "superAdmin") {
-            router.push("/super-admin/dashboard");
-          }
-        } else {
-          router.push(callbackUrl);
-        }
+        // Let NextAuth handle the redirect automatically
+        // The middleware will redirect authenticated users away from login pages
+        // No manual redirect needed here
       }
     } catch (error) {
       setError(

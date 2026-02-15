@@ -83,7 +83,8 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       const periods = await getTeacherChangePeriods(
         teacherId,
         new Date(fromDate),
-        new Date(toDate)
+        new Date(toDate),
+        school.id
       );
 
       return NextResponse.json({ periods });
@@ -172,6 +173,9 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
       newTeacherId,
       timeSlot,
       dayPackage,
+      changeReason,
+      createdBy,
+      school.id,
       changeReason,
       token.email || "admin"
     );

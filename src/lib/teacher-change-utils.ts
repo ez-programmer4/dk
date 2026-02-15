@@ -362,7 +362,8 @@ export async function processTeacherChange(
   timeSlot: string,
   dayPackage: string,
   changeReason?: string,
-  createdBy?: string
+  createdBy?: string,
+  schoolId?: string
 ): Promise<{ success: boolean; message: string }> {
   try {
     const changeDate = new Date();
@@ -403,8 +404,11 @@ export async function processTeacherChange(
 
     // 🔧 CRITICAL FIX: Calculate daily rate based on actual working days in the month
     // Get Sunday inclusion setting
-    const sundaySetting = await prisma.setting.findUnique({
-      where: { key: "include_sundays_in_salary" },
+    const sundaySetting = await prisma.setting.findFirst({
+      where: {
+        key: "include_sundays_in_salary",
+        schoolId: schoolId || null
+      },
       select: { value: true },
     });
     const includeSundays = sundaySetting?.value === "true";

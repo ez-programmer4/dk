@@ -650,6 +650,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
             teacherId,
             deductionType: "lateness",
             deductionDate: { gte: startDate, lte: endDate },
+            schoolId: school.id,
           },
         });
 

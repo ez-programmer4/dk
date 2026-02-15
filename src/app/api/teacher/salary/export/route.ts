@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get salary data
-    const calculator = await createSalaryCalculator();
+    const calculator = await createSalaryCalculator(session.schoolId);
     const salary = await calculator.calculateTeacherSalary(teacherId, from, to);
     const details = await calculator.getTeacherSalaryDetails(
       teacherId,

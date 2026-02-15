@@ -88,8 +88,11 @@ export async function POST(
 
       if (packageSalary) {
         // Get Sunday inclusion setting
-        const workingDaysConfig = await prisma.setting.findUnique({
-          where: { key: "include_sundays_in_salary" },
+        const workingDaysConfig = await prisma.setting.findFirst({
+          where: {
+            key: "include_sundays_in_salary",
+            schoolId: school.id,
+          },
         });
         const includeSundays = workingDaysConfig?.value === "true" || false;
 

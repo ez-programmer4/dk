@@ -158,6 +158,11 @@ export default function AdminLatenessAnalyticsPage() {
   // Fetch controllers and base deduction amount
   useEffect(() => {
     const fetchControllers = async () => {
+      // Don't fetch if user is not authenticated
+      if (status !== "authenticated" || !session?.user) {
+        return;
+      }
+
       try {
         const res = await fetch("/api/control-options", { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to fetch controllers");
@@ -184,7 +189,7 @@ export default function AdminLatenessAnalyticsPage() {
 
     fetchControllers();
     fetchBaseDeduction();
-  }, []);
+  }, [status, session, schoolSlug]);
 
   // Fetch analytics
   useEffect(() => {

@@ -160,6 +160,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
               teacherId: { in: teacherIdsArray },
               deductionType: "absence",
               deductionDate: { gte: startDate, lte: endDate },
+              schoolId: school.id,
             },
           });
 
@@ -192,6 +193,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
             originalAmount: record.deductionApplied,
             reason,
             adminId,
+            schoolId: school.id,
           }));
 
           // Create waivers one by one to ensure they're created and track them
@@ -404,6 +406,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
               teacherId,
               deductionType: "absence",
               deductionDate: { gte: startDate, lte: endDate },
+              schoolId: school.id,
             },
           });
 
@@ -963,6 +966,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
                 originalAmount: dailyDeduction, // Total for all students on this date
                 reason: `${reason} | ${affectedStudents.length} student(s): ${studentDetails}`,
                 adminId,
+                schoolId: school.id,
               });
               totalAmountWaived += dailyDeduction;
             }
@@ -1015,6 +1019,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
                       gte: searchStart,
                       lte: searchEnd,
                     },
+                    schoolId: school.id,
                   },
                 });
 
@@ -1113,6 +1118,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
                   teacherId,
                   deductionType: "absence",
                   deductionDate: { gte: startDate, lte: endDate },
+                  schoolId: school.id,
                   createdAt: {
                     gte: new Date(Date.now() - 60000), // Created in last minute
                   },
@@ -1237,6 +1243,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
                   teacherId,
                   deductionType: "lateness",
                   deductionDate: date,
+                  schoolId: school.id,
                 },
               });
 
@@ -1343,6 +1350,7 @@ export async function POST(req: NextRequest, { params }: { params: { schoolSlug:
                     500
                   ),
                   adminId,
+                  schoolId: school.id,
                 });
                 totalAmountWaived += dailyTotalDeduction;
               }

@@ -70,7 +70,7 @@ export async function GET(req: NextRequest, { params }: { params: { schoolSlug: 
       );
     }
 
-    const calculator = await createSalaryCalculator();
+    const calculator = await createSalaryCalculator(school.id);
     const salaries = await calculator.calculateAllTeacherSalaries(from, to);
 
     // Calculate statistics

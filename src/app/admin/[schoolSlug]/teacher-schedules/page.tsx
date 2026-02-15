@@ -102,11 +102,18 @@ export default function AdminAttendanceList() {
   }, [selectedController]);
 
   const fetchControllers = async () => {
+    // Don't fetch if user is not authenticated
+    if (status !== "authenticated" || !session?.user) {
+      return;
+    }
+
     try {
       const response = await fetch("/api/control-options");
       if (response.ok) {
         const data = await response.json();
         setControllers(data.controllers || []);
+      } else {
+        console.error("Failed to fetch controllers:", response.status, response.statusText);
       }
     } catch (error) {
       console.error("Error fetching controllers:", error);

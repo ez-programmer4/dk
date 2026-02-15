@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     // Validate admin session
     const token = await getToken({
@@ -29,16 +29,26 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true },
+    });
+
+    if (!school) {
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
+    }
+
     // Get current settings
     const [salaryVisibility, customMessage, adminContact] = await Promise.all([
-      prisma.setting.findUnique({
-        where: { key: "teacher_salary_visible" },
+      prisma.setting.findFirst({
+        where: { key: "teacher_salary_visible", schoolId: school.id },
       }),
-      prisma.setting.findUnique({
-        where: { key: "teacher_salary_hidden_message" },
+      prisma.setting.findFirst({
+        where: { key: "teacher_salary_hidden_message", schoolId: school.id },
       }),
-      prisma.setting.findUnique({
-        where: { key: "admin_contact_info" },
+      prisma.setting.findFirst({
+        where: { key: "admin_contact_info", schoolId: school.id },
       }),
     ]);
 
@@ -61,7 +71,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   try {
     // Validate admin session
     const token = await getToken({
@@ -83,6 +93,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get school information
+    const school = await prisma.school.findUnique({
+      where: { slug: params.schoolSlug },
+      select: { id: true },
+    });
+
+    if (!school) {
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
+    }
+
     const { showTeacherSalary, customMessage, adminContact } = await req.json();
 
     // Update settings
@@ -91,10 +111,16 @@ export async function POST(req: NextRequest) {
     if (typeof showTeacherSalary === "boolean") {
       updates.push(
         prisma.setting.upsert({
-          where: { key: "teacher_salary_visible" },
+          where: {
+            key_schoolId: {
+              key: "teacher_salary_visible",
+              schoolId: school.id,
+            }
+          },
           update: { value: showTeacherSalary.toString() },
           create: {
             key: "teacher_salary_visible",
+            schoolId: school.id,
             value: showTeacherSalary.toString(),
             updatedAt: new Date(),
           },
@@ -105,10 +131,16 @@ export async function POST(req: NextRequest) {
     if (customMessage) {
       updates.push(
         prisma.setting.upsert({
-          where: { key: "teacher_salary_hidden_message" },
+          where: {
+            key_schoolId: {
+              key: "teacher_salary_hidden_message",
+              schoolId: school.id,
+            }
+          },
           update: { value: customMessage },
           create: {
             key: "teacher_salary_hidden_message",
+            schoolId: school.id,
             value: customMessage,
             updatedAt: new Date(),
           },
@@ -119,10 +151,16 @@ export async function POST(req: NextRequest) {
     if (adminContact) {
       updates.push(
         prisma.setting.upsert({
-          where: { key: "admin_contact_info" },
+          where: {
+            key_schoolId: {
+              key: "admin_contact_info",
+              schoolId: school.id,
+            }
+          },
           update: { value: adminContact },
           create: {
             key: "admin_contact_info",
+            schoolId: school.id,
             value: adminContact,
             updatedAt: new Date(),
           },
@@ -137,7 +175,7 @@ export async function POST(req: NextRequest) {
       const { createSalaryCalculator } = await import(
         "@/lib/salary-calculator"
       );
-      const calculator = await createSalaryCalculator();
+      const calculator = await createSalaryCalculator(school.id);
       calculator.clearCache();
     } catch (error) {
       console.warn("âڑ ï¸ڈ Failed to clear salary calculator cache:", error);

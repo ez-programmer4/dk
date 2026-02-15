@@ -197,7 +197,8 @@ export class SalaryCalculator {
       const teacherChangePeriods = await getTeacherChangePeriods(
         teacherId,
         fromDate,
-        toDate
+        toDate,
+        schoolId
       );
 
       // Get assignments (active + historical)
@@ -670,7 +671,8 @@ export class SalaryCalculator {
     const teacherChangePeriods = await getTeacherChangePeriods(
       teacherId,
       fromDate,
-      toDate
+      toDate,
+      schoolId
     );
 
     // Combine active assignments with historical periods

@@ -115,6 +115,18 @@ export default function RegistralDashboard() {
       router.push("/controller");
       return;
     }
+
+    // Check if registral is accessing their correct school
+    const userSchoolSlug = (session.user as any).schoolSlug || "darulkubra";
+    if (schoolSlug !== userSchoolSlug) {
+      console.log('Registral accessing wrong school, redirecting', {
+        requested: schoolSlug,
+        userSchool: userSchoolSlug
+      });
+      router.push(`/registral/${userSchoolSlug}/dashboard`);
+      return;
+    }
+
     setAuthChecked(true);
     fetchRegistrations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,6 +163,7 @@ export default function RegistralDashboard() {
 
       const sanitizedData = data.map((reg) => ({
         ...reg,
+        id: reg.wdt_ID, // Ensure id field is set from wdt_ID
         ustaz: reg.ustaz || "Not assigned",
         selectedTime: reg.selectedTime || "Not specified",
         isTrained: reg.isTrained || false, // Default to false if not present

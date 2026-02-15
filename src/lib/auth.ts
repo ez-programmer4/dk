@@ -90,7 +90,7 @@ export const authOptions: NextAuthOptions = {
             if (!user) {
               return null;
             }
-            if (!user.password) {
+            if (!user.password || user.password.trim() === '') {
               return null;
             }
 
@@ -267,7 +267,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token) {
         // Check if the user's school is still active
-        if (token.schoolSlug && (token.role === 'admin' || token.role === 'teacher')) {
+        if (token.schoolSlug && typeof token.schoolSlug === 'string' && (token.role === 'admin' || token.role === 'teacher')) {
           try {
             const school = await prisma.school.findUnique({
               where: { slug: token.schoolSlug },
@@ -307,17 +307,17 @@ export const authOptions: NextAuthOptions = {
           schoolName: token.schoolName
         });
         if (token.schoolId) {
-          session.user.schoolId = token.schoolId as string;
+          (session.user as any).schoolId = token.schoolId;
         }
         if (token.schoolSlug) {
-          session.user.schoolSlug = token.schoolSlug as string;
+          (session.user as any).schoolSlug = token.schoolSlug;
           console.log('Session Callback: schoolSlug set to:', token.schoolSlug);
         }
         if (token.schoolName) {
-          session.user.schoolName = token.schoolName as string;
+          (session.user as any).schoolName = token.schoolName;
         }
         if (token.hasGlobalAccess) {
-          session.user.hasGlobalAccess = token.hasGlobalAccess;
+          (session.user as any).hasGlobalAccess = token.hasGlobalAccess;
         }
       }
       return session;
@@ -339,62 +339,78 @@ export const authOptions: NextAuthOptions = {
             // Fetch admin with school info
             if (user.id && user.id.trim() !== '') {
               console.log('JWT Callback: Fetching admin with ID:', user.id);
-              const admin = await prisma.admin.findUnique({
-                where: { id: user.id },
-                include: { school: true }
-              });
-              console.log('JWT Callback: Admin found:', admin ? { id: admin.id, schoolId: admin.schoolId } : 'null');
-              if (admin?.school) {
-                schoolInfo = {
-                  schoolId: admin.school.id,
-                  schoolSlug: admin.school.slug,
-                  schoolName: admin.school.name
-                };
-                console.log('JWT Callback: School info set:', schoolInfo);
-              } else {
-                console.log('JWT Callback: No school found for admin');
+              try {
+                const admin = await prisma.admin.findUnique({
+                  where: { id: user.id },
+                  include: { school: true }
+                });
+                console.log('JWT Callback: Admin found:', admin ? { id: admin.id, schoolId: admin.schoolId } : 'null');
+                if (admin?.school) {
+                  schoolInfo = {
+                    schoolId: admin.school.id,
+                    schoolSlug: admin.school.slug,
+                    schoolName: admin.school.name
+                  };
+                  console.log('JWT Callback: School info set:', schoolInfo);
+                } else {
+                  console.log('JWT Callback: No school found for admin');
+                }
+              } catch (error) {
+                console.error('Error fetching admin school info:', error);
               }
             } else {
               console.log('JWT Callback: Invalid user ID:', user.id);
             }
           } else if (user.role === 'teacher') {
             // Fetch teacher with school info
-            const teacher = await prisma.wpos_wpdatatable_24.findUnique({
-              where: { ustazid: user.id },
-              include: { school: true }
-            });
-            if (teacher?.school) {
-              schoolInfo = {
-                schoolId: teacher.school.id,
-                schoolSlug: teacher.school.slug,
-                schoolName: teacher.school.name
-              };
+            try {
+              const teacher = await prisma.wpos_wpdatatable_24.findUnique({
+                where: { ustazid: user.id },
+                include: { school: true }
+              });
+              if (teacher?.school) {
+                schoolInfo = {
+                  schoolId: teacher.school.id,
+                  schoolSlug: teacher.school.slug,
+                  schoolName: teacher.school.name
+                };
+              }
+            } catch (error) {
+              console.error('Error fetching teacher school info:', error);
             }
           } else if (user.role === 'controller') {
             // Fetch controller with school info
-            const controller = await prisma.wpos_wpdatatable_28.findUnique({
-              where: { wdt_ID: parseInt(user.id) },
-              include: { school: true }
-            });
-            if (controller?.school) {
-              schoolInfo = {
-                schoolId: controller.school.id,
-                schoolSlug: controller.school.slug,
-                schoolName: controller.school.name
-              };
+            try {
+              const controller = await prisma.wpos_wpdatatable_28.findUnique({
+                where: { wdt_ID: parseInt(user.id) },
+                include: { school: true }
+              });
+              if (controller?.school) {
+                schoolInfo = {
+                  schoolId: controller.school.id,
+                  schoolSlug: controller.school.slug,
+                  schoolName: controller.school.name
+                };
+              }
+            } catch (error) {
+              console.error('Error fetching controller school info:', error);
             }
           } else if (user.role === 'registral') {
             // Fetch registral with school info
-            const registral = await prisma.wpos_wpdatatable_33.findUnique({
-              where: { wdt_ID: parseInt(user.id) },
-              include: { school: true }
-            });
-            if (registral?.school) {
-              schoolInfo = {
-                schoolId: registral.school.id,
-                schoolSlug: registral.school.slug,
-                schoolName: registral.school.name
-              };
+            try {
+              const registral = await prisma.wpos_wpdatatable_33.findUnique({
+                where: { wdt_ID: parseInt(user.id) },
+                include: { school: true }
+              });
+              if (registral?.school) {
+                schoolInfo = {
+                  schoolId: registral.school.id,
+                  schoolSlug: registral.school.slug,
+                  schoolName: registral.school.name
+                };
+              }
+            } catch (error) {
+              console.error('Error fetching registral school info:', error);
             }
           }
 

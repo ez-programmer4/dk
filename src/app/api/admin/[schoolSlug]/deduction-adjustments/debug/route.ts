@@ -12,10 +12,23 @@ export const revalidate = 0;
 
 const TZ = "Asia/Riyadh";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest, { params }: { params: { schoolSlug: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user || (session.user as { role: string }).role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  // Get school information
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, name: true },
+  });
+
+  if (!school) {
+    return NextResponse.json(
+      { error: "School not found" },
+      { status: 404 }
+    );
   }
 
   try {
@@ -204,6 +217,7 @@ export async function POST(req: NextRequest) {
             teacherId,
             deductionType: "absence",
             deductionDate: { gte: startDate, lte: endDate },
+            schoolId: school.id,
           },
         });
 
@@ -240,8 +254,8 @@ export async function POST(req: NextRequest) {
         }
 
         // Get working days configuration
-        const workingDaysConfig = await prisma.setting.findUnique({
-          where: { key: "include_sundays_in_salary" },
+        const workingDaysConfig = await prisma.setting.findFirst({
+          where: { key: "include_sundays_in_salary", schoolId: school.id },
         });
         const includeSundays = workingDaysConfig?.value === "true" || false;
 
